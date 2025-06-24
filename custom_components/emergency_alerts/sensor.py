@@ -1,11 +1,9 @@
-from homeassistant.helpers.dispatcher import (
-    async_dispatcher_connect,
-    async_dispatcher_send,
-)
 from homeassistant.components.sensor import SensorEntity
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback, HomeAssistant
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
 from .const import DOMAIN
 
 
@@ -18,9 +16,7 @@ async def async_setup_entry(
 
     # Create group-specific summary sensors
     groups = ["security", "safety", "power", "lights", "environment", "other"]
-    group_sensors = [
-        EmergencyGroupSummarySensor(hass, group) for group in groups
-    ]
+    group_sensors = [EmergencyGroupSummarySensor(hass, group) for group in groups]
     async_add_entities(group_sensors, update_before_add=True)
 
 
@@ -113,4 +109,4 @@ class EmergencyGroupSummarySensor(SensorEntity):
         entities = self.hass.data.get(DOMAIN, {}).get("entities", [])
         self._active_alerts = [
             e.entity_id for e in entities if e.is_on and e._group == self._group
-        ] 
+        ]

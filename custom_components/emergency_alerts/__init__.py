@@ -3,6 +3,7 @@ from homeassistant.core import HomeAssistant
 
 DOMAIN = "emergency_alerts"
 
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     hass.async_create_task(
         hass.config_entries.async_forward_entry_setup(entry, "binary_sensor")
@@ -21,7 +22,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     hass.services.async_register(DOMAIN, "acknowledge", handle_acknowledge)
     return True
 
+
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     await hass.config_entries.async_forward_entry_unload(entry, "binary_sensor")
     await hass.config_entries.async_forward_entry_unload(entry, "sensor")
-    return True 
+    return True

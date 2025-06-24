@@ -1,7 +1,5 @@
 """Test configuration for Emergency Alerts integration."""
 import pytest
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.emergency_alerts.const import DOMAIN
@@ -40,7 +38,9 @@ def mock_template_config_entry():
             "template": "{{ states('sensor.temperature') | float > 30 }}",
             "severity": "critical",
             "group": "environment",
-            "on_triggered": [{"service": "notify.notify", "data": {"message": "High temp!"}}],
+            "on_triggered": [
+                {"service": "notify.notify", "data": {"message": "High temp!"}}
+            ],
             "on_cleared": [],
             "on_escalated": [],
         },
@@ -58,8 +58,16 @@ def mock_logical_config_entry():
             "name": "Logical Alert",
             "trigger_type": "logical",
             "logical_conditions": [
-                {"type": "simple", "entity_id": "binary_sensor.door", "trigger_state": "on"},
-                {"type": "simple", "entity_id": "binary_sensor.alarm", "trigger_state": "on"},
+                {
+                    "type": "simple",
+                    "entity_id": "binary_sensor.door",
+                    "trigger_state": "on",
+                },
+                {
+                    "type": "simple",
+                    "entity_id": "binary_sensor.alarm",
+                    "trigger_state": "on",
+                },
             ],
             "severity": "critical",
             "group": "security",
@@ -68,4 +76,4 @@ def mock_logical_config_entry():
             "on_escalated": [],
         },
         unique_id="test_logical_alert_unique_id",
-    ) 
+    )

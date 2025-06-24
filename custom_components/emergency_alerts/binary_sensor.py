@@ -1,20 +1,15 @@
-from homeassistant.components.binary_sensor import BinarySensorEntity
-from homeassistant.helpers.event import (
-    async_track_state_change_event,
-    async_call_later,
-)
-from homeassistant.core import callback
-from homeassistant.const import STATE_UNKNOWN, STATE_UNAVAILABLE
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-
-from datetime import datetime, timedelta
-from homeassistant.helpers.template import Template
-from homeassistant.helpers.dispatcher import async_dispatcher_send
-from .const import DOMAIN
-
 import logging
+from datetime import datetime
+
+from homeassistant.components.binary_sensor import BinarySensorEntity
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import callback, HomeAssistant
+from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.event import async_call_later, async_track_state_change_event
+from homeassistant.helpers.template import Template
+
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -127,9 +122,7 @@ class EmergencyBinarySensor(BinarySensorEntity):
             )
         else:
             # Listen to all state changes for template triggers
-            self._unsub = async_track_state_change_event(
-                self.hass, None, state_change
-            )
+            self._unsub = async_track_state_change_event(self.hass, None, state_change)
         # Set initial state
         self._evaluate_trigger()
 
@@ -168,7 +161,6 @@ class EmergencyBinarySensor(BinarySensorEntity):
 
     @callback
     def _evaluate_trigger(self):
-        prev_state = self._is_on
         triggered = False
         if (
             self._trigger_type == "simple"
@@ -191,16 +183,12 @@ class EmergencyBinarySensor(BinarySensorEntity):
             for cond in self._logical_conditions:
                 if cond.get("type") == "simple":
                     state = self.hass.states.get(cond["entity_id"])
-                    results.append(
-                        state and state.state == cond["trigger_state"]
-                    )
+                    results.append(state and state.state == cond["trigger_state"])
                 elif cond.get("type") == "template":
                     tpl = Template(cond["template"], self.hass)
                     try:
                         rendered = tpl.async_render()
-                        results.append(
-                            rendered in (True, "True", "true", 1, "1")
-                        )
+                        results.append(rendered in (True, "True", "true", 1, "1"))
                     except Exception as e:
                         _LOGGER.error(f"Logical template error: {e}")
                         results.append(False)
@@ -275,4 +263,4 @@ class EmergencyBinarySensor(BinarySensorEntity):
         self._acknowledged = True
         self._cancel_escalation_timer()
         self.async_write_ha_state()
-        async_dispatcher_send(self.hass, SUMMARY_UPDATE_SIGNAL) 
+        async_dispatcher_send(self.hass, SUMMARY_UPDATE_SIGNAL)

@@ -1,1 +1,1 @@
-# helpers.py stub for shared logic 
+# helpers.py stub for shared logic

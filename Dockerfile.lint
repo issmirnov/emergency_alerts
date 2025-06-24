@@ -1,0 +1,66 @@
+# Dockerfile for Emergency Alerts Integration Linting and Formatting
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python linting and formatting tools
+RUN pip install --no-cache-dir \
+    black==23.12.1 \
+    flake8==7.0.0 \
+    isort==5.13.2 \
+    mypy==1.8.0
+
+# Copy source code
+COPY custom_components/ ./custom_components/
+COPY pyproject.toml ./
+
+# Create entrypoint script
+RUN echo '#!/bin/bash\n\
+set -e\n\
+\n\
+echo "🔍 Running Emergency Alerts Integration Linting Suite"\n\
+echo "=" * 50\n\
+\n\
+echo "📋 Checking Python formatting with Black..."\n\
+black --check --diff custom_components/emergency_alerts/\n\
+if [ $? -eq 0 ]; then\n\
+    echo "✅ Black formatting passed"\n\
+else\n\
+    echo "❌ Black formatting failed"\n\
+    echo "💡 Run: docker run --rm -v $(pwd):/app emergency-alerts-lint black custom_components/emergency_alerts/"\n\
+    exit 1\n\
+fi\n\
+\n\
+echo "📋 Checking Python imports with isort..."\n\
+isort --check-only --diff custom_components/emergency_alerts/\n\
+if [ $? -eq 0 ]; then\n\
+    echo "✅ isort passed"\n\
+else\n\
+    echo "❌ isort failed"\n\
+    echo "💡 Run: docker run --rm -v $(pwd):/app emergency-alerts-lint isort custom_components/emergency_alerts/"\n\
+    exit 1\n\
+fi\n\
+\n\
+echo "📋 Linting Python with flake8..."\n\
+flake8 custom_components/emergency_alerts/ --max-line-length=88 --extend-ignore=E203,W503\n\
+if [ $? -eq 0 ]; then\n\
+    echo "✅ flake8 passed"\n\
+else\n\
+    echo "❌ flake8 failed"\n\
+    exit 1\n\
+fi\n\
+\n\
+echo "📋 Type checking with mypy..."\n\
+mypy custom_components/emergency_alerts/ --ignore-missing-imports || echo "⚠️  mypy issues found (non-blocking)"\n\
+\n\
+echo "🎉 All linting checks passed!"\n\
+' > /entrypoint.sh && chmod +x /entrypoint.sh
+
+# Default command
+ENTRYPOINT ["/entrypoint.sh"] 

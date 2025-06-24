@@ -3,6 +3,9 @@ __pycache__/
 *.pyo
 .env
 .venv
+venv/
+lint_venv/
+temp_venv/
 .idea/
 .vscode/
 .DS_Store 
