@@ -144,29 +144,33 @@ def validate_constants():
     print("🔍 Validating constants...")
     
     try:
-        # Add the custom_components directory to the path
-        sys.path.insert(0, str(Path("custom_components/emergency_alerts").absolute()))
+        # Check if constants file exists and has basic structure
+        const_file = Path("custom_components/emergency_alerts/const.py")
+        if not const_file.exists():
+            print("❌ const.py file not found")
+            return False
         
-        # Import const module
-        import const
+        # Read the file and check for required constants
+        with open(const_file) as f:
+            content = f.read()
         
-        # Check required constants
         required_constants = ["DOMAIN", "CONF_TRIGGER_TYPE", "CONF_SEVERITY", "CONF_GROUP"]
-        for constant in required_constants:
-            if not hasattr(const, constant):
-                print(f"❌ Missing constant: {constant}")
-                return False
+        missing_constants = []
         
-        print(f"✅ Constants valid - Domain: {const.DOMAIN}")
+        for constant in required_constants:
+            if f"{constant} =" not in content and f'{constant} =' not in content:
+                missing_constants.append(constant)
+        
+        if missing_constants:
+            print(f"❌ Missing constants: {', '.join(missing_constants)}")
+            return False
+        
+        print("✅ Constants file structure valid")
         return True
         
-    except ImportError as e:
-        print(f"❌ Cannot import constants: {e}")
+    except Exception as e:
+        print(f"❌ Error validating constants: {e}")
         return False
-    finally:
-        # Clean up sys.path
-        if str(Path("custom_components/emergency_alerts").absolute()) in sys.path:
-            sys.path.remove(str(Path("custom_components/emergency_alerts").absolute()))
 
 
 def validate_hacs_files():

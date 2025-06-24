@@ -3,8 +3,11 @@
   "name": "Emergency Alerts",
   "version": "0.1.0",
   "documentation": "https://github.com/issmirnov/emergency_alerts",
+  "issue_tracker": "https://github.com/issmirnov/emergency_alerts/issues",
   "requirements": [],
   "dependencies": [],
   "codeowners": ["@issmirnov"],
-  "config_flow": true
+  "config_flow": true,
+  "integration_type": "helper",
+  "iot_class": "calculated"
 } 
