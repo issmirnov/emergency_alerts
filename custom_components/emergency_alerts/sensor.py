@@ -1,103 +1,116 @@
+from homeassistant.helpers.dispatcher import (
+    async_dispatcher_connect,
+    async_dispatcher_send,
+)
 from homeassistant.components.sensor import SensorEntity
-from homeassistant.helpers.dispatcher import async_dispatcher_connect, async_dispatcher_send
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant, callback
 from .const import DOMAIN
 
-SUMMARY_UPDATE_SIGNAL = "emergency_alerts_summary_update"
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
-    # Only add one global summary sensor per HA instance
-    if not hass.data[DOMAIN].get("summary_sensor_added"):
-        global_sensor = EmergencyAlertsSummarySensor(hass)
-        async_add_entities([global_sensor], update_before_add=True)
-        hass.data[DOMAIN]["summary_sensor_added"] = True
-    # Add group summary sensors for each group present in config entries
-    groups = set()
-    for entity in hass.data[DOMAIN]["entities"]:
-        groups.add(entity._group)
-    group_sensors = [EmergencyAlertsGroupSummarySensor(hass, group) for group in groups]
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+):
+    # Create global summary sensor
+    global_sensor = EmergencyGlobalSummarySensor(hass)
+    async_add_entities([global_sensor], update_before_add=True)
+
+    # Create group-specific summary sensors
+    groups = ["security", "safety", "power", "lights", "environment", "other"]
+    group_sensors = [
+        EmergencyGroupSummarySensor(hass, group) for group in groups
+    ]
     async_add_entities(group_sensors, update_before_add=True)
 
-class EmergencyAlertsSummarySensor(SensorEntity):
-    _attr_name = "Emergency Alerts Active"
-    _attr_unique_id = "emergency_alerts_active_summary"
-    _attr_icon = "mdi:alert"
+
+class EmergencyGlobalSummarySensor(SensorEntity):
+    _attr_should_poll = False
 
     def __init__(self, hass):
         self.hass = hass
+        self._attr_name = "Emergency Alerts Summary"
+        self._attr_unique_id = "emergency_alerts_global_summary"
+        self._attr_icon = "mdi:alert-circle"
         self._active_alerts = []
-        self._groups = {}
-        self._unsubscribe = None
+        self._unsub = None
 
     async def async_added_to_hass(self):
-        self._unsubscribe = async_dispatcher_connect(
-            self.hass, SUMMARY_UPDATE_SIGNAL, self.async_write_ha_state
+        from .binary_sensor import SUMMARY_UPDATE_SIGNAL
+
+        @callback
+        def update_summary():
+            self._update_active_alerts()
+            self.async_write_ha_state()
+
+        self._unsub = async_dispatcher_connect(
+            self.hass, SUMMARY_UPDATE_SIGNAL, update_summary
         )
-        self._update_state()
+        self._update_active_alerts()
 
     async def async_will_remove_from_hass(self):
-        if self._unsubscribe:
-            self._unsubscribe()
-            self._unsubscribe = None
+        if self._unsub:
+            self._unsub()
 
     @property
-    def state(self):
-        self._update_state()
+    def native_value(self):
         return len(self._active_alerts)
 
     @property
     def extra_state_attributes(self):
         return {
-            "active_count": len(self._active_alerts),
             "active_alerts": self._active_alerts,
-            "groups": self._groups,
+            "alert_count": len(self._active_alerts),
         }
 
-    def _update_state(self):
-        entities = self.hass.data[DOMAIN]["entities"]
+    def _update_active_alerts(self):
+        entities = self.hass.data.get(DOMAIN, {}).get("entities", [])
         self._active_alerts = [e.entity_id for e in entities if e.is_on]
-        group_counts = {}
-        for e in entities:
-            if e.is_on:
-                group_counts[e._group] = group_counts.get(e._group, 0) + 1
-        self._groups = group_counts
 
-class EmergencyAlertsGroupSummarySensor(SensorEntity):
+
+class EmergencyGroupSummarySensor(SensorEntity):
+    _attr_should_poll = False
+
     def __init__(self, hass, group):
         self.hass = hass
         self._group = group
-        self._attr_name = f"Emergency Alerts {group.title()} Active"
-        self._attr_unique_id = f"emergency_alerts_{group}_active_summary"
-        self._attr_icon = "mdi:alert"
+        self._attr_name = f"Emergency Alerts {group.title()}"
+        self._attr_unique_id = f"emergency_alerts_{group}_summary"
+        self._attr_icon = "mdi:alert-circle"
         self._active_alerts = []
-        self._unsubscribe = None
+        self._unsub = None
 
     async def async_added_to_hass(self):
-        self._unsubscribe = async_dispatcher_connect(
-            self.hass, SUMMARY_UPDATE_SIGNAL, self.async_write_ha_state
+        from .binary_sensor import SUMMARY_UPDATE_SIGNAL
+
+        @callback
+        def update_summary():
+            self._update_active_alerts()
+            self.async_write_ha_state()
+
+        self._unsub = async_dispatcher_connect(
+            self.hass, SUMMARY_UPDATE_SIGNAL, update_summary
         )
-        self._update_state()
+        self._update_active_alerts()
 
     async def async_will_remove_from_hass(self):
-        if self._unsubscribe:
-            self._unsubscribe()
-            self._unsubscribe = None
+        if self._unsub:
+            self._unsub()
 
     @property
-    def state(self):
-        self._update_state()
+    def native_value(self):
         return len(self._active_alerts)
 
     @property
     def extra_state_attributes(self):
         return {
-            "active_count": len(self._active_alerts),
-            "active_alerts": self._active_alerts,
             "group": self._group,
+            "active_alerts": self._active_alerts,
+            "alert_count": len(self._active_alerts),
         }
 
-    def _update_state(self):
-        entities = self.hass.data[DOMAIN]["entities"]
-        self._active_alerts = [e.entity_id for e in entities if e.is_on and e._group == self._group] 
+    def _update_active_alerts(self):
+        entities = self.hass.data.get(DOMAIN, {}).get("entities", [])
+        self._active_alerts = [
+            e.entity_id for e in entities if e.is_on and e._group == self._group
+        ] 
