@@ -5,11 +5,27 @@ on:
     branches: [ main, master, develop ]
   pull_request:
     branches: [ main, master, develop ]
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
 
 jobs:
+  hacs-validation:
+    name: HACS Validation
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: HACS validation
+      uses: "hacs/action@main"
+      with:
+        category: "integration"
+
   backend-tests:
     name: Backend Tests
     runs-on: ubuntu-latest
+    needs: [hacs-validation]
     strategy:
       matrix:
         python-version: ["3.11"]
