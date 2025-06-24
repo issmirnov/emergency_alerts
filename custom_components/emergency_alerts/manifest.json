@@ -1,0 +1,10 @@
+{
+  "domain": "emergency_alerts",
+  "name": "Emergency Alerts",
+  "version": "0.1.0",
+  "documentation": "https://github.com/issmirnov/emergency_alerts",
+  "requirements": [],
+  "dependencies": [],
+  "codeowners": ["@issmirnov"],
+  "config_flow": true
+} 

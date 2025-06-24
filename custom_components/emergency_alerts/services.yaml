@@ -1,0 +1,11 @@
+acknowledge:
+  name: Acknowledge Emergency Alert
+  description: Mark an emergency alert as acknowledged.
+  fields:
+    entity_id:
+      name: Entity
+      description: The emergency alert entity to acknowledge
+      required: true
+      selector:
+        entity:
+          domain: binary_sensor 

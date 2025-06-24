@@ -1,0 +1,16 @@
+{
+  "title": "Emergency Alerts",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add Emergency Alert",
+        "description": "Configure a new emergency alert condition."
+      }
+    },
+    "name": "Alert Name",
+    "entity_id": "Entity to Monitor",
+    "trigger_state": "Trigger State",
+    "action_service": "Action Service (optional)",
+    "severity": "Severity (info, warning, critical)"
+  }
+} 

@@ -1,0 +1,46 @@
+[tool.black]
+line-length = 88
+target-version = ['py39']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+force_alphabetical_sort_within_sections = true
+combine_as_imports = true
+
+[tool.mypy]
+python_version = "3.9"
+show_error_codes = true
+follow_imports = "silent"
+ignore_missing_imports = true
+strict_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_unreachable = true
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = [
+    "custom_components/emergency_alerts/tests",
+]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = "-v --tb=short" 
