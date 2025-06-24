@@ -1,6 +1,7 @@
 # Emergency Alerts Integration
 
 [![Test Emergency Alerts Integration](https://github.com/issmirnov/emergency-alerts-integration/actions/workflows/test.yml/badge.svg)](https://github.com/issmirnov/emergency-alerts-integration/actions/workflows/test.yml)
+[![HACS Validation](https://github.com/issmirnov/emergency-alerts-integration/actions/workflows/test.yml/badge.svg?event=schedule)](https://github.com/issmirnov/emergency-alerts-integration/actions/workflows/test.yml)
 [![codecov](https://codecov.io/gh/issmirnov/emergency-alerts-integration/branch/main/graph/badge.svg)](https://codecov.io/gh/issmirnov/emergency-alerts-integration)
 
 A comprehensive Home Assistant custom integration for managing emergency alerts and critical notifications.
@@ -118,6 +119,16 @@ The integration maintains high test coverage:
 4. Add tests for new functionality
 5. Ensure all tests pass
 6. Submit a pull request
+
+## HACS Compliance
+
+This integration is designed to be fully HACS compliant:
+
+- ✅ Repository structure follows HACS requirements
+- ✅ Proper manifest.json with all required fields
+- ✅ HACS validation passes in CI/CD
+- ✅ GitHub topics configured for discoverability
+- ⚠️ **Brands Repository**: For full HACS compliance, the `emergency_alerts` domain needs to be added to the [Home Assistant Brands repository](https://github.com/home-assistant/brands). This is typically done after the integration gains community adoption.
 
 ## Architecture
 
