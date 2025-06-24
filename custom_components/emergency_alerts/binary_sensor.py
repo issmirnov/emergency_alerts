@@ -5,7 +5,7 @@ from homeassistant.const import STATE_UNKNOWN, STATE_UNAVAILABLE
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.typing import HomeAssistantType
+
 from datetime import datetime, timedelta
 from homeassistant.helpers.template import Template
 from homeassistant.helpers.dispatcher import async_dispatcher_send

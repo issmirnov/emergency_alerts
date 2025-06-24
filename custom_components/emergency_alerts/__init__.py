@@ -1,6 +1,5 @@
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_component import async_get_platforms
 
 DOMAIN = "emergency_alerts"
 
