@@ -1,8 +1,8 @@
 # Emergency Alerts Integration
 
-[![Test Emergency Alerts Integration](https://github.com/issmirnov/emergency-alerts-integration/actions/workflows/test.yml/badge.svg)](https://github.com/issmirnov/emergency-alerts-integration/actions/workflows/test.yml)
-[![HACS Validation](https://github.com/issmirnov/emergency-alerts-integration/actions/workflows/test.yml/badge.svg?event=schedule)](https://github.com/issmirnov/emergency-alerts-integration/actions/workflows/test.yml)
-[![codecov](https://codecov.io/gh/issmirnov/emergency-alerts-integration/branch/main/graph/badge.svg)](https://codecov.io/gh/issmirnov/emergency-alerts-integration)
+[![Test Emergency Alerts Integration](https://github.com/issmirnov/emergency_alerts/actions/workflows/test.yml/badge.svg)](https://github.com/issmirnov/emergency_alerts/actions/workflows/test.yml)
+[![HACS Validation](https://github.com/issmirnov/emergency_alerts/actions/workflows/test.yml/badge.svg?event=schedule)](https://github.com/issmirnov/emergency_alerts/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/issmirnov/emergency_alerts/branch/main/graph/badge.svg)](https://codecov.io/gh/issmirnov/emergency-alerts-integration)
 
 A comprehensive Home Assistant custom integration for managing emergency alerts and critical notifications.
 
@@ -146,4 +146,4 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 - [GitHub Issues](https://github.com/issmirnov/emergency-alerts-integration/issues)
 - [Home Assistant Community Forum](https://community.home-assistant.io/)
-- [GitHub Discussions](https://github.com/issmirnov/emergency-alerts-integration/discussions) 
+- [GitHub Discussions](https://github.com/issmirnov/emergency-alerts-integration/discussions)
