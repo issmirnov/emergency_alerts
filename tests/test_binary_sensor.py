@@ -2,6 +2,7 @@
 
 from unittest.mock import AsyncMock, patch
 
+import pytest
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -10,7 +11,7 @@ from custom_components.emergency_alerts.binary_sensor import (
     EmergencyBinarySensor,
 )
 
-
+@pytest.mark.asyncio
 async def test_simple_trigger_setup(
     hass: HomeAssistant, mock_config_entry: MockConfigEntry
 ):
@@ -37,7 +38,7 @@ async def test_simple_trigger_setup(
     assert sensor._severity == "warning"
     assert sensor._group == "security"
 
-
+@pytest.mark.asyncio
 async def test_simple_trigger_evaluation(hass: HomeAssistant):
     """Test simple trigger evaluation."""
     sensor = EmergencyBinarySensor(
@@ -70,7 +71,7 @@ async def test_simple_trigger_evaluation(hass: HomeAssistant):
     assert sensor.is_on is False
     assert sensor._already_triggered is False
 
-
+@pytest.mark.asyncio
 async def test_template_trigger_evaluation(hass: HomeAssistant):
     """Test template trigger evaluation."""
     sensor = EmergencyBinarySensor(
@@ -94,7 +95,7 @@ async def test_template_trigger_evaluation(hass: HomeAssistant):
     sensor._evaluate_trigger()
     assert sensor.is_on is True
 
-
+@pytest.mark.asyncio
 async def test_logical_trigger_evaluation(hass: HomeAssistant):
     """Test logical (AND) trigger evaluation."""
     sensor = EmergencyBinarySensor(
@@ -135,7 +136,7 @@ async def test_logical_trigger_evaluation(hass: HomeAssistant):
     sensor._evaluate_trigger()
     assert sensor.is_on is True
 
-
+@pytest.mark.asyncio
 async def test_acknowledgment(hass: HomeAssistant):
     """Test alert acknowledgment."""
     sensor = EmergencyBinarySensor(
@@ -159,7 +160,7 @@ async def test_acknowledgment(hass: HomeAssistant):
     assert sensor._acknowledged is True
     assert sensor.is_on is False  # is_on should be False when acknowledged
 
-
+@pytest.mark.asyncio
 async def test_action_calls(hass: HomeAssistant):
     """Test that actions are called at appropriate times."""
     on_triggered = [
@@ -200,7 +201,7 @@ async def test_action_calls(hass: HomeAssistant):
             "notify", "notify", {"message": "Alert cleared!"}, blocking=False
         )
 
-
+@pytest.mark.asyncio
 async def test_extra_state_attributes(hass: HomeAssistant):
     """Test that extra state attributes are properly exposed."""
     sensor = EmergencyBinarySensor(

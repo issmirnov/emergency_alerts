@@ -1,12 +1,13 @@
 """Test the Emergency Alerts integration setup."""
 
+import pytest
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.emergency_alerts import async_setup_entry, async_unload_entry
 from custom_components.emergency_alerts.const import DOMAIN
 
-
+@pytest.mark.asyncio
 async def test_setup_entry(hass: HomeAssistant, mock_config_entry: MockConfigEntry):
     """Test setting up a config entry."""
     mock_config_entry.add_to_hass(hass)
@@ -21,7 +22,7 @@ async def test_setup_entry(hass: HomeAssistant, mock_config_entry: MockConfigEnt
     # Check that platforms are forwarded
     assert len(hass.config_entries.async_forward_entry_setups.call_args_list) >= 2
 
-
+@pytest.mark.asyncio
 async def test_unload_entry(hass: HomeAssistant, mock_config_entry: MockConfigEntry):
     """Test unloading a config entry."""
     mock_config_entry.add_to_hass(hass)
@@ -33,7 +34,7 @@ async def test_unload_entry(hass: HomeAssistant, mock_config_entry: MockConfigEn
     result = await async_unload_entry(hass, mock_config_entry)
     assert result is True
 
-
+@pytest.mark.asyncio
 async def test_multiple_config_entries(
     hass: HomeAssistant, mock_config_entry: MockConfigEntry
 ):

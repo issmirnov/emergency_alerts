@@ -25,7 +25,8 @@ def mock_entities():
         MockEntity("binary_sensor.alert4", True, "security"),
     ]
 
-def test_global_summary_sensor_counts_active_alerts(hass: HomeAssistant, mock_entities):
+@pytest.mark.asyncio
+async def test_global_summary_sensor_counts_active_alerts(hass: HomeAssistant, mock_entities):
     hass.data[DOMAIN] = {"entities": mock_entities}
     sensor = EmergencyGlobalSummarySensor(hass)
     sensor._update_active_alerts()
@@ -37,7 +38,8 @@ def test_global_summary_sensor_counts_active_alerts(hass: HomeAssistant, mock_en
     }
     assert sensor.extra_state_attributes["alert_count"] == 3
 
-def test_group_summary_sensor_counts_group_alerts(hass: HomeAssistant, mock_entities):
+@pytest.mark.asyncio
+async def test_group_summary_sensor_counts_group_alerts(hass: HomeAssistant, mock_entities):
     hass.data[DOMAIN] = {"entities": mock_entities}
     sensor = EmergencyGroupSummarySensor(hass, "security")
     sensor._update_active_alerts()
@@ -49,7 +51,8 @@ def test_group_summary_sensor_counts_group_alerts(hass: HomeAssistant, mock_enti
     assert sensor.extra_state_attributes["group"] == "security"
     assert sensor.extra_state_attributes["alert_count"] == 2
 
-def test_group_summary_sensor_empty_group(hass: HomeAssistant, mock_entities):
+@pytest.mark.asyncio
+async def test_group_summary_sensor_empty_group(hass: HomeAssistant, mock_entities):
     hass.data[DOMAIN] = {"entities": mock_entities}
     sensor = EmergencyGroupSummarySensor(hass, "power")
     sensor._update_active_alerts()

@@ -9,3 +9,4 @@ temp_venv/
 .idea/
 .vscode/
 .DS_Store 
+!Dockerfile.test

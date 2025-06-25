@@ -1,0 +1,29 @@
+# Dockerfile for Emergency Alerts Integration Backend Testing
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy source code and test requirements
+COPY custom_components/ ./custom_components/
+COPY tests/ ./tests/
+COPY pyproject.toml ./
+COPY custom_components/emergency_alerts/test_requirements.txt ./test_requirements.txt
+
+# Install Python test dependencies
+RUN pip install --no-cache-dir -r test_requirements.txt
+
+# Create entrypoint script
+RUN echo '#!/bin/bash\n\
+set -e\n\
+\
+echo "🚦 Running Emergency Alerts Integration Backend Tests"\n\
+echo "=" * 50\n\
+python -m pytest tests/ -v --cov=custom_components/emergency_alerts --cov-report=term-missing\n\
+' > /entrypoint.sh && chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"] 

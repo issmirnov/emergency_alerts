@@ -1,3 +1,5 @@
+pytest_plugins = ["pytest_homeassistant_custom_component.plugin"]
+
 """Test configuration for Emergency Alerts integration."""
 
 import pytest
