@@ -1,6 +1,7 @@
+import logging
+
 import voluptuous as vol
 from homeassistant import config_entries
-import logging
 
 from .const import DOMAIN
 
@@ -19,7 +20,9 @@ class EmergencyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         try:
             if user_input is not None:
                 _LOGGER.info("Creating entry with user_input: %s", user_input)
-                return self.async_create_entry(title=user_input["name"], data=user_input)
+                return self.async_create_entry(
+                    title=user_input["name"], data=user_input
+                )
             _LOGGER.debug("Showing config form to user.")
             return self.async_show_form(
                 step_id="user",
