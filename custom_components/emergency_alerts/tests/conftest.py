@@ -1,8 +1,58 @@
 """Test configuration for Emergency Alerts integration."""
 
 import pytest
+from unittest.mock import Mock, AsyncMock
+from homeassistant.core import HomeAssistant
+
 from custom_components.emergency_alerts.const import DOMAIN
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+# Simple Home Assistant fixture for testing
+@pytest.fixture
+async def hass():
+    """Create a test Home Assistant instance."""
+    hass = Mock(spec=HomeAssistant)
+    hass.states = Mock()
+    hass.states.async_set = Mock()
+    hass.services = Mock()
+    hass.services.async_call = AsyncMock()
+    hass.services.has_service = Mock(return_value=True)
+    hass.config_entries = Mock()
+    hass.config_entries.async_forward_entry_setups = AsyncMock()
+    hass.data = {}
+    return hass
+
+# Mock entities fixture for sensor tests
+@pytest.fixture
+def mock_entities():
+    """Create mock entities for sensor testing."""
+    entity1 = Mock()
+    entity1.is_on = True
+    entity1._severity = "critical"
+    entity1._group = "security"
+    
+    entity2 = Mock()
+    entity2.is_on = True
+    entity2._severity = "warning"
+    entity2._group = "security"
+    
+    entity3 = Mock()
+    entity3.is_on = False
+    entity3._severity = "info"
+    entity3._group = "safety"
+    
+    return [entity1, entity2, entity3]
+
+# Create a simple MockConfigEntry that doesn't require the HA plugin
+class MockConfigEntry:
+    """Mock config entry for testing."""
+    
+    def __init__(self, domain: str, data: dict, title: str = "Test Entry", unique_id: str = None):
+        self.domain = domain
+        self.data = data
+        self.title = title
+        self.unique_id = unique_id or "test_unique_id"
+        self.entry_id = "test_entry_id"
+        self.state = "loaded"
 
 @pytest.fixture
 def mock_config_entry():

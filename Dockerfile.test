@@ -15,8 +15,8 @@ RUN apt-get update && apt-get install -y \
 
 # Copy integration files
 COPY custom_components/ ./custom_components/
-COPY tests/ ./tests/
 COPY pyproject.toml ./
+COPY pytest.ini ./
 COPY custom_components/emergency_alerts/test_requirements.txt ./test_requirements.txt
 
 # Install Python dependencies
@@ -25,6 +25,6 @@ RUN pip install --no-cache-dir -r test_requirements.txt
 ENV PYTHONPATH="/app:/usr/local/lib/python3.11/site-packages"
 
 # Create test runner script
-RUN echo '#!/bin/bash\nset -e\necho "🚦 Running Emergency Alerts Integration Backend Tests"\nls -la | tail -1\npytest --cov=custom_components.emergency_alerts --cov-report=term-missing tests/ -v' > /app/run_tests.sh && chmod +x /app/run_tests.sh
+RUN echo '#!/bin/bash\nset -e\necho "🚦 Running Emergency Alerts Integration Backend Tests"\necho "Working directory: $(pwd)"\necho "Test files:"\nfind custom_components/emergency_alerts/tests -name "*.py" -type f\npytest custom_components/emergency_alerts/tests/ --cov=custom_components.emergency_alerts --cov-report=term-missing -v' > /app/run_tests.sh && chmod +x /app/run_tests.sh
 
 ENTRYPOINT ["/app/run_tests.sh"] 

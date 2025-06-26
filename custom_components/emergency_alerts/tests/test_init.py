@@ -1,13 +1,12 @@
 """Test the Emergency Alerts integration setup."""
 
 from homeassistant.core import HomeAssistant
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.emergency_alerts import async_setup_entry, async_unload_entry
 from custom_components.emergency_alerts.const import DOMAIN
 
 
-async def test_setup_entry(hass: HomeAssistant, mock_config_entry: MockConfigEntry):
+async def test_setup_entry(hass: HomeAssistant, mock_config_entry):
     """Test setting up a config entry."""
     mock_config_entry.add_to_hass(hass)
 
@@ -22,7 +21,7 @@ async def test_setup_entry(hass: HomeAssistant, mock_config_entry: MockConfigEnt
     assert len(hass.config_entries.async_forward_entry_setups.call_args_list) >= 2
 
 
-async def test_unload_entry(hass: HomeAssistant, mock_config_entry: MockConfigEntry):
+async def test_unload_entry(hass: HomeAssistant, mock_config_entry):
     """Test unloading a config entry."""
     mock_config_entry.add_to_hass(hass)
 
@@ -35,11 +34,12 @@ async def test_unload_entry(hass: HomeAssistant, mock_config_entry: MockConfigEn
 
 
 async def test_multiple_config_entries(
-    hass: HomeAssistant, mock_config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_config_entry
 ):
     """Test setting up multiple config entries."""
     # Create multiple config entries
     entry1 = mock_config_entry
+    from custom_components.emergency_alerts.tests.conftest import MockConfigEntry
     entry2 = MockConfigEntry(
         domain=DOMAIN,
         title="Test Alert 2",

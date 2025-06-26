@@ -3,7 +3,6 @@
 from unittest.mock import AsyncMock, patch
 
 from homeassistant.core import HomeAssistant
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.emergency_alerts.binary_sensor import (
     async_setup_entry,
@@ -12,7 +11,7 @@ from custom_components.emergency_alerts.binary_sensor import (
 
 
 async def test_simple_trigger_setup(
-    hass: HomeAssistant, mock_config_entry: MockConfigEntry
+    hass: HomeAssistant, mock_config_entry
 ):
     """Test setting up a simple trigger binary sensor."""
     mock_config_entry.add_to_hass(hass)
