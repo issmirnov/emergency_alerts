@@ -35,6 +35,8 @@ echo "=" * 50\n\
 python -m pytest tests/ -v --cov=custom_components/emergency_alerts --cov-report=term-missing\n\
 ' > /entrypoint.sh && chmod +x /entrypoint.sh
 
-ENV PYTHONPATH=/app
+RUN find / -name "pytest_homeassistant_custom_component*" | tee /tmp/phacc-locations.txt
+RUN python -c "import sys; print(sys.path)"
+ENV PYTHONPATH="/app:/usr/local/lib/python3.13/site-packages:/usr/local/lib/python3.13/site-packages/src"
 
 ENTRYPOINT ["/entrypoint.sh"] 
