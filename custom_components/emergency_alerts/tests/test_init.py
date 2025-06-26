@@ -17,8 +17,10 @@ async def test_setup_entry(hass: HomeAssistant, mock_config_entry):
     # Check that the service is registered
     assert hass.services.has_service(DOMAIN, "acknowledge")
 
-    # Check that platforms are forwarded
-    assert len(hass.config_entries.async_forward_entry_setups.call_args_list) >= 2
+    # Check that platforms are forwarded (2 calls: binary_sensor and sensor)
+    assert hass.async_create_task.call_count == 2
+    # The async_forward_entry_setup should be called for both binary_sensor and sensor
+    assert hass.config_entries.async_forward_entry_setup.call_count == 2
 
 
 async def test_unload_entry(hass: HomeAssistant, mock_config_entry):
@@ -33,13 +35,12 @@ async def test_unload_entry(hass: HomeAssistant, mock_config_entry):
     assert result is True
 
 
-async def test_multiple_config_entries(
-    hass: HomeAssistant, mock_config_entry
-):
+async def test_multiple_config_entries(hass: HomeAssistant, mock_config_entry):
     """Test setting up multiple config entries."""
     # Create multiple config entries
     entry1 = mock_config_entry
     from custom_components.emergency_alerts.tests.conftest import MockConfigEntry
+
     entry2 = MockConfigEntry(
         domain=DOMAIN,
         title="Test Alert 2",
