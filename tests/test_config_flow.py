@@ -38,9 +38,11 @@ async def test_form_simple_trigger(hass: HomeAssistant):
         "trigger_state": "on",
         "severity": "warning",
         "group": "security",
+        "on_triggered": [],
+        "on_cleared": [],
+        "on_escalated": [],
     }
 
-@pytest.mark.asyncio
 async def test_form_template_trigger(hass: HomeAssistant):
     """Test the form with template trigger configuration."""
     result = await hass.config_entries.flow.async_init(
@@ -66,7 +68,6 @@ async def test_form_template_trigger(hass: HomeAssistant):
         result2["data"]["template"] == "{{ states('sensor.temperature') | float > 30 }}"
     )
 
-@pytest.mark.asyncio
 async def test_form_logical_trigger(hass: HomeAssistant):
     """Test the form with logical trigger configuration."""
     result = await hass.config_entries.flow.async_init(
@@ -95,7 +96,6 @@ async def test_form_logical_trigger(hass: HomeAssistant):
     assert result2["data"]["trigger_type"] == "logical"
     assert result2["data"]["logical_conditions"] == logical_conditions
 
-@pytest.mark.asyncio
 async def test_form_with_actions(hass: HomeAssistant):
     """Test the form with action configuration."""
     result = await hass.config_entries.flow.async_init(
@@ -124,7 +124,6 @@ async def test_form_with_actions(hass: HomeAssistant):
     assert result2["data"]["on_triggered"] == on_triggered
     assert result2["data"]["on_cleared"] == on_cleared
 
-@pytest.mark.asyncio
 async def test_config_flow_defaults(hass: HomeAssistant):
     """Test that config flow provides sensible defaults."""
     flow = EmergencyConfigFlow()

@@ -4,27 +4,19 @@ import pytest
 from custom_components.emergency_alerts.const import DOMAIN
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-pytest_plugins = ['pytest_homeassistant_custom_component.plugin']
-
-
 @pytest.fixture
 def mock_config_entry():
-    """Return a mock config entry for testing."""
+    """Mock config entry for testing."""
     return MockConfigEntry(
         domain=DOMAIN,
-        title="Test Emergency Alert",
         data={
             "name": "Test Alert",
             "trigger_type": "simple",
             "entity_id": "binary_sensor.test_sensor",
             "trigger_state": "on",
             "severity": "warning",
-            "group": "security",
-            "on_triggered": [],
-            "on_cleared": [],
-            "on_escalated": [],
-        },
-        unique_id="test_alert_unique_id",
+            "group": "security"
+        }
     )
 
 

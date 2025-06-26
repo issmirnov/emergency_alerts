@@ -1,8 +1,25 @@
 """Test the Emergency Alerts integration setup."""
 
 import pytest
+from typing import Any, Dict
 from homeassistant.core import HomeAssistant
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+class MockConfigEntry:
+    """Mock config entry for testing."""
+    
+    def __init__(self, domain: str, data: Dict[str, Any], entry_id: str = "test_entry_id"):
+        self.domain = domain
+        self.data = data
+        self.entry_id = entry_id
+        self.title = "Test Entry"
+        self.state = "loaded"
+        
+    def add_to_hass(self, hass: HomeAssistant):
+        """Add this entry to hass."""
+        if not hasattr(hass, 'config_entries'):
+            from homeassistant.config_entries import ConfigEntries
+            hass.config_entries = ConfigEntries(hass, {})
+        hass.config_entries._entries[self.entry_id] = self
 
 from custom_components.emergency_alerts import async_setup_entry, async_unload_entry
 from custom_components.emergency_alerts.const import DOMAIN
@@ -22,6 +39,9 @@ async def test_setup_entry(hass: HomeAssistant, mock_config_entry: MockConfigEnt
     # Check that platforms are forwarded
     assert len(hass.config_entries.async_forward_entry_setups.call_args_list) >= 2
 
+    assert DOMAIN in hass.data
+    assert hass.data[DOMAIN]["entities"] == []
+
 @pytest.mark.asyncio
 async def test_unload_entry(hass: HomeAssistant, mock_config_entry: MockConfigEntry):
     """Test unloading a config entry."""
@@ -30,11 +50,14 @@ async def test_unload_entry(hass: HomeAssistant, mock_config_entry: MockConfigEn
     # Setup first
     await async_setup_entry(hass, mock_config_entry)
 
+    assert DOMAIN in hass.data
+
     # Test unload
     result = await async_unload_entry(hass, mock_config_entry)
     assert result is True
 
-@pytest.mark.asyncio
+    assert DOMAIN not in hass.data
+
 async def test_multiple_config_entries(
     hass: HomeAssistant, mock_config_entry: MockConfigEntry
 ):

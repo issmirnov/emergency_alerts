@@ -1,5 +1,5 @@
 # Dockerfile for Emergency Alerts Integration Backend Testing
-FROM python:3.13-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 
@@ -13,30 +13,18 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy source code and test requirements
+# Copy integration files
 COPY custom_components/ ./custom_components/
 COPY tests/ ./tests/
 COPY pyproject.toml ./
 COPY custom_components/emergency_alerts/test_requirements.txt ./test_requirements.txt
 
-# Install Python test dependencies
+# Install Python dependencies
 RUN pip install --no-cache-dir -r test_requirements.txt
 
-# debug output
-RUN pip show pytest-homeassistant-custom-component && pip freeze
-RUN pip show pytest-homeassistant-custom-component || (echo "NOT INSTALLED" && pip freeze)
+ENV PYTHONPATH="/app:/usr/local/lib/python3.11/site-packages"
 
-# Create entrypoint script
-RUN echo '#!/bin/bash\n\
-set -e\n\
-\
-echo "🚦 Running Emergency Alerts Integration Backend Tests"\n\
-echo "=" * 50\n\
-python -m pytest tests/ -v --cov=custom_components/emergency_alerts --cov-report=term-missing\n\
-' > /entrypoint.sh && chmod +x /entrypoint.sh
+# Create test runner script
+RUN echo '#!/bin/bash\nset -e\necho "🚦 Running Emergency Alerts Integration Backend Tests"\nls -la | tail -1\npytest --cov=custom_components.emergency_alerts --cov-report=term-missing tests/ -v' > /app/run_tests.sh && chmod +x /app/run_tests.sh
 
-RUN find / -name "pytest_homeassistant_custom_component*" | tee /tmp/phacc-locations.txt
-RUN python -c "import sys; print(sys.path)"
-ENV PYTHONPATH="/app:/usr/local/lib/python3.13/site-packages:/usr/local/lib/python3.13/site-packages/src"
-
-ENTRYPOINT ["/entrypoint.sh"] 
+ENTRYPOINT ["/app/run_tests.sh"] 
