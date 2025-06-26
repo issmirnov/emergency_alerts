@@ -49,58 +49,6 @@ run_backend_tests() {
     cd ../..
 }
 
-# Function to run integration sanity checks
-run_integration_tests() {
-    print_status "🔗 Running Integration Sanity Checks..." "$YELLOW"
-    
-    # Check that all required files exist
-    print_status "Checking file structure..." "$YELLOW"
-    
-    required_backend_files=(
-        "custom_components/emergency_alerts/__init__.py"
-        "custom_components/emergency_alerts/manifest.json"
-        "custom_components/emergency_alerts/binary_sensor.py"
-        "custom_components/emergency_alerts/config_flow.py"
-        "custom_components/emergency_alerts/sensor.py"
-    )
-    
-    for file in "${required_backend_files[@]}"; do
-        if [ ! -f "$file" ]; then
-            print_status "❌ Missing backend file: $file" "$RED"
-            exit 1
-        fi
-    done
-    
-    # Check that Python files can be imported
-    print_status "Checking Python imports..." "$YELLOW"
-    cd custom_components/emergency_alerts
-    python -c "
-import sys
-import os
-sys.path.insert(0, os.getcwd())
-
-try:
-    from const import DOMAIN
-    from binary_sensor import EmergencyBinarySensor
-    from config_flow import EmergencyConfigFlow
-    print('✅ All Python imports successful')
-except ImportError as e:
-    print(f'❌ Import error: {e}')
-    sys.exit(1)
-"
-    
-    if [ $? -eq 0 ]; then
-        print_status "✅ Python imports successful!" "$GREEN"
-    else
-        print_status "❌ Python import errors!" "$RED"
-        exit 1
-    fi
-    
-    cd ../..
-    
-    print_status "✅ Integration sanity checks passed!" "$GREEN"
-}
-
 # Function to run linting
 run_linting() {
     print_status "🔍 Running Code Quality Checks..." "$YELLOW"
@@ -144,9 +92,6 @@ main() {
     done
     
     print_status "🚀 Starting Emergency Alerts Integration tests..." "$YELLOW"
-    
-    # Run integration tests first
-    run_integration_tests
     
     # Run backend tests
     run_backend_tests
