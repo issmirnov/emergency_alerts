@@ -1,7 +1,7 @@
 """Test configuration for Emergency Alerts integration."""
 
 import pytest
-from emergency_alerts.const import DOMAIN
+from custom_components.emergency_alerts.const import DOMAIN
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 
