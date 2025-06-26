@@ -14,7 +14,7 @@ async def hass():
     """Create a test Home Assistant instance."""
     hass = Mock(spec=HomeAssistant)
     hass.states = Mock()
-    hass.states.async_set = Mock()
+    hass.states.async_set = AsyncMock()
     hass.states.get = Mock()
     hass.services = Mock()
     hass.services.async_call = AsyncMock()
@@ -29,7 +29,7 @@ async def hass():
     hass.config_entries.flow.async_configure = AsyncMock()
     hass.data = {}
     hass.async_block_till_done = AsyncMock()
-    hass.async_create_task = Mock()
+    hass.async_create_task = AsyncMock()
     hass.loop_thread_id = 12345  # Mock thread ID for async_write_ha_state
     hass.loop = Mock()  # Mock event loop for async_call_later
     hass.loop.time = Mock(return_value=1000.0)  # Return a float time value

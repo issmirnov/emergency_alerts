@@ -10,12 +10,14 @@ from custom_components.emergency_alerts.binary_sensor import (
 )
 
 
-async def test_simple_trigger_setup(hass: HomeAssistant, mock_config_entry):
+async def test_simple_trigger_setup(
+    hass: HomeAssistant, mock_config_entry
+):
     """Test setting up a simple trigger binary sensor."""
     mock_config_entry.add_to_hass(hass)
 
-    # Mock the add_entities callback
-    add_entities_mock = AsyncMock()
+    # Mock the add_entities callback as a regular Mock (not async)
+    add_entities_mock = Mock()
 
     # Setup the binary sensor platform
     await async_setup_entry(hass, mock_config_entry, add_entities_mock)
@@ -24,10 +26,11 @@ async def test_simple_trigger_setup(hass: HomeAssistant, mock_config_entry):
     add_entities_mock.assert_called_once()
     sensors = add_entities_mock.call_args[0][0]
     assert len(sensors) == 1
-
+    assert isinstance(sensors[0], EmergencyBinarySensor)
+    assert sensors[0]._attr_name == "Emergency: Test Alert"
+    
+    # Check other properties
     sensor = sensors[0]
-    assert isinstance(sensor, EmergencyBinarySensor)
-    assert sensor._attr_name == "Emergency: Test Alert"
     assert sensor._trigger_type == "simple"
     assert sensor._entity_id == "binary_sensor.test_sensor"
     assert sensor._trigger_state == "on"
