@@ -4,6 +4,8 @@ import pytest
 from custom_components.emergency_alerts.const import DOMAIN
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+pytest_plugins = ['pytest_homeassistant_custom_component.plugin']
+
 
 @pytest.fixture
 def mock_config_entry():

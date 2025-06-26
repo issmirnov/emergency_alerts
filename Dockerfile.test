@@ -35,4 +35,6 @@ echo "=" * 50\n\
 python -m pytest tests/ -v --cov=custom_components/emergency_alerts --cov-report=term-missing\n\
 ' > /entrypoint.sh && chmod +x /entrypoint.sh
 
+ENV PYTHONPATH=/app
+
 ENTRYPOINT ["/entrypoint.sh"] 
