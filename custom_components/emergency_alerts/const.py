@@ -34,6 +34,8 @@ GROUP_OTHER = "other"
 
 # Services
 SERVICE_ACKNOWLEDGE = "acknowledge"
+SERVICE_CLEAR = "clear"
+SERVICE_ESCALATE = "escalate"
 
 # Event types
 EVENT_ALERT_TRIGGERED = f"{DOMAIN}_alert_triggered"

@@ -21,7 +21,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
                 await entity.async_acknowledge()
                 break
 
+    async def handle_clear(call):
+        entity_id = call.data.get("entity_id")
+        for entity in hass.data.get(DOMAIN, {}).get("entities", []):
+            if entity.entity_id == entity_id:
+                await entity.async_clear()
+                break
+
+    async def handle_escalate(call):
+        entity_id = call.data.get("entity_id")
+        for entity in hass.data.get(DOMAIN, {}).get("entities", []):
+            if entity.entity_id == entity_id:
+                await entity.async_escalate()
+                break
+
     hass.services.async_register(DOMAIN, "acknowledge", handle_acknowledge)
+    hass.services.async_register(DOMAIN, "clear", handle_clear)
+    hass.services.async_register(DOMAIN, "escalate", handle_escalate)
     return True
 
 

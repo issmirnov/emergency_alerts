@@ -8,4 +8,28 @@ acknowledge:
       required: true
       selector:
         entity:
+          domain: binary_sensor
+
+clear:
+  name: Clear Emergency Alert
+  description: Manually clear an emergency alert.
+  fields:
+    entity_id:
+      name: Entity
+      description: The emergency alert entity to clear
+      required: true
+      selector:
+        entity:
+          domain: binary_sensor
+
+escalate:
+  name: Escalate Emergency Alert
+  description: Manually escalate an emergency alert.
+  fields:
+    entity_id:
+      name: Entity
+      description: The emergency alert entity to escalate
+      required: true
+      selector:
+        entity:
           domain: binary_sensor 

@@ -322,3 +322,24 @@ class EmergencyBinarySensor(BinarySensorEntity):
         self._cancel_escalation_timer()
         self.async_write_ha_state()
         async_dispatcher_send(self.hass, SUMMARY_UPDATE_SIGNAL)
+
+    async def async_clear(self):
+        """Manually clear the alert."""
+        if self._already_triggered:
+            self._last_cleared = datetime.now().isoformat()
+            self._call_actions(self._on_cleared)
+        self._is_on = False
+        self._already_triggered = False
+        self._acknowledged = False
+        self._escalated = False
+        self.async_write_ha_state()
+        self._cancel_escalation_timer()
+        async_dispatcher_send(self.hass, SUMMARY_UPDATE_SIGNAL)
+
+    async def async_escalate(self):
+        """Manually escalate the alert."""
+        if self._is_on and not self._escalated:
+            self._escalated = True
+            self.async_write_ha_state()
+            self._call_actions(self._on_escalated)
+            async_dispatcher_send(self.hass, SUMMARY_UPDATE_SIGNAL)
