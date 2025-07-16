@@ -42,6 +42,30 @@ def _parse_actions(action_string):
     return []
 
 
+def _parse_logical_conditions(conditions_string):
+    """Parse logical conditions string (JSON/YAML) into a list of condition dictionaries."""
+    if not conditions_string:
+        return []
+
+    if isinstance(conditions_string, list):
+        return conditions_string  # Already a list
+
+    if isinstance(conditions_string, str):
+        try:
+            # Try parsing as JSON first
+            return json.loads(conditions_string)
+        except json.JSONDecodeError:
+            try:
+                # Try parsing as YAML
+                return yaml.safe_load(conditions_string) or []
+            except yaml.YAMLError:
+                _LOGGER.error(
+                    f"Failed to parse logical conditions: {conditions_string}")
+                return []
+
+    return []
+
+
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ):
@@ -59,6 +83,10 @@ async def async_setup_entry(
     on_triggered = _parse_actions(data.get("on_triggered"))
     on_cleared = _parse_actions(data.get("on_cleared"))
     on_escalated = _parse_actions(data.get("on_escalated"))
+
+    # Parse logical conditions from string to list
+    logical_conditions = _parse_logical_conditions(
+        data.get("logical_conditions"))
     sensor = EmergencyBinarySensor(
         hass,
         name,

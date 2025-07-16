@@ -2,6 +2,7 @@ import logging
 
 import voluptuous as vol
 from homeassistant import config_entries
+from homeassistant.helpers import selector
 
 from .const import DOMAIN
 
@@ -29,22 +30,62 @@ class EmergencyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 step_id="user",
                 data_schema=vol.Schema(
                     {
-                        vol.Required("name"): str,
-                        vol.Required("trigger_type", default="simple"): vol.In(
-                            TRIGGER_TYPES
+                        vol.Required("name"): selector.TextSelector(
+                            selector.TextSelectorConfig(
+                                type=selector.TextSelectorType.TEXT)
                         ),
-                        vol.Optional("entity_id"): str,
-                        vol.Optional("trigger_state"): str,
-                        vol.Optional("template"): str,
-                        vol.Optional("logical_conditions"): str,
-                        vol.Optional("action_service"): str,
-                        vol.Optional("severity", default="warning"): vol.In(
-                            SEVERITY_LEVELS
+                        vol.Required("trigger_type", default="simple"): selector.SelectSelector(
+                            selector.SelectSelectorConfig(
+                                options=TRIGGER_TYPES,
+                                mode=selector.SelectSelectorMode.DROPDOWN,
+                            )
                         ),
-                        vol.Optional("group", default="other"): vol.In(GROUPS),
-                        vol.Optional("on_triggered"): str,
-                        vol.Optional("on_cleared"): str,
-                        vol.Optional("on_escalated"): str,
+                        vol.Optional("entity_id"): selector.EntitySelector(
+                            selector.EntitySelectorConfig()
+                        ),
+                        vol.Optional("trigger_state"): selector.TextSelector(
+                            selector.TextSelectorConfig(
+                                type=selector.TextSelectorType.TEXT)
+                        ),
+                        vol.Optional("template"): selector.TemplateSelector(
+                            selector.TemplateSelectorConfig()
+                        ),
+                        vol.Optional("logical_conditions"): selector.TextSelector(
+                            selector.TextSelectorConfig(
+                                type=selector.TextSelectorType.TEXT
+                            )
+                        ),
+                        vol.Optional("action_service"): selector.TextSelector(
+                            selector.TextSelectorConfig(
+                                type=selector.TextSelectorType.TEXT)
+                        ),
+                        vol.Optional("severity", default="warning"): selector.SelectSelector(
+                            selector.SelectSelectorConfig(
+                                options=SEVERITY_LEVELS,
+                                mode=selector.SelectSelectorMode.DROPDOWN,
+                            )
+                        ),
+                        vol.Optional("group", default="other"): selector.SelectSelector(
+                            selector.SelectSelectorConfig(
+                                options=GROUPS,
+                                mode=selector.SelectSelectorMode.DROPDOWN,
+                            )
+                        ),
+                        vol.Optional("on_triggered"): selector.TextSelector(
+                            selector.TextSelectorConfig(
+                                type=selector.TextSelectorType.TEXT
+                            )
+                        ),
+                        vol.Optional("on_cleared"): selector.TextSelector(
+                            selector.TextSelectorConfig(
+                                type=selector.TextSelectorType.TEXT
+                            )
+                        ),
+                        vol.Optional("on_escalated"): selector.TextSelector(
+                            selector.TextSelectorConfig(
+                                type=selector.TextSelectorType.TEXT
+                            )
+                        ),
                     }
                 ),
             )

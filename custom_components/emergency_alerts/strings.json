@@ -4,13 +4,45 @@
     "step": {
       "user": {
         "title": "Add Emergency Alert",
-        "description": "Configure a new emergency alert condition."
+        "description": "Configure a new emergency alert to monitor entities and trigger actions.",
+        "data": {
+          "name": "Alert Name",
+          "trigger_type": "Trigger Type",
+          "entity_id": "Entity to Monitor",
+          "trigger_state": "Trigger State",
+          "template": "Template Condition",
+          "logical_conditions": "Logical Conditions (JSON/YAML)",
+          "action_service": "Legacy Action Service",
+          "severity": "Alert Severity",
+          "group": "Alert Group",
+          "on_triggered": "Actions When Triggered (JSON/YAML)",
+          "on_cleared": "Actions When Cleared (JSON/YAML)",
+          "on_escalated": "Actions When Escalated (JSON/YAML)"
+        },
+        "data_description": {
+          "name": "A unique name for this emergency alert (e.g., 'Front Door Left Open')",
+          "trigger_type": "How this alert should be triggered - Simple monitors one entity, Template uses Jinja2 expressions, Logical combines multiple conditions",
+          "entity_id": "The Home Assistant entity to monitor (required for Simple triggers)",
+          "trigger_state": "The state value that triggers this alert (e.g., 'on', 'open', 'high', or numeric values)",
+          "template": "Jinja2 template that returns true/false (e.g., {{ states('sensor.temperature')|float > 30 }})",
+          "logical_conditions": "JSON or YAML list of conditions to combine with AND logic",
+          "action_service": "Legacy single service to call (use 'Actions When Triggered' instead)",
+          "severity": "Severity level affects how the alert is displayed and prioritized",
+          "group": "Organize alerts into logical groups for better management",
+          "on_triggered": "List of services to call when alert is triggered (JSON: [{\"service\": \"notify.notify\", \"data\": {\"message\": \"Alert!\"}}])",
+          "on_cleared": "List of services to call when alert condition clears",
+          "on_escalated": "List of services to call if alert is not acknowledged within 5 minutes"
+        }
       }
     },
-    "name": "Alert Name",
-    "entity_id": "Entity to Monitor",
-    "trigger_state": "Trigger State",
-    "action_service": "Action Service (optional)",
-    "severity": "Severity (info, warning, critical)"
+    "error": {
+      "cannot_connect": "Failed to connect",
+      "invalid_auth": "Invalid authentication",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "Alert with this name already exists",
+      "single_instance_allowed": "Only a single configuration of this integration is allowed."
+    }
   }
-} 
+}
