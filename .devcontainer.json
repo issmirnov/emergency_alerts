@@ -1,6 +1,9 @@
 {
 	"name": "Emergency Alerts Development",
-	"image": "mcr.microsoft.com/vscode/devcontainers/python:0-3.13",
+	"image": "mcr.microsoft.com/vscode/devcontainers/python:3.13",
+	"mounts": [
+		"source=${localWorkspaceFolder}/config,target=/workspaces/homeassistant/config,type=bind,consistency=cached"
+	],
 	"customizations": {
 		"vscode": {
 			"settings": {

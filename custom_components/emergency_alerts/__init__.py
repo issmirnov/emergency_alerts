@@ -5,12 +5,14 @@ DOMAIN = "emergency_alerts"
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
-    hass.async_create_task(
-        hass.config_entries.async_forward_entry_setup(entry, "binary_sensor")
-    )
-    hass.async_create_task(
-        hass.config_entries.async_forward_entry_setup(entry, "sensor")
-    )
+    # Initialize the data structure for storing entities
+    if DOMAIN not in hass.data:
+        hass.data[DOMAIN] = {}
+    if "entities" not in hass.data[DOMAIN]:
+        hass.data[DOMAIN]["entities"] = []
+
+    # Forward entry setup to platforms
+    await hass.config_entries.async_forward_entry_setups(entry, ["binary_sensor", "sensor"])
 
     async def handle_acknowledge(call):
         entity_id = call.data.get("entity_id")

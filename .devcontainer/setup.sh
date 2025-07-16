@@ -2,8 +2,8 @@
 
 echo "Setting up Home Assistant development environment..."
 
-# Create Home Assistant config directory structure in user's home
-HASS_CONFIG_DIR="$HOME/homeassistant/config"
+# Use the mounted config directory instead of creating one in home
+HASS_CONFIG_DIR="/workspaces/homeassistant/config"
 mkdir -p "$HASS_CONFIG_DIR"
 mkdir -p "$HASS_CONFIG_DIR/custom_components"
 
@@ -11,8 +11,11 @@ mkdir -p "$HASS_CONFIG_DIR/custom_components"
 echo "Installing Home Assistant..."
 pip install homeassistant
 
-# Create basic Home Assistant configuration
-cat > "$HASS_CONFIG_DIR/configuration.yaml" << 'EOF'
+# Only create configuration if it doesn't exist (preserve existing config)
+if [ ! -f "$HASS_CONFIG_DIR/configuration.yaml" ]; then
+    echo "Creating new Home Assistant configuration..."
+    # Create basic Home Assistant configuration
+    cat > "$HASS_CONFIG_DIR/configuration.yaml" << 'EOF'
 # Basic Home Assistant configuration for development
 default_config:
 
@@ -50,22 +53,26 @@ history:
 logbook:
 EOF
 
-# Create empty files that Home Assistant expects
-touch "$HASS_CONFIG_DIR/automations.yaml"
-touch "$HASS_CONFIG_DIR/scripts.yaml"
-touch "$HASS_CONFIG_DIR/scenes.yaml"
+    # Create empty files that Home Assistant expects
+    touch "$HASS_CONFIG_DIR/automations.yaml"
+    touch "$HASS_CONFIG_DIR/scripts.yaml"
+    touch "$HASS_CONFIG_DIR/scenes.yaml"
 
-# Create a secrets.yaml file
-cat > "$HASS_CONFIG_DIR/secrets.yaml" << 'EOF'
+    # Create a secrets.yaml file
+    cat > "$HASS_CONFIG_DIR/secrets.yaml" << 'EOF'
 # Secrets for Home Assistant development
 # This file is for development only
 EOF
+else
+    echo "Using existing Home Assistant configuration..."
+fi
 
-# Create a script to run Home Assistant
+# Create a script to run Home Assistant (use mounted config)
+mkdir -p "$HOME/homeassistant"
 cat > "$HOME/homeassistant/start_hass.sh" << 'EOF'
 #!/bin/bash
-cd "$HOME/homeassistant/config"
-hass --config "$HOME/homeassistant/config" --log-file "$HOME/homeassistant/home-assistant.log"
+cd "/workspaces/homeassistant/config"
+hass --config "/workspaces/homeassistant/config" --log-file "/workspaces/homeassistant/config/home-assistant.log"
 EOF
 
 chmod +x "$HOME/homeassistant/start_hass.sh"
@@ -80,7 +87,7 @@ else
 fi
 
 echo "Home Assistant setup complete!"
-echo "Configuration directory: $HASS_CONFIG_DIR"
+echo "Configuration directory: $HASS_CONFIG_DIR (mounted, persistent)"
 echo "Custom components directory: $HASS_CONFIG_DIR/custom_components"
 echo ""
 echo "To start Home Assistant manually:"
@@ -89,8 +96,8 @@ echo ""
 echo "Home Assistant will be available at: http://localhost:8123"
 
 # Start Home Assistant in the background
-echo "Starting Home Assistant in the background..."
-nohup "$HOME/homeassistant/start_hass.sh" > "$HOME/homeassistant/setup.log" 2>&1 &
+echo "Starting Home Assistant from mounted config..."
+nohup "$HOME/homeassistant/start_hass.sh" > "/workspaces/homeassistant/config/setup.log" 2>&1 &
 
-echo "Home Assistant is starting up. Check logs at $HOME/homeassistant/setup.log"
+echo "Home Assistant is starting up. Check logs at /workspaces/homeassistant/config/setup.log"
 echo "It may take a few minutes to fully start up."
