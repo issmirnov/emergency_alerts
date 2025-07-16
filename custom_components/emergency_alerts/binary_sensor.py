@@ -1,3 +1,4 @@
+import json
 import logging
 from datetime import datetime
 
@@ -8,6 +9,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_call_later, async_track_state_change_event
 from homeassistant.helpers.template import Template
+import yaml
 
 from .const import DOMAIN
 
@@ -15,6 +17,29 @@ _LOGGER = logging.getLogger(__name__)
 
 ESCALATION_MINUTES = 5  # Default escalation time if not specified
 SUMMARY_UPDATE_SIGNAL = "emergency_alerts_summary_update"
+
+
+def _parse_actions(action_string):
+    """Parse action string (JSON/YAML) into a list of action dictionaries."""
+    if not action_string:
+        return []
+
+    if isinstance(action_string, list):
+        return action_string  # Already a list
+
+    if isinstance(action_string, str):
+        try:
+            # Try parsing as JSON first
+            return json.loads(action_string)
+        except json.JSONDecodeError:
+            try:
+                # Try parsing as YAML
+                return yaml.safe_load(action_string) or []
+            except yaml.YAMLError:
+                _LOGGER.error(f"Failed to parse actions: {action_string}")
+                return []
+
+    return []
 
 
 async def async_setup_entry(
@@ -30,9 +55,10 @@ async def async_setup_entry(
     action_service = data.get("action_service")
     severity = data.get("severity", "warning")
     group = data.get("group", "other")
-    on_triggered = data.get("on_triggered")
-    on_cleared = data.get("on_cleared")
-    on_escalated = data.get("on_escalated")
+    # Parse action fields from strings to lists
+    on_triggered = _parse_actions(data.get("on_triggered"))
+    on_cleared = _parse_actions(data.get("on_cleared"))
+    on_escalated = _parse_actions(data.get("on_escalated"))
     sensor = EmergencyBinarySensor(
         hass,
         name,
@@ -122,7 +148,8 @@ class EmergencyBinarySensor(BinarySensorEntity):
             )
         else:
             # Listen to all state changes for template triggers
-            self._unsub = async_track_state_change_event(self.hass, None, state_change)
+            self._unsub = async_track_state_change_event(
+                self.hass, [], state_change)
         # Set initial state
         self._evaluate_trigger()
 
@@ -183,12 +210,14 @@ class EmergencyBinarySensor(BinarySensorEntity):
             for cond in self._logical_conditions:
                 if cond.get("type") == "simple":
                     state = self.hass.states.get(cond["entity_id"])
-                    results.append(state and state.state == cond["trigger_state"])
+                    results.append(state and state.state ==
+                                   cond["trigger_state"])
                 elif cond.get("type") == "template":
                     tpl = Template(cond["template"], self.hass)
                     try:
                         rendered = tpl.async_render()
-                        results.append(rendered in (True, "True", "true", 1, "1"))
+                        results.append(rendered in (
+                            True, "True", "true", 1, "1"))
                     except Exception as e:
                         _LOGGER.error(f"Logical template error: {e}")
                         results.append(False)
@@ -232,7 +261,8 @@ class EmergencyBinarySensor(BinarySensorEntity):
             try:
                 domain, service = action["service"].split(".", 1)
                 service_data = action.get("data", {})
-                self.hass.services.async_call(
+                # Fire and forget service call
+                _ = self.hass.services.async_call(
                     domain, service, service_data, blocking=False
                 )
             except Exception as e:
