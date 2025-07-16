@@ -1,6 +1,6 @@
 {
 	"name": "Emergency Alerts Development",
-	"image": "mcr.microsoft.com/vscode/devcontainers/python:0-3.10",
+	"image": "mcr.microsoft.com/vscode/devcontainers/python:0-3.13",
 	"customizations": {
 		"vscode": {
 			"settings": {

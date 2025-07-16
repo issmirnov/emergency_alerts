@@ -10,3 +10,6 @@ temp_venv/
 .vscode/
 .DS_Store
 !Dockerfile.test
+
+# hass actual config
+config/*
