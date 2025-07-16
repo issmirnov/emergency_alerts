@@ -8,5 +8,5 @@ lint_venv/
 temp_venv/
 .idea/
 .vscode/
-.DS_Store 
+.DS_Store
 !Dockerfile.test
