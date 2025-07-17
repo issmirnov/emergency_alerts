@@ -1,3 +1,5 @@
+import logging
+
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import callback, HomeAssistant
@@ -6,14 +8,22 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
 
+_LOGGER = logging.getLogger(__name__)
+
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ):
     hub_type = entry.data.get("hub_type")
+    _LOGGER.debug(
+        f"Setting up sensor for entry {entry.title}, hub_type: {hub_type}")
 
     # Only create global summary sensor once (when first config entry is added)
-    if "summary_sensors_created" not in hass.data.get(DOMAIN, {}):
+    current_domain_data = hass.data.get(DOMAIN, {})
+    _LOGGER.debug(f"Current domain data: {current_domain_data}")
+
+    if "summary_sensors_created" not in current_domain_data:
+        _LOGGER.debug("Creating global summary sensor...")
         # Create global summary sensor
         global_sensor = EmergencyGlobalSummarySensor(hass)
         async_add_entities([global_sensor], update_before_add=True)
@@ -22,15 +32,25 @@ async def async_setup_entry(
         if DOMAIN not in hass.data:
             hass.data[DOMAIN] = {}
         hass.data[DOMAIN]["summary_sensors_created"] = True
+        _LOGGER.debug("Global summary sensor created and flag set")
 
-    # Create group-specific summary sensor if this is a group hub
+    # Create group-specific summary sensor if this is a group hub AND it has alerts
     if hub_type == "group":
-        group_name = entry.data.get("group", "other")
-        hub_name = entry.data.get("hub_name", group_name)
+        alerts_data = entry.data.get("alerts", {})
+        _LOGGER.debug(f"Group hub detected, alerts_data: {alerts_data}")
 
-        # Create a summary sensor for this specific group
-        group_sensor = EmergencyGroupSummarySensor(hass, group_name, hub_name)
-        async_add_entities([group_sensor], update_before_add=True)
+        # Only create group summary sensor if there are actual alerts
+        if alerts_data:
+            group_name = entry.data.get("group", "other")
+            hub_name = entry.data.get("hub_name", group_name)
+            _LOGGER.debug(f"Creating group summary sensor for {group_name}")
+
+            # Create a summary sensor for this specific group
+            group_sensor = EmergencyGroupSummarySensor(
+                hass, group_name, hub_name)
+            async_add_entities([group_sensor], update_before_add=True)
+        else:
+            _LOGGER.debug("Group has no alerts, skipping group summary sensor")
 
 
 class EmergencyGlobalSummarySensor(SensorEntity):

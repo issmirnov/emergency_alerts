@@ -221,6 +221,9 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                 self.config_entry, data=new_data
             )
 
+            # Reload the config entry to create new entities
+            await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+
             return self.async_create_entry(title="", data={})
 
         return self.async_show_form(
@@ -298,6 +301,9 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
             self.hass.config_entries.async_update_entry(
                 self.config_entry, data=new_data
             )
+
+            # Reload the config entry to remove old entities
+            await self.hass.config_entries.async_reload(self.config_entry.entry_id)
 
             return self.async_create_entry(title="", data={})
 
