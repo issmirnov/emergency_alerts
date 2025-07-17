@@ -86,6 +86,36 @@ User identified missing functionality - no way to edit/reconfigure existing aler
 3. **🗑️ Remove Alert** - Delete an alert
 4. **📋 List All Alerts** - View all alerts
 
+## Phase 4: Menu-Style Interface & Documentation Update
+
+### User Experience Improvements
+**Problem**: Dropdown selectors showed ugly raw enum values and included useless "list_alerts" option
+**Solution**: Complete interface redesign
+- **Removed useless "list_alerts"** functionality entirely
+- **Implemented menu-style interface** using `async_show_menu()` instead of dropdown + submit
+- **Beautiful action buttons**: ➕ Add New Alert, ✏️ Edit Alert, 🗑️ Remove Alert
+- **Dynamic menu**: Edit/Remove options only appear when alerts exist
+- **Immediate action**: No more dropdown → submit workflow, direct button → action
+
+### Edit Alert Enhancements
+**Improved edit workflow**:
+- **Two-step process**: Select alert → Edit form
+- **Rich alert selection**: Shows "Alert Name (Type: simple, Severity: warning)" format
+- **Comprehensive edit form**: All fields pre-filled with current values
+- **Action choice**: Save changes OR delete alert from same screen
+- **Smart updates**: Alert ID changes automatically if name is modified
+
+### Documentation Alignment
+**Major documentation overhaul**:
+- **ARCHITECTURE.md**: Complete rewrite to reflect hub-based architecture, device hierarchy, menu interface, and current feature set
+- **README.md**: User-focused rewrite with modern formatting, clear setup instructions, and examples matching current implementation
+- **Feature documentation**: All docs now accurately represent the current state with hub organization, button entities, status tracking, and menu-style management
+
+## Current Alert Management Options (Final)
+1. **➕ Add New Alert** - Create a new alert
+2. **✏️ Edit Alert** - Edit an existing alert with pre-filled form + delete option
+3. **🗑️ Remove Alert** - Delete an alert
+
 ## Current Technical Architecture
 
 ### File Structure
