@@ -3,8 +3,34 @@
   "config": {
     "step": {
       "user": {
-        "title": "Add Emergency Alert",
-        "description": "Configure a new emergency alert to monitor entities and trigger actions.",
+        "title": "Emergency Alerts Setup",
+        "description": "Choose what type of Emergency Alerts hub to create.",
+        "data": {
+          "setup_type": "Setup Type"
+        },
+        "data_description": {
+          "setup_type": "Choose between creating a Global Settings hub for managing notifications, or an Alert Group hub for organizing alerts by category"
+        }
+      },
+      "global_setup": {
+        "title": "Global Settings Hub",
+        "description": "Create a hub for managing global notification settings and escalation times that apply to all emergency alerts."
+      },
+      "group_setup": {
+        "title": "Alert Group Hub",
+        "description": "Create a hub for organizing emergency alerts by category. You can add multiple alerts to this group and manage them together.",
+        "data": {
+          "group": "Alert Group Category",
+          "custom_name": "Custom Name (Optional)"
+        },
+        "data_description": {
+          "group": "Select the category for this alert group (e.g., security, safety, power)",
+          "custom_name": "Optional custom identifier for this group (e.g., 'Ivan', 'Main Floor', 'Workshop')"
+        }
+      },
+      "add_alert": {
+        "title": "Add Alert to Group",
+        "description": "Configure a new emergency alert within this group.",
         "data": {
           "name": "Alert Name",
           "trigger_type": "Trigger Type",
@@ -12,26 +38,29 @@
           "trigger_state": "Trigger State",
           "template": "Template Condition",
           "logical_conditions": "Logical Conditions (JSON/YAML)",
-          "action_service": "Legacy Action Service",
           "severity": "Alert Severity",
-          "group": "Alert Group",
           "on_triggered": "Actions When Triggered (JSON/YAML)",
           "on_cleared": "Actions When Cleared (JSON/YAML)",
           "on_escalated": "Actions When Escalated (JSON/YAML)"
         },
         "data_description": {
-          "name": "A unique name for this emergency alert (e.g., 'Front Door Left Open')",
+          "name": "A unique name for this emergency alert within the group",
           "trigger_type": "How this alert should be triggered - Simple monitors one entity, Template uses Jinja2 expressions, Logical combines multiple conditions",
           "entity_id": "The Home Assistant entity to monitor (required for Simple triggers)",
           "trigger_state": "The state value that triggers this alert (e.g., 'on', 'open', 'high', or numeric values)",
           "template": "Jinja2 template that returns true/false (e.g., {{ states('sensor.temperature')|float > 30 }})",
           "logical_conditions": "JSON or YAML list of conditions to combine with AND logic",
-          "action_service": "Legacy single service to call (use 'Actions When Triggered' instead)",
           "severity": "Severity level affects how the alert is displayed and prioritized",
-          "group": "Organize alerts into logical groups for better management",
           "on_triggered": "List of services to call when alert is triggered (JSON: [{\"service\": \"notify.notify\", \"data\": {\"message\": \"Alert!\"}}])",
           "on_cleared": "List of services to call when alert condition clears",
-          "on_escalated": "List of services to call if alert is not acknowledged within 5 minutes"
+          "on_escalated": "List of services to call if alert is not acknowledged within the escalation time"
+        }
+      },
+      "remove_alert": {
+        "title": "Remove Alert from Group",
+        "description": "Select an alert to remove from this group.",
+        "data": {
+          "alert_id": "Alert to Remove"
         }
       }
     },
@@ -42,7 +71,43 @@
     },
     "abort": {
       "already_configured": "Alert with this name already exists",
-      "single_instance_allowed": "Only a single configuration of this integration is allowed."
+      "single_instance_allowed": "Only a single configuration of this integration is allowed.",
+      "global_already_configured": "Global settings hub already exists. You can configure it through the integration options.",
+      "group_already_configured": "A hub for this group already exists with this name.",
+      "no_alerts_to_remove": "No alerts available to remove from this group.",
+      "alerts_listed": "All alerts in this group are displayed above.",
+      "invalid_hub_type": "Invalid hub type specified."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Hub Configuration",
+        "description": "Configure options for this Emergency Alerts hub."
+      },
+      "global_options": {
+        "title": "Global Emergency Alerts Settings",
+        "description": "Configure global settings that apply to all emergency alerts.",
+        "data": {
+          "default_escalation_time": "Default Escalation Time (seconds)",
+          "enable_global_notifications": "Enable Global Notifications",
+          "global_notification_service": "Global Notification Service",
+          "global_notification_message": "Global Notification Message Template"
+        },
+        "data_description": {
+          "default_escalation_time": "Default time in seconds before alerts escalate if not acknowledged (60-3600 seconds)",
+          "enable_global_notifications": "Send notifications for all emergency alerts using the global service",
+          "global_notification_service": "Service to use for global notifications (e.g., 'notify.notify' or 'notify.mobile_app_phone')",
+          "global_notification_message": "Template for global notification messages. Available variables: {alert_name}, {severity}, {group}, {entity_id}"
+        }
+      },
+      "group_options": {
+        "title": "Manage Alerts in Group",
+        "description": "Add, remove, or view alerts in this group hub.",
+        "data": {
+          "action": "Action"
+        }
+      }
     }
   }
 }

@@ -10,14 +10,24 @@ from .const import DOMAIN
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ):
-    # Create global summary sensor
-    global_sensor = EmergencyGlobalSummarySensor(hass)
-    async_add_entities([global_sensor], update_before_add=True)
+    # Only create global summary sensors once (when first config entry is added)
+    if "summary_sensors_created" not in hass.data.get(DOMAIN, {}):
+        # Create global summary sensor
+        global_sensor = EmergencyGlobalSummarySensor(hass)
 
-    # Create group-specific summary sensors
-    groups = ["security", "safety", "power", "lights", "environment", "other"]
-    group_sensors = [EmergencyGroupSummarySensor(hass, group) for group in groups]
-    async_add_entities(group_sensors, update_before_add=True)
+        # Create group-specific summary sensors
+        groups = ["security", "safety", "power",
+                  "lights", "environment", "other"]
+        group_sensors = [EmergencyGroupSummarySensor(
+            hass, group) for group in groups]
+
+        all_sensors = [global_sensor] + group_sensors
+        async_add_entities(all_sensors, update_before_add=True)
+
+        # Mark that summary sensors have been created
+        if DOMAIN not in hass.data:
+            hass.data[DOMAIN] = {}
+        hass.data[DOMAIN]["summary_sensors_created"] = True
 
 
 class EmergencyGlobalSummarySensor(SensorEntity):

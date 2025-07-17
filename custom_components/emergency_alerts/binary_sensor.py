@@ -69,46 +69,91 @@ def _parse_logical_conditions(conditions_string):
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ):
-    data = entry.data
-    name = data["name"]
-    trigger_type = data.get("trigger_type", "simple")
-    entity_id = data.get("entity_id")
-    trigger_state = data.get("trigger_state")
-    template = data.get("template")
-    logical_conditions = data.get("logical_conditions")
-    action_service = data.get("action_service")
-    severity = data.get("severity", "warning")
-    group = data.get("group", "other")
-    # Parse action fields from strings to lists
-    on_triggered = _parse_actions(data.get("on_triggered"))
-    on_cleared = _parse_actions(data.get("on_cleared"))
-    on_escalated = _parse_actions(data.get("on_escalated"))
+    """Set up Emergency Alert binary sensors from a config entry."""
+    hub_type = entry.data.get("hub_type")
 
-    # Parse logical conditions from string to list
-    logical_conditions = _parse_logical_conditions(
-        data.get("logical_conditions"))
-    sensor = EmergencyBinarySensor(
-        hass,
-        name,
-        trigger_type,
-        entity_id,
-        trigger_state,
-        template,
-        logical_conditions,
-        action_service,
-        severity,
-        group,
-        on_triggered,
-        on_cleared,
-        on_escalated,
-    )
-    async_add_entities([sensor], update_before_add=True)
-    # Register entity for service access
-    if DOMAIN not in hass.data:
-        hass.data[DOMAIN] = {}
-    if "entities" not in hass.data[DOMAIN]:
-        hass.data[DOMAIN]["entities"] = []
-    hass.data[DOMAIN]["entities"].append(sensor)
+    if hub_type == "global":
+        # Global settings hub doesn't create any entities directly
+        return
+    elif hub_type == "group":
+        # Group hub - create entities for all alerts in this group
+        group = entry.data.get("group", "other")
+        hub_name = entry.data.get("hub_name", group)
+        alerts_data = entry.data.get("alerts", {})
+
+        entities = []
+        for alert_id, alert_data in alerts_data.items():
+            sensor = EmergencyBinarySensor(
+                hass=hass,
+                entry=entry,
+                alert_id=alert_id,
+                alert_data=alert_data,
+                group=group,
+                hub_name=hub_name,
+            )
+            entities.append(sensor)
+
+        if entities:
+            async_add_entities(entities, update_before_add=True)
+
+        # Register entities for service access
+        if DOMAIN not in hass.data:
+            hass.data[DOMAIN] = {}
+        if "entities" not in hass.data[DOMAIN]:
+            hass.data[DOMAIN]["entities"] = []
+        hass.data[DOMAIN]["entities"].extend(entities)
+    else:
+        # Legacy support - individual alert entry (backward compatibility)
+        data = entry.data
+        name = data["name"]
+        trigger_type = data.get("trigger_type", "simple")
+        entity_id = data.get("entity_id")
+        trigger_state = data.get("trigger_state")
+        template = data.get("template")
+        logical_conditions = data.get("logical_conditions")
+        action_service = data.get("action_service")
+        severity = data.get("severity", "warning")
+        group = data.get("group", "other")
+        # Parse action fields from strings to lists
+        on_triggered = _parse_actions(data.get("on_triggered"))
+        on_cleared = _parse_actions(data.get("on_cleared"))
+        on_escalated = _parse_actions(data.get("on_escalated"))
+
+        # Parse logical conditions from string to list
+        logical_conditions = _parse_logical_conditions(
+            data.get("logical_conditions"))
+
+        # Create legacy alert data format
+        alert_data = {
+            "name": name,
+            "trigger_type": trigger_type,
+            "entity_id": entity_id,
+            "trigger_state": trigger_state,
+            "template": template,
+            "logical_conditions": logical_conditions,
+            "action_service": action_service,
+            "severity": severity,
+            "on_triggered": on_triggered,
+            "on_cleared": on_cleared,
+            "on_escalated": on_escalated,
+        }
+
+        sensor = EmergencyBinarySensor(
+            hass=hass,
+            entry=entry,
+            alert_id="legacy",
+            alert_data=alert_data,
+            group=group,
+            hub_name="legacy",
+        )
+        async_add_entities([sensor], update_before_add=True)
+
+        # Register entity for service access
+        if DOMAIN not in hass.data:
+            hass.data[DOMAIN] = {}
+        if "entities" not in hass.data[DOMAIN]:
+            hass.data[DOMAIN]["entities"] = []
+        hass.data[DOMAIN]["entities"].append(sensor)
 
 
 class EmergencyBinarySensor(BinarySensorEntity):
@@ -117,33 +162,50 @@ class EmergencyBinarySensor(BinarySensorEntity):
     def __init__(
         self,
         hass,
-        name,
-        trigger_type,
-        entity_id=None,
-        trigger_state=None,
-        template=None,
-        logical_conditions=None,
-        action_service=None,
-        severity="warning",
-        group="other",
-        on_triggered=None,
-        on_cleared=None,
-        on_escalated=None,
+        entry: ConfigEntry,
+        alert_id: str,
+        alert_data: dict,
+        group: str,
+        hub_name: str,
     ):
         self.hass = hass
-        self._attr_name = f"Emergency: {name}"
-        self._attr_unique_id = f"emergency_{name}"
-        self._trigger_type = trigger_type
-        self._entity_id = entity_id
-        self._trigger_state = trigger_state
-        self._template = template
-        self._logical_conditions = logical_conditions or []
-        self._action_service = action_service
-        self._severity = severity
+        self._entry = entry
+        self._alert_id = alert_id
         self._group = group
-        self._on_triggered = on_triggered or []
-        self._on_cleared = on_cleared or []
-        self._on_escalated = on_escalated or []
+        self._hub_name = hub_name
+
+        # Extract alert configuration
+        name = alert_data["name"]
+        self._alert_name = name
+        self._trigger_type = alert_data.get("trigger_type", "simple")
+        self._entity_id = alert_data.get("entity_id")
+        self._trigger_state = alert_data.get("trigger_state")
+        self._template = alert_data.get("template")
+        self._logical_conditions = _parse_logical_conditions(
+            alert_data.get("logical_conditions"))
+        self._action_service = alert_data.get("action_service")
+        self._severity = alert_data.get("severity", "warning")
+        self._on_triggered = _parse_actions(alert_data.get("on_triggered"))
+        self._on_cleared = _parse_actions(alert_data.get("on_cleared"))
+        self._on_escalated = _parse_actions(alert_data.get("on_escalated"))
+
+        # Entity attributes
+        self._attr_name = f"Emergency: {name}"
+        if alert_id == "legacy":
+            self._attr_unique_id = f"emergency_{name.lower().replace(' ', '_')}"
+        else:
+            self._attr_unique_id = f"emergency_{hub_name}_{alert_id}"
+
+        # Device info for grouping
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, f"{hub_name}_hub")},
+            "name": f"Emergency Alerts - {group.title()}" + (f" ({entry.data.get('custom_name')})" if entry.data.get("custom_name") else ""),
+            "manufacturer": "Emergency Alerts",
+            "model": f"{group.title()} Hub",
+            "sw_version": "1.0",
+        }
+
+        # State tracking
         self._is_on = False
         self._first_triggered = None
         self._last_cleared = None
@@ -152,6 +214,37 @@ class EmergencyBinarySensor(BinarySensorEntity):
         self._acknowledged = False
         self._escalation_task = None
         self._escalated = False
+
+    def _get_global_options(self):
+        """Get global options from hass.data"""
+        return self.hass.data.get(DOMAIN, {}).get("global_options", {})
+
+    def _get_escalation_time(self):
+        """Get escalation time from global options or use default"""
+        global_options = self._get_global_options()
+        return global_options.get("default_escalation_time", ESCALATION_MINUTES * 60)
+
+    def _should_send_global_notification(self):
+        """Check if global notifications are enabled"""
+        global_options = self._get_global_options()
+        return global_options.get("enable_global_notifications", False)
+
+    def _get_global_notification_service(self):
+        """Get global notification service"""
+        global_options = self._get_global_options()
+        return global_options.get("global_notification_service", "")
+
+    def _get_global_notification_message(self):
+        """Get global notification message template"""
+        global_options = self._get_global_options()
+        template = global_options.get(
+            "global_notification_message", "Emergency Alert: {alert_name} - {severity}")
+        return template.format(
+            alert_name=self._alert_name,
+            severity=self._severity,
+            group=self._group,
+            entity_id=self._entity_id or "N/A"
+        )
 
     async def async_added_to_hass(self):
         # Track all referenced entities for state changes
@@ -283,18 +376,34 @@ class EmergencyBinarySensor(BinarySensorEntity):
             async_dispatcher_send(self.hass, SUMMARY_UPDATE_SIGNAL)
 
     def _call_actions(self, actions):
-        if not actions:
-            return
-        for action in actions:
-            try:
-                domain, service = action["service"].split(".", 1)
-                service_data = action.get("data", {})
-                # Fire and forget service call
-                _ = self.hass.services.async_call(
-                    domain, service, service_data, blocking=False
-                )
-            except Exception as e:
-                _LOGGER.error(f"Error calling action: {e}")
+        # Call configured actions
+        if actions:
+            for action in actions:
+                try:
+                    domain, service = action["service"].split(".", 1)
+                    service_data = action.get("data", {})
+                    # Fire and forget service call
+                    _ = self.hass.services.async_call(
+                        domain, service, service_data, blocking=False
+                    )
+                except Exception as e:
+                    _LOGGER.error(f"Error calling action: {e}")
+
+        # Send global notification if enabled and this is a trigger event
+        if actions == self._on_triggered and self._should_send_global_notification():
+            global_service = self._get_global_notification_service()
+            if global_service:
+                try:
+                    domain, service = global_service.split(".", 1)
+                    message = self._get_global_notification_message()
+                    service_data = {"message": message}
+                    _ = self.hass.services.async_call(
+                        domain, service, service_data, blocking=False
+                    )
+                    _LOGGER.debug(
+                        f"Sent global notification for {self._alert_name}")
+                except Exception as e:
+                    _LOGGER.error(f"Error sending global notification: {e}")
 
     def _start_escalation_timer(self):
         if self._escalation_task:
@@ -309,7 +418,7 @@ class EmergencyBinarySensor(BinarySensorEntity):
                 async_dispatcher_send(self.hass, SUMMARY_UPDATE_SIGNAL)
 
         self._escalation_task = async_call_later(
-            self.hass, ESCALATION_MINUTES * 60, escalate
+            self.hass, self._get_escalation_time(), escalate
         )
 
     def _cancel_escalation_timer(self):
