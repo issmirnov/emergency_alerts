@@ -133,17 +133,12 @@
                 "data": {
                     "alert_id": "Alert to Remove"
                 }
-            },
-            "list_alerts": {
-                "title": "📋 List All Alerts",
-                "description": "View all alerts configured in this group"
             }
         },
         "abort": {
             "no_alerts_to_remove": "No alerts available to remove",
             "no_alerts_to_edit": "No alerts available to edit",
-            "alert_not_found": "The selected alert could not be found",
-            "alerts_listed": "Alerts have been listed - use the UI to view them"
+            "alert_not_found": "The selected alert could not be found"
         }
     },
     "selector": {
@@ -157,8 +152,7 @@
             "options": {
                 "add_alert": "➕ Add New Alert",
                 "edit_alert": "✏️ Edit Alert",
-                "remove_alert": "🗑️ Remove Alert",
-                "list_alerts": "📋 List All Alerts"
+                "remove_alert": "🗑️ Remove Alert"
             }
         }
     }

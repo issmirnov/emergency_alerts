@@ -187,8 +187,6 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                 return await self.async_step_remove_alert()
             elif action == "edit_alert":
                 return await self.async_step_edit_alert()
-            elif action == "list_alerts":
-                return await self.async_step_list_alerts()
 
         # Show options for managing alerts in this group
         current_alerts = self.config_entry.data.get("alerts", {})
@@ -196,8 +194,9 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
 
         # Create action options
         options = ["add_alert"]
+
         if alert_count > 0:
-            options.extend(["edit_alert", "remove_alert", "list_alerts"])
+            options.extend(["edit_alert", "remove_alert"])
 
         return self.async_show_form(
             step_id="group_options",
@@ -498,7 +497,3 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                 ),
             })
         )
-
-    async def async_step_list_alerts(self, user_input=None):
-        """List all alerts in this group."""
-        return self.async_abort(reason="alerts_listed")
