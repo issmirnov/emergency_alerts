@@ -103,10 +103,22 @@
         }
       },
       "group_options": {
-        "title": "Manage Group Alerts",
-        "description": "Add, remove, or view alerts in this group.",
+        "title": "Manage {group_name} Alerts",
+        "description": "Choose an action to manage alerts in this group. Currently {alert_count} alert(s) configured.",
         "data": {
           "action": "Action"
+        },
+        "data_description": {
+          "action": "Choose what you want to do with this alert group"
+        }
+      },
+      "selector": {
+        "action": {
+          "options": {
+            "add_alert": "➕ Add New Alert",
+            "remove_alert": "🗑️ Remove Alert",
+            "list_alerts": "📋 List All Alerts"
+          }
         }
       },
       "add_alert": {

@@ -226,6 +226,7 @@ class EmergencyBinarySensor(BinarySensorEntity):
         self._acknowledged = False
         self._escalation_task = None
         self._escalated = False
+        self._cleared = False
 
     def _get_global_options(self):
         """Get global options from hass.data"""
@@ -285,6 +286,8 @@ class EmergencyBinarySensor(BinarySensorEntity):
                 self.hass, [], state_change)
         # Set initial state
         self._evaluate_trigger()
+        # Create initial status sensor
+        self._update_status_sensor()
 
     async def async_will_remove_from_hass(self):
         if self._unsub:
@@ -440,8 +443,11 @@ class EmergencyBinarySensor(BinarySensorEntity):
 
     async def async_acknowledge(self):
         self._acknowledged = True
+        self._cleared = False
+        self._escalated = False
         self._cancel_escalation_timer()
         self.async_write_ha_state()
+        self._update_status_sensor()
         async_dispatcher_send(self.hass, SUMMARY_UPDATE_SIGNAL)
 
     async def async_clear(self):
@@ -453,14 +459,53 @@ class EmergencyBinarySensor(BinarySensorEntity):
         self._already_triggered = False
         self._acknowledged = False
         self._escalated = False
+        self._cleared = True
         self.async_write_ha_state()
         self._cancel_escalation_timer()
+        self._update_status_sensor()
         async_dispatcher_send(self.hass, SUMMARY_UPDATE_SIGNAL)
 
     async def async_escalate(self):
         """Manually escalate the alert."""
         if self._is_on and not self._escalated:
             self._escalated = True
+            self._acknowledged = False
+            self._cleared = False
             self.async_write_ha_state()
             self._call_actions(self._on_escalated)
+            self._update_status_sensor()
             async_dispatcher_send(self.hass, SUMMARY_UPDATE_SIGNAL)
+
+    def get_status(self):
+        """Get current alert status."""
+        if self._cleared:
+            return "cleared"
+        elif self._acknowledged:
+            return "acknowledged"
+        elif self._escalated:
+            return "escalated"
+        elif self._is_on:
+            return "active"
+        else:
+            return "inactive"
+
+    def _update_status_sensor(self):
+        """Update the companion status sensor."""
+        status = self.get_status()
+        status_entity_id = f"sensor.emergency_{self._alert_id}_status"
+        _LOGGER.debug(f"Updating status sensor {status_entity_id} to {status}")
+        self.hass.states.async_set(
+            status_entity_id,
+            status,
+            {
+                "friendly_name": f"Emergency {self._alert_id.replace('_', ' ').title()} Status",
+                "icon": {
+                    "active": "mdi:alert",
+                    "acknowledged": "mdi:check-circle",
+                    "cleared": "mdi:check-circle-outline",
+                    "escalated": "mdi:arrow-up-circle",
+                    "inactive": "mdi:circle-outline"
+                }.get(status, "mdi:help-circle"),
+                "device_class": "enum"
+            }
+        )

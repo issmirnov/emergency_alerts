@@ -167,9 +167,9 @@ class EmergencyHubSensor(SensorEntity):
         self._group_name = group_name
         self._hub_name = hub_name
 
-        self._attr_name = f"Emergency Alerts Hub: {group_name}"
+        self._attr_name = f"Emergency Alerts {group_name.title()} Summary"
         self._attr_unique_id = f"emergency_alerts_hub_{hub_name}"
-        self._attr_icon = "mdi:shield-alert"
+        self._attr_icon = "mdi:view-dashboard"
 
         # This sensor represents the hub device itself
         self._attr_device_info = {
