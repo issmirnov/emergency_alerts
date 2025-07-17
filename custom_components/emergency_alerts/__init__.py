@@ -22,14 +22,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         # The binary_sensor platform will skip entity creation for global hubs
         await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
     elif hub_type == "group":
-        # Group hub - forward to both binary_sensor and sensor platforms
-        await hass.config_entries.async_forward_entry_setups(entry, ["binary_sensor", "sensor"])
+        # Group hub - forward to binary_sensor, sensor, and button platforms
+        await hass.config_entries.async_forward_entry_setups(entry, ["binary_sensor", "sensor", "button"])
     else:
         # Legacy individual alert entry (backward compatibility)
         # Store global options if this entry has them
         if entry.options:
             hass.data[DOMAIN]["global_options"] = entry.options
-        await hass.config_entries.async_forward_entry_setups(entry, ["binary_sensor", "sensor"])
+        await hass.config_entries.async_forward_entry_setups(entry, ["binary_sensor", "sensor", "button"])
 
     # Register services only once (when first entry is added)
     if "services_registered" not in hass.data[DOMAIN]:
@@ -97,15 +97,18 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     if hub_type == "global":
         platforms = ["sensor"]
     else:
-        platforms = ["binary_sensor", "sensor"]
+        platforms = ["binary_sensor", "sensor", "button"]
 
     unload_binary_sensor = True
     unload_sensor = True
+    unload_button = True
 
     if "binary_sensor" in platforms:
         unload_binary_sensor = await hass.config_entries.async_forward_entry_unload(entry, "binary_sensor")
     if "sensor" in platforms:
         unload_sensor = await hass.config_entries.async_forward_entry_unload(entry, "sensor")
+    if "button" in platforms:
+        unload_button = await hass.config_entries.async_forward_entry_unload(entry, "button")
 
     # Clean up entities from this entry
     if DOMAIN in hass.data and "entities" in hass.data[DOMAIN]:
@@ -117,7 +120,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
         for entity in entities_to_remove:
             hass.data[DOMAIN]["entities"].remove(entity)
 
-    return unload_binary_sensor and unload_sensor
+    return unload_binary_sensor and unload_sensor and unload_button
 
 
 async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
