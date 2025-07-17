@@ -178,36 +178,15 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
         )
 
     async def async_step_group_options(self, user_input=None):
-        """Manage group hub options - add/remove alerts."""
-        if user_input is not None:
-            action = user_input.get("action")
-            if action == "add_alert":
-                return await self.async_step_add_alert()
-            elif action == "remove_alert":
-                return await self.async_step_remove_alert()
-            elif action == "edit_alert":
-                return await self.async_step_edit_alert()
-
-        # Show options for managing alerts in this group
+        """Show menu-style options for managing alerts in this group."""
+        # Show menu-style options for managing alerts in this group
         current_alerts = self.config_entry.data.get("alerts", {})
         alert_count = len(current_alerts)
 
-        # Create action options
-        options = ["add_alert"]
-
-        if alert_count > 0:
-            options.extend(["edit_alert", "remove_alert"])
-
-        return self.async_show_form(
+        return self.async_show_menu(
             step_id="group_options",
-            data_schema=vol.Schema({
-                vol.Required("action"): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=options,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-            }),
+            menu_options=["add_alert"] +
+            (["edit_alert", "remove_alert"] if alert_count > 0 else []),
             description_placeholders={
                 "alert_count": str(alert_count),
                 "group_name": self.config_entry.data.get("group", "Unknown")
