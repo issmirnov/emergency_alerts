@@ -241,8 +241,14 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                 # This will be collected in the next step
                 pass
 
-            # Continue to trigger-specific configuration
-            return await self.async_step_add_alert_trigger_config()
+            # Branch to appropriate trigger configuration step
+            trigger_type = user_input["trigger_type"]
+            if trigger_type == "simple":
+                return await self.async_step_add_alert_trigger_simple()
+            elif trigger_type == "template":
+                return await self.async_step_add_alert_trigger_template()
+            elif trigger_type == "logical":
+                return await self.async_step_add_alert_trigger_logical()
 
         return self.async_show_form(
             step_id="add_alert",
@@ -262,6 +268,77 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                     selector.SelectSelectorConfig(
                         options=SEVERITY_LEVELS,
                         mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+            })
+        )
+
+    async def async_step_add_alert_trigger_simple(self, user_input=None):
+        """Add a new alert to this group - Step 2: Simple Trigger Configuration."""
+        if user_input is not None:
+            # Store simple trigger data
+            self._alert_data["entity_id"] = user_input.get("entity_id")
+            self._alert_data["trigger_state"] = user_input.get("trigger_state")
+
+            # Continue to action configuration
+            return await self.async_step_add_alert_actions()
+
+        return self.async_show_form(
+            step_id="add_alert_trigger_simple",
+            data_schema=vol.Schema({
+                vol.Required("entity_id"): selector.EntitySelector(
+                    selector.EntitySelectorConfig()
+                ),
+                vol.Required("trigger_state"): selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        type=selector.TextSelectorType.TEXT
+                    )
+                ),
+            })
+        )
+
+    async def async_step_add_alert_trigger_template(self, user_input=None):
+        """Add a new alert to this group - Step 2: Template Trigger Configuration."""
+        if user_input is not None:
+            # Store template trigger data
+            self._alert_data["entity_id"] = user_input.get("entity_id")
+            self._alert_data["template"] = user_input.get("template")
+
+            # Continue to action configuration
+            return await self.async_step_add_alert_actions()
+
+        return self.async_show_form(
+            step_id="add_alert_trigger_template",
+            data_schema=vol.Schema({
+                vol.Required("entity_id"): selector.EntitySelector(
+                    selector.EntitySelectorConfig()
+                ),
+                vol.Required("template"): selector.TemplateSelector(
+                    selector.TemplateSelectorConfig()
+                ),
+            })
+        )
+
+    async def async_step_add_alert_trigger_logical(self, user_input=None):
+        """Add a new alert to this group - Step 2: Logical Trigger Configuration."""
+        if user_input is not None:
+            # Store logical trigger data
+            self._alert_data["entity_id"] = user_input.get("entity_id")
+            self._alert_data["logical_conditions"] = user_input.get(
+                "logical_conditions")
+
+            # Continue to action configuration
+            return await self.async_step_add_alert_actions()
+
+        return self.async_show_form(
+            step_id="add_alert_trigger_logical",
+            data_schema=vol.Schema({
+                vol.Required("entity_id"): selector.EntitySelector(
+                    selector.EntitySelectorConfig()
+                ),
+                vol.Required("logical_conditions"): selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        type=selector.TextSelectorType.TEXT
                     )
                 ),
             })
@@ -317,9 +394,26 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
         else:
             return self.async_abort(reason="invalid_trigger_type")
 
+        # Build title and description based on trigger type
+        if trigger_type == "simple":
+            title = "➕ Add New Alert - Step 2: Simple Trigger Configuration"
+            description = "Configure which entity to monitor and what state should trigger the alert."
+        elif trigger_type == "template":
+            title = "➕ Add New Alert - Step 2: Template Trigger Configuration"
+            description = "Create a Jinja2 template that returns True when the alert should trigger."
+        elif trigger_type == "logical":
+            title = "➕ Add New Alert - Step 2: Logical Trigger Configuration"
+            description = "Combine multiple entity conditions using AND/OR logic."
+        else:
+            title = "➕ Add New Alert - Step 2: Trigger Configuration"
+            description = "Configure the specific trigger conditions for your alert."
+
         return self.async_show_form(
             step_id="add_alert_trigger_config",
             data_schema=schema,
+            description_placeholders={
+                "trigger_type": trigger_type.title()
+            }
         )
 
     async def async_step_add_alert_actions(self, user_input=None):

@@ -101,7 +101,7 @@
       },
       "add_alert_trigger_config": {
         "title": "➕ Add New Alert - Step 2: Trigger Configuration",
-        "description": "Configure the specific trigger conditions for your alert.",
+        "description": "Configure the specific trigger conditions for your {trigger_type} alert.",
         "data": {
           "entity_id": "Entity to Monitor",
           "trigger_state": "State that triggers the alert",
@@ -110,9 +110,45 @@
         },
         "data_description": {
           "entity_id": "The Home Assistant entity to watch (e.g., binary_sensor.front_door, sensor.temperature)",
-          "trigger_state": "What state should trigger the alert? Examples:<br/>• `on` for binary sensors<br/>• `unavailable` for offline devices<br/>• `30` for numeric thresholds",
-          "template": "Jinja2 template returning True/False. Example:<br/>`{{ states('sensor.temperature')|float > 25 and states('sensor.humidity')|float < 30 }}`",
-          "logical_conditions": "JSON format: `[{\"entity_id\": \"binary_sensor.door\", \"state\": \"on\"}, {\"entity_id\": \"sensor.temp\", \"state\": \"30\"}]`<br/>Use 'and' or 'or' operator"
+          "trigger_state": "What state should trigger the alert? Examples:<br/>• `on` for binary sensors<br/>• `unavailable` for offline devices<br/>• `30` for numeric thresholds<br/>• `home` for device trackers",
+          "template": "Jinja2 template returning True/False. Example:<br/>`{{ states('sensor.temperature')|float > 25 and states('sensor.humidity')|float < 30 }}`<br/>Use Home Assistant state functions and Jinja2 syntax",
+          "logical_conditions": "JSON format: `[{\"entity_id\": \"binary_sensor.door\", \"state\": \"on\"}, {\"entity_id\": \"sensor.temp\", \"state\": \"30\"}]`<br/>Use 'and' or 'or' operator to combine conditions"
+        }
+      },
+      "add_alert_trigger_simple": {
+        "title": "➕ Add New Alert - Step 2: Simple Trigger Configuration",
+        "description": "Configure which entity to monitor and what state should trigger the alert.",
+        "data": {
+          "entity_id": "Entity to Monitor",
+          "trigger_state": "State that triggers the alert"
+        },
+        "data_description": {
+          "entity_id": "The Home Assistant entity to watch (e.g., binary_sensor.front_door, sensor.temperature)",
+          "trigger_state": "What state should trigger the alert? Examples:<br/>• `on` for binary sensors<br/>• `unavailable` for offline devices<br/>• `30` for numeric thresholds<br/>• `home` for device trackers"
+        }
+      },
+      "add_alert_trigger_template": {
+        "title": "➕ Add New Alert - Step 2: Template Trigger Configuration",
+        "description": "Select an entity to monitor and create a Jinja2 template that returns True when the alert should trigger.",
+        "data": {
+          "entity_id": "Entity to Monitor",
+          "template": "Jinja2 Template"
+        },
+        "data_description": {
+          "entity_id": "The Home Assistant entity to watch (e.g., binary_sensor.front_door, sensor.temperature)",
+          "template": "Jinja2 template returning True/False. Example:<br/>`{{ states('sensor.temperature')|float > 25 and states('sensor.humidity')|float < 30 }}`<br/>Use Home Assistant state functions and Jinja2 syntax"
+        }
+      },
+      "add_alert_trigger_logical": {
+        "title": "➕ Add New Alert - Step 2: Logical Trigger Configuration",
+        "description": "Select an entity to monitor and combine multiple entity conditions using AND/OR logic.",
+        "data": {
+          "entity_id": "Entity to Monitor",
+          "logical_conditions": "JSON Conditions Array"
+        },
+        "data_description": {
+          "entity_id": "The Home Assistant entity to watch (e.g., binary_sensor.front_door, sensor.temperature)",
+          "logical_conditions": "JSON format: `[{\"entity_id\": \"binary_sensor.door\", \"state\": \"on\"}, {\"entity_id\": \"sensor.temp\", \"state\": \"30\"}]`<br/>Use 'and' or 'or' operator to combine conditions"
         }
       },
       "add_alert_actions": {
