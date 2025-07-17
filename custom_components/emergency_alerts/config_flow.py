@@ -453,27 +453,6 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
             current_alert = alerts.get(self._editing_alert_id, {})
 
         if user_input is not None:
-            # Check if user wants to delete the alert
-            if is_editing and user_input.get("action") == "delete":
-                # Delete the alert
-                new_alerts = dict(self.config_entry.data.get("alerts", {}))
-                del new_alerts[self._editing_alert_id]
-
-                # Update the config entry
-                new_data = dict(self.config_entry.data)
-                new_data["alerts"] = new_alerts
-
-                self.hass.config_entries.async_update_entry(
-                    self.config_entry, data=new_data
-                )
-
-                # Reload the config entry to remove entities
-                await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-
-                # Clean up edit mode
-                delattr(self, '_editing_alert_id')
-                return self.async_create_entry(title="Alert Deleted", data={})
-
             # Parse script selections
             actions = {}
 
@@ -543,48 +522,33 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
             current_escalated_script = self._extract_script_from_actions(
                 current_alert.get("on_escalated", []))
 
-        # Build schema with optional delete action for editing
-        schema_fields = {
-            # Triggered actions
-            vol.Optional("on_triggered_script", default=current_triggered_script): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=script_options,
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
-            ),
-
-            # Cleared actions
-            vol.Optional("on_cleared_script", default=current_cleared_script): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=script_options,
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
-            ),
-
-            # Escalated actions
-            vol.Optional("on_escalated_script", default=current_escalated_script): selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=script_options,
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
-            ),
-        }
-
-        # Add delete option only when editing
-        if is_editing:
-            schema_fields[vol.Optional("action", default="save")] = selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=[
-                        {"value": "save", "label": "💾 Save Changes"},
-                        {"value": "delete", "label": "🗑️ Delete This Alert"}
-                    ],
-                    mode=selector.SelectSelectorMode.DROPDOWN,
-                )
-            )
-
         return self.async_show_form(
             step_id="add_alert_actions",
-            data_schema=vol.Schema(schema_fields),
+            data_schema=vol.Schema({
+                # Triggered actions
+                vol.Optional("on_triggered_script", default=current_triggered_script): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=script_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+
+                # Cleared actions
+                vol.Optional("on_cleared_script", default=current_cleared_script): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=script_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+
+                # Escalated actions
+                vol.Optional("on_escalated_script", default=current_escalated_script): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=script_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+            }),
         )
 
     async def async_step_edit_alert(self, user_input=None):
