@@ -106,16 +106,23 @@ class EmergencyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     def async_get_options_flow(config_entry):
-        return EmergencyOptionsFlow(config_entry)
+        return EmergencyOptionsFlow()
 
 
 class EmergencyOptionsFlow(config_entries.OptionsFlow):
-    def __init__(self, config_entry):
-        self.config_entry = config_entry
 
     async def async_step_init(self, user_input=None):
         """Manage options based on hub type."""
-        hub_type = self.config_entry.data.get("hub_type", "global")
+        hub_type = self.config_entry.data.get("hub_type")
+
+        # Handle legacy entries that don't have hub_type set
+        if hub_type is None:
+            # Check if this looks like a global settings hub
+            if self.config_entry.title == "Emergency Alerts - Global Settings":
+                hub_type = "global"
+            else:
+                # Assume it's a legacy group hub
+                hub_type = "group"
 
         if hub_type == "global":
             return await self.async_step_global_options(user_input)
