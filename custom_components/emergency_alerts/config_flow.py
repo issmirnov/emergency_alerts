@@ -3,6 +3,7 @@ import logging
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.helpers import selector
+from homeassistant.helpers.device_registry import async_get as async_get_device_registry
 
 from .const import DOMAIN
 
@@ -611,10 +612,25 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                 self.config_entry, data=new_data
             )
 
+            # Explicitly remove the device from device registry
+            hub_name = self.config_entry.data.get("hub_name", "unknown")
+            device_id = f"{hub_name}_{alert_to_remove}"
+
+            # Get the device registry
+            device_registry = async_get_device_registry(self.hass)
+
+            # Find and remove the device
+            device = device_registry.async_get_device(
+                identifiers={(DOMAIN, device_id)})
+            if device:
+                device_registry.async_remove_device(device.id)
+                _LOGGER.debug(
+                    f"Removed device {device_id} from device registry")
+
             # Reload the config entry to remove old entities
             await self.hass.config_entries.async_reload(self.config_entry.entry_id)
 
-            return self.async_create_entry(title="", data={})
+            return self.async_create_entry(title="Alert Deleted", data={})
 
         alert_options = [
             f"{alert_id}: {alert_data['name']} ({alert_data.get('trigger_type', 'simple')})"
