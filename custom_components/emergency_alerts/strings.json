@@ -2,55 +2,18 @@
   "config": {
     "step": {
       "user": {
-        "title": "Set up Emergency Alert",
-        "description": "Configure an emergency alert to monitor important conditions in your smart home.",
-        "data": {
-          "name": "Alert Name",
-          "trigger_type": "Trigger Type",
-          "entity_id": "Entity to Monitor",
-          "trigger_state": "Trigger State",
-          "template": "Template",
-          "logical_conditions": "Logical Conditions",
-          "action_service": "Action Service",
-          "severity": "Severity Level",
-          "group": "Alert Group",
-          "on_triggered": "Action on Triggered",
-          "on_cleared": "Action on Cleared", 
-          "on_escalated": "Action on Escalated"
-        },
-        "data_description": {
-          "name": "A descriptive name for this alert",
-          "trigger_type": "How this alert should be triggered",
-          "entity_id": "The entity that will be monitored for changes",
-          "trigger_state": "The state that will trigger this alert",
-          "template": "Template for complex trigger conditions",
-          "severity": "How critical this alert is",
-          "group": "Category this alert belongs to"
-        }
-      },
-      "reconfigure": {
-        "title": "Reconfigure Emergency Alert",
-        "description": "Update the configuration for this emergency alert.",
-        "data": {
-          "name": "Alert Name",
-          "trigger_type": "Trigger Type",
-          "entity_id": "Entity to Monitor",
-          "trigger_state": "Trigger State",
-          "template": "Template",
-          "severity": "Severity Level",
-          "group": "Alert Group"
-        }
+        "title": "Set up Emergency Alerts Hub",
+        "description": "Create the main Emergency Alerts integration. After setup, you can add individual alerts as subentries.",
+        "data": {},
+        "data_description": {}
       }
     },
     "error": {
-      "unknown": "Unexpected error occurred.",
-      "invalid_template": "The template syntax is invalid.",
-      "entity_not_found": "The specified entity was not found."
+      "unknown": "Unexpected error occurred."
     },
     "abort": {
-      "single_instance_allowed": "Only a single configuration of Emergency Alerts is allowed.",
-      "already_configured": "Emergency Alerts is already configured.",
-      "reconfigure_successful": "Successfully updated the alert configuration."
+      "single_instance_allowed": "Only a single Emergency Alerts hub is allowed.",
+      "already_configured": "Emergency Alerts hub is already configured."
     }
   },
   "config_subentries": {
@@ -74,7 +37,7 @@
             "trigger_type": "How this alert should be triggered",
             "entity_id": "The entity to monitor for changes",
             "trigger_state": "The state that will trigger this alert",
-            "template": "Template for complex trigger conditions",
+            "template": "Template for complex trigger conditions (only for template type)",
             "severity": "How critical this alert is",
             "group": "Category this alert belongs to"
           }
