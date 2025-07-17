@@ -185,6 +185,8 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                 return await self.async_step_add_alert()
             elif action == "remove_alert":
                 return await self.async_step_remove_alert()
+            elif action == "edit_alert":
+                return await self.async_step_edit_alert()
             elif action == "list_alerts":
                 return await self.async_step_list_alerts()
 
@@ -195,7 +197,7 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
         # Create action options
         options = ["add_alert"]
         if alert_count > 0:
-            options.extend(["remove_alert", "list_alerts"])
+            options.extend(["edit_alert", "remove_alert", "list_alerts"])
 
         return self.async_show_form(
             step_id="group_options",
@@ -281,6 +283,132 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                     )
                 ),
                 vol.Optional("on_escalated"): selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        type=selector.TextSelectorType.TEXT
+                    )
+                ),
+            })
+        )
+
+    async def async_step_edit_alert(self, user_input=None):
+        """Select an alert to edit from this group."""
+        alerts = self.config_entry.data.get("alerts", {})
+
+        if not alerts:
+            return self.async_abort(reason="no_alerts_to_edit")
+
+        if user_input is not None:
+            # Extract alert_id from the selected option (format: "alert_id: name (type)")
+            selected_option = user_input["alert_id"]
+            alert_to_edit = selected_option.split(":")[0].strip()
+
+            # Store the alert_id for the next step
+            self._alert_to_edit = alert_to_edit
+            return await self.async_step_edit_alert_form()
+
+        alert_options = [
+            f"{alert_id}: {alert_data['name']} ({alert_data.get('trigger_type', 'simple')})"
+            for alert_id, alert_data in alerts.items()
+        ]
+
+        return self.async_show_form(
+            step_id="edit_alert",
+            data_schema=vol.Schema({
+                vol.Required("alert_id"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=alert_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+            })
+        )
+
+    async def async_step_edit_alert_form(self, user_input=None):
+        """Edit the selected alert."""
+        alerts = self.config_entry.data.get("alerts", {})
+        alert_to_edit = getattr(self, '_alert_to_edit', None)
+
+        if not alert_to_edit or alert_to_edit not in alerts:
+            return self.async_abort(reason="alert_not_found")
+
+        current_alert = alerts[alert_to_edit]
+
+        if user_input is not None:
+            # Update the alert in the config entry data
+            new_alerts = dict(alerts)
+
+            # If the name changed, we need to update the alert_id
+            new_name = user_input["name"]
+            new_alert_id = new_name.lower().replace(" ", "_")
+
+            if new_alert_id != alert_to_edit:
+                # Remove old alert and add with new id
+                del new_alerts[alert_to_edit]
+                new_alerts[new_alert_id] = user_input
+            else:
+                # Update existing alert
+                new_alerts[alert_to_edit] = user_input
+
+            # Update the config entry
+            new_data = dict(self.config_entry.data)
+            new_data["alerts"] = new_alerts
+
+            self.hass.config_entries.async_update_entry(
+                self.config_entry, data=new_data
+            )
+
+            # Reload the config entry to update entities
+            await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+
+            return self.async_create_entry(title="", data={})
+
+        return self.async_show_form(
+            step_id="edit_alert_form",
+            data_schema=vol.Schema({
+                vol.Required("name", default=current_alert.get("name", "")): selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        type=selector.TextSelectorType.TEXT
+                    )
+                ),
+                vol.Required("trigger_type", default=current_alert.get("trigger_type", "simple")): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=TRIGGER_TYPES,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional("entity_id", default=current_alert.get("entity_id", "")): selector.EntitySelector(
+                    selector.EntitySelectorConfig()
+                ),
+                vol.Optional("trigger_state", default=current_alert.get("trigger_state", "")): selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        type=selector.TextSelectorType.TEXT
+                    )
+                ),
+                vol.Optional("template", default=current_alert.get("template", "")): selector.TemplateSelector(
+                    selector.TemplateSelectorConfig()
+                ),
+                vol.Optional("logical_conditions", default=current_alert.get("logical_conditions", "")): selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        type=selector.TextSelectorType.TEXT
+                    )
+                ),
+                vol.Optional("severity", default=current_alert.get("severity", "warning")): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=SEVERITY_LEVELS,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional("on_triggered", default=current_alert.get("on_triggered", "")): selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        type=selector.TextSelectorType.TEXT
+                    )
+                ),
+                vol.Optional("on_cleared", default=current_alert.get("on_cleared", "")): selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        type=selector.TextSelectorType.TEXT
+                    )
+                ),
+                vol.Optional("on_escalated", default=current_alert.get("on_escalated", "")): selector.TextSelector(
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.TEXT
                     )

@@ -25,41 +25,6 @@
         "data_description": {
           "group_name": "Enter a name for this alert group (e.g., 'Security', 'Safety', 'Ivan's Alerts')"
         }
-      },
-      "add_alert": {
-        "title": "Add Emergency Alert",
-        "description": "Configure a new emergency alert for this group.",
-        "data": {
-          "name": "Alert Name",
-          "trigger_type": "Trigger Type",
-          "entity_id": "Entity ID",
-          "trigger_state": "Trigger State",
-          "template": "Template",
-          "logical_conditions": "Logical Conditions",
-          "severity": "Severity Level",
-          "on_triggered": "Action on Triggered",
-          "on_cleared": "Action on Cleared",
-          "on_escalated": "Action on Escalated"
-        },
-        "data_description": {
-          "name": "A unique name for this emergency alert within the group",
-          "trigger_type": "How this alert should be triggered - Simple monitors one entity, Template uses Jinja2 expressions, Logical combines multiple conditions",
-          "entity_id": "The Home Assistant entity to monitor (required for Simple triggers)",
-          "trigger_state": "The state value that triggers this alert (e.g., 'on', 'open', 'high', or numeric values)",
-          "template": "Jinja2 template that returns true/false (e.g., {{ states('sensor.temperature')|float > 30 }})",
-          "logical_conditions": "JSON or YAML list of conditions to combine with AND logic",
-          "severity": "Severity level affects how the alert is displayed and prioritized",
-          "on_triggered": "List of services to call when alert is triggered (JSON: [{\"service\": \"notify.notify\", \"data\": {\"message\": \"Alert!\"}}])",
-          "on_cleared": "List of services to call when alert condition clears",
-          "on_escalated": "List of services to call if alert is not acknowledged within the escalation time"
-        }
-      },
-      "remove_alert": {
-        "title": "Remove Emergency Alert",
-        "description": "Select an alert to remove from this group.",
-        "data": {
-          "alert_id": "Alert to Remove"
-        }
       }
     },
     "error": {
@@ -116,6 +81,7 @@
         "action": {
           "options": {
             "add_alert": "➕ Add New Alert",
+            "edit_alert": "✏️ Edit Alert",
             "remove_alert": "🗑️ Remove Alert",
             "list_alerts": "📋 List All Alerts"
           }
@@ -149,12 +115,73 @@
           "on_escalated": "List of services to call if alert is not acknowledged within the escalation time"
         }
       },
+      "edit_alert": {
+        "title": "✏️ Edit Alert",
+        "description": "Select an alert to edit from this group",
+        "data": {
+          "alert_id": "Alert to Edit"
+        }
+      },
+      "edit_alert_form": {
+        "title": "✏️ Edit Alert Configuration",
+        "description": "Modify the alert settings below. All current values are pre-filled for your convenience.",
+        "data": {
+          "name": "Alert Name",
+          "trigger_type": "Trigger Type",
+          "entity_id": "Entity ID",
+          "trigger_state": "Trigger State",
+          "template": "Template",
+          "logical_conditions": "Logical Conditions",
+          "severity": "Severity Level",
+          "on_triggered": "Action on Triggered",
+          "on_cleared": "Action on Cleared",
+          "on_escalated": "Action on Escalated"
+        },
+        "data_description": {
+          "name": "A unique name for this emergency alert within the group",
+          "trigger_type": "How this alert should be triggered - Simple monitors one entity, Template uses Jinja2 expressions, Logical combines multiple conditions",
+          "entity_id": "The Home Assistant entity to monitor (required for Simple triggers)",
+          "trigger_state": "The state value that triggers this alert (e.g., 'on', 'open', 'high', or numeric values)",
+          "template": "Jinja2 template that returns true/false (e.g., {{ states('sensor.temperature')|float > 30 }})",
+          "logical_conditions": "JSON or YAML list of conditions to combine with AND logic",
+          "severity": "Severity level affects how the alert is displayed and prioritized",
+          "on_triggered": "List of services to call when alert is triggered (JSON: [{\"service\": \"notify.notify\", \"data\": {\"message\": \"Alert!\"}}])",
+          "on_cleared": "List of services to call when alert condition clears",
+          "on_escalated": "List of services to call if alert is not acknowledged within the escalation time"
+        }
+      },
       "remove_alert": {
         "title": "Remove Emergency Alert",
         "description": "Select an alert to remove from this group.",
         "data": {
           "alert_id": "Alert to Remove"
         }
+      },
+      "list_alerts": {
+        "title": "📋 List All Alerts",
+        "description": "View all alerts configured in this group"
+      }
+    },
+    "abort": {
+      "no_alerts_to_remove": "No alerts available to remove",
+      "no_alerts_to_edit": "No alerts available to edit",
+      "alert_not_found": "The selected alert could not be found",
+      "alerts_listed": "Alerts have been listed - use the UI to view them"
+    }
+  },
+  "selector": {
+    "setup_type": {
+      "options": {
+        "global": "Global Settings Hub",
+        "group": "Alert Group Hub"
+      }
+    },
+    "action": {
+      "options": {
+        "add_alert": "➕ Add New Alert",
+        "edit_alert": "✏️ Edit Alert",
+        "remove_alert": "🗑️ Remove Alert",
+        "list_alerts": "📋 List All Alerts"
       }
     }
   }
