@@ -6,8 +6,22 @@ from homeassistant.helpers import selector
 
 from .const import DOMAIN
 
-SEVERITY_LEVELS = ["info", "warning", "critical"]
-TRIGGER_TYPES = ["simple", "template", "logical"]
+SEVERITY_LEVELS = [
+    selector.SelectOptionDict(
+        value="info", label="ℹ️ info: General notifications"),
+    selector.SelectOptionDict(
+        value="warning", label="⚠️ warning: Important but not critical"),
+    selector.SelectOptionDict(
+        value="critical", label="🚨 critical: Urgent issues requiring immediate attention")
+]
+TRIGGER_TYPES = [
+    selector.SelectOptionDict(
+        value="simple", label="simple: Monitor one entity's state"),
+    selector.SelectOptionDict(
+        value="template", label="template: Use Jinja2 for complex conditions"),
+    selector.SelectOptionDict(
+        value="logical", label="logical: Combine multiple entity conditions")
+]
 GROUPS = ["security", "safety", "power", "lights", "environment", "other"]
 
 _LOGGER = logging.getLogger(__name__)
@@ -135,11 +149,8 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                         "label": f"{service_call} ({domain.title()} - {service_name.replace('_', ' ').title()})"
                     })
 
-        # Add "None" option for optional actions
-        services.insert(0, {"value": "", "label": "None (No Action)"})
-
         # Sort by domain for better organization
-        return sorted(services[1:], key=lambda x: x["value"]) + [services[0]]
+        return sorted(services, key=lambda x: x["value"])
 
     async def async_step_init(self, user_input=None):
         """Manage options based on hub type."""

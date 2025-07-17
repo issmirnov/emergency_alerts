@@ -111,10 +111,64 @@ User identified missing functionality - no way to edit/reconfigure existing aler
 - **README.md**: User-focused rewrite with modern formatting, clear setup instructions, and examples matching current implementation
 - **Feature documentation**: All docs now accurately represent the current state with hub organization, button entities, status tracking, and menu-style management
 
+## Phase 5: Multi-Step Alert Creation & Service Integration
+
+### User Request: Streamlined Alert Creation
+**Problem**: Single-step alert creation was overwhelming with too many fields at once
+**Solution**: Multi-step, branching config flow implementation
+
+### Implementation Details
+**Step 1: Basic Information Collection**
+- **Name**: Descriptive alert name (e.g., "Front Door Open", "High Temperature")
+- **Trigger Type**: Beautiful dropdown with emojis and descriptions:
+  - 🔍 **Simple** - Monitor a single entity's state
+  - 📝 **Template** - Use Jinja2 templates for complex conditions
+  - 🔗 **Logical** - Combine multiple conditions with AND/OR logic
+- **Severity**: Enhanced dropdown with emojis:
+  - 🚨 **Critical** - Immediate attention required
+  - ⚠️ **Warning** - Important but not urgent
+  - ℹ️ **Info** - Informational alerts
+
+**Step 2: Trigger-Specific Configuration**
+- **Simple Triggers**: Entity ID and trigger state selection
+- **Template Triggers**: Jinja2 template input with helpful examples
+- **Logical Triggers**: Dynamic condition builder with entity/state pairs and operator selection
+
+**Step 3: Action Configuration**
+- **Service Dropdowns**: Dynamic dropdowns of available Home Assistant services instead of text inputs
+- **Action Types**: Triggered, cleared, and escalated state actions
+- **Smart Defaults**: Sensible defaults for all optional fields
+
+### Technical Implementation
+**Dynamic Service Discovery**:
+- Added `_get_available_services()` method to fetch all available Home Assistant services
+- Services filtered and formatted for user-friendly display
+- Dropdowns populated with actual available services
+- Proper service validation and error handling
+
+**UI Enhancements**:
+- **Prettier Dropdowns**: All dropdowns now use `selector.SelectOptionDict` with value/label pairs
+- **Emoji Integration**: Visual indicators for trigger types and severity levels
+- **Progressive Disclosure**: Forms adapt based on user selections
+- **Comprehensive Help**: Detailed descriptions and examples throughout
+
+### String Updates
+**Enhanced User Interface**:
+- Updated `TRIGGER_TYPE_OPTIONS` with emojis and colon-separated descriptions
+- Updated `SEVERITY_OPTIONS` with emojis and clear descriptions
+- Added comprehensive help text for all form fields
+- Maintained backward compatibility with existing installations
+
+### Translation Updates
+**Internationalization Support**:
+- Updated English translations to match new UI strings
+- Maintained consistency across all user-facing text
+- Added new translation keys for enhanced descriptions
+
 ## Current Alert Management Options (Final)
-1. **➕ Add New Alert** - Create a new alert
-2. **✏️ Edit Alert** - Edit an existing alert with pre-filled form + delete option
-3. **🗑️ Remove Alert** - Delete an alert
+1. **➕ Add New Alert** - Multi-step creation with branching forms and service dropdowns
+2. **✏️ Edit Alert** - Edit existing alerts with pre-filled forms and delete option
+3. **🗑️ Remove Alert** - Delete alerts with confirmation
 
 ## Current Technical Architecture
 
@@ -122,16 +176,19 @@ User identified missing functionality - no way to edit/reconfigure existing aler
 - **binary_sensor.py**: Main alert entities with status tracking
 - **button.py**: Interactive action buttons (acknowledge/clear/escalate)
 - **sensor.py**: Summary sensors and hub devices
-- **config_flow.py**: Setup and management UI with full CRUD operations
-- **strings.json/translations/**: User interface strings with detailed descriptions
+- **config_flow.py**: Multi-step setup and management UI with full CRUD operations
+- **strings.json/translations/**: Enhanced UI strings with emojis and detailed descriptions
 
 ### Key Features
-- Device hierarchy with via_device relationships
-- Automatic config reloading on changes
-- Status tracking with companion sensor entities
-- Global vs group hub separation
-- Legacy installation support
-- Comprehensive edit functionality with pre-filled forms
+- **Multi-step alert creation** with branching based on trigger type
+- **Dynamic service dropdowns** populated from available Home Assistant services
+- **Enhanced UI** with emojis and descriptive labels
+- **Device hierarchy** with via_device relationships
+- **Automatic config reloading** on changes
+- **Status tracking** with companion sensor entities
+- **Global vs group hub separation**
+- **Legacy installation support**
+- **Comprehensive edit functionality** with pre-filled forms
 
 ## Current Working State
 Based on debug logs and testing:
@@ -143,13 +200,15 @@ Based on debug logs and testing:
 - ✅ Improved hub sensor naming
 - ✅ **Menu-style interface implemented** with beautiful action buttons
 - ✅ **Edit alert functionality** with pre-filled forms and delete option
+- ✅ **Multi-step alert creation** with branching forms and service dropdowns
+- ✅ **Enhanced UI** with emojis and descriptive labels
 - ✅ **Documentation fully updated** to reflect current implementation
 
 ## Next Steps
 - **Integration is feature-complete** for current requirements
 - Test comprehensive functionality in Home Assistant UI
 - Verify all menu buttons work correctly
-- Ensure edit workflow functions smoothly
+- Ensure multi-step creation workflow functions smoothly
 - Monitor for any edge cases in real-world usage
 - **Ready for community use and feedback**
 
@@ -158,4 +217,6 @@ Based on debug logs and testing:
 - Button entities chosen over switches for one-time actions
 - Status sensors provide valuable state tracking for automation
 - Menu-style interface much cleaner than dropdown + submit approach
+- Multi-step creation provides better user experience than single overwhelming form
+- Service dropdowns eliminate user errors and provide better discoverability
 - Documentation now accurately reflects the sophisticated hub-based architecture and modern UI

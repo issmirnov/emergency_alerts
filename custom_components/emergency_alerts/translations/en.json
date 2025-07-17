@@ -182,6 +182,20 @@
                 "global": "Global Settings Hub - Manage notification settings and escalation (Add Once)",
                 "group": "Alert Group Hub - Create a group of related emergency alerts"
             }
+        },
+        "trigger_type": {
+            "options": {
+                "simple": "simple: Monitor one entity's state",
+                "template": "template: Use Jinja2 for complex conditions",
+                "logical": "logical: Combine multiple entity conditions"
+            }
+        },
+        "severity": {
+            "options": {
+                "info": "ℹ️ info: General notifications",
+                "warning": "⚠️ warning: Important but not critical",
+                "critical": "🚨 critical: Urgent issues requiring immediate attention"
+            }
         }
     }
 }
