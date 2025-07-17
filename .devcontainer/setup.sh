@@ -25,13 +25,6 @@ frontend:
 # Enable API
 api:
 
-# Enable Home Assistant Cloud
-cloud:
-
-# Text to speech
-tts:
-  - platform: google_translate
-
 # Example automation for testing
 automation: !include automations.yaml
 script: !include scripts.yaml
