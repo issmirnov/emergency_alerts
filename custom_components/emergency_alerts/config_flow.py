@@ -45,21 +45,29 @@ class EmergencyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             elif setup_type == "group":
                 return await self.async_step_group_setup()  # Pass None instead of user_input
 
+        # Check if global hub already exists
+        existing_entries = self.hass.config_entries.async_entries(DOMAIN)
+        global_hub_exists = any(entry.data.get("hub_type") == "global" for entry in existing_entries)
+
+        # Build options list - exclude global if already configured
+        options = []
+        if not global_hub_exists:
+            options.append({
+                "label": "Global Settings Hub - Manage notification settings and escalation (Add Once)",
+                "value": "global"
+            })
+        
+        options.append({
+            "label": "Alert Group Hub - Create a group of related emergency alerts",
+            "value": "group"
+        })
+
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema({
                 vol.Required("setup_type"): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=[
-                            {
-                                "label": "Global Settings Hub - Manage notification settings and escalation (Add Once)",
-                                "value": "global"
-                            },
-                            {
-                                "label": "Alert Group Hub - Create a group of related emergency alerts",
-                                "value": "group"
-                            }
-                        ],
+                        options=options,
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
@@ -182,9 +190,10 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(
                     "global_notification_service",
                     default=global_notification_service
-                ): selector.TextSelector(
-                    selector.TextSelectorConfig(
-                        type=selector.TextSelectorType.TEXT
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=self._get_available_scripts(),
+                        mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
                 vol.Optional(
