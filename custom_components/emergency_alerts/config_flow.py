@@ -531,6 +531,7 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                     selector.SelectSelectorConfig(
                         options=script_options,
                         mode=selector.SelectSelectorMode.DROPDOWN,
+                        custom_value=True,
                     )
                 ),
 
@@ -539,6 +540,7 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                     selector.SelectSelectorConfig(
                         options=script_options,
                         mode=selector.SelectSelectorMode.DROPDOWN,
+                        custom_value=True,
                     )
                 ),
 
@@ -547,6 +549,7 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                     selector.SelectSelectorConfig(
                         options=script_options,
                         mode=selector.SelectSelectorMode.DROPDOWN,
+                        custom_value=True,
                     )
                 ),
             }),
@@ -663,8 +666,11 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
             state = self.hass.states.get(entity_id)
             if state:
                 script_name = state.attributes.get("friendly_name", entity_id)
+                # Extract just the script name (without 'script.' prefix)
+                script_name_only = entity_id.split('.')[1]
                 scripts.append({
-                    "value": f"script.{entity_id.split('.')[1]}",
+                    # Service format: script.script_name
+                    "value": f"script.{script_name_only}",
                     "label": f"📜 {script_name} ({entity_id})"
                 })
 
@@ -674,6 +680,9 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
     def _extract_script_from_actions(self, actions):
         """Helper method to extract script service from actions list."""
         for action in actions:
-            if action.get("service", "").startswith("script."):
-                return action["service"]
+            service = action.get("service", "")
+            if service.startswith("script."):
+                # Convert service format (script.script_name) to entity_id format (script.script_name)
+                # The service format is already correct, just return it
+                return service
         return ""
