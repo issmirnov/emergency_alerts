@@ -99,54 +99,34 @@
           "severity": "**Critical**: Urgent issues requiring immediate attention<br/>**Warning**: Important but not critical<br/>**Info**: General notifications"
         }
       },
-      "add_alert_trigger_simple": {
-        "title": "➕ Add New Alert - Step 2: Simple Trigger",
-        "description": "Configure which entity to monitor and what state should trigger the alert.",
+      "add_alert_trigger_config": {
+        "title": "➕ Add New Alert - Step 2: Trigger Configuration",
+        "description": "Configure the specific trigger conditions for your alert.",
         "data": {
           "entity_id": "Entity to Monitor",
           "trigger_state": "State that triggers the alert",
-          "on_triggered": "Actions when triggered (optional)",
-          "on_cleared": "Actions when cleared (optional)",
-          "on_escalated": "Actions when escalated (optional)"
+          "template": "Jinja2 Template",
+          "logical_conditions": "JSON Conditions Array"
         },
         "data_description": {
           "entity_id": "The Home Assistant entity to watch (e.g., binary_sensor.front_door, sensor.temperature)",
           "trigger_state": "What state should trigger the alert? Examples:<br/>• `on` for binary sensors<br/>• `unavailable` for offline devices<br/>• `30` for numeric thresholds",
-          "on_triggered": "Choose a service to call when alert triggers (e.g., notifications, scripts, automations)",
-          "on_cleared": "Choose a service to call when alert automatically clears",
-          "on_escalated": "Choose a service to call if alert is not acknowledged within escalation time"
-        }
-      },
-      "add_alert_trigger_template": {
-        "title": "➕ Add New Alert - Step 2: Template Trigger",
-        "description": "Create a Jinja2 template that returns True when the alert should trigger.",
-        "data": {
-          "template": "Jinja2 Template",
-          "on_triggered": "Actions when triggered (optional)",
-          "on_cleared": "Actions when cleared (optional)",
-          "on_escalated": "Actions when escalated (optional)"
-        },
-        "data_description": {
           "template": "Jinja2 template returning True/False. Example:<br/>`{{ states('sensor.temperature')|float > 25 and states('sensor.humidity')|float < 30 }}`",
-          "on_triggered": "Choose a service to call when alert triggers (e.g., notifications, scripts, automations)",
-          "on_cleared": "Choose a service to call when alert automatically clears",
-          "on_escalated": "Choose a service to call if alert is not acknowledged within escalation time"
+          "logical_conditions": "JSON format: `[{\"entity_id\": \"binary_sensor.door\", \"state\": \"on\"}, {\"entity_id\": \"sensor.temp\", \"state\": \"30\"}]`<br/>Use 'and' or 'or' operator"
         }
       },
-      "add_alert_trigger_logical": {
-        "title": "➕ Add New Alert - Step 2: Logical Trigger",
-        "description": "Combine multiple entity conditions using AND/OR logic.",
+      "add_alert_actions": {
+        "title": "➕ Add New Alert - Step 3: Action Configuration",
+        "description": "Choose which scripts to run when the alert is triggered, cleared, or escalated. Create scripts in Settings > Automations & Scenes > Scripts for advanced actions like notifications.",
         "data": {
-          "logical_conditions": "JSON Conditions Array",
-          "on_triggered": "Actions when triggered (optional)",
-          "on_cleared": "Actions when cleared (optional)",
-          "on_escalated": "Actions when escalated (optional)"
+          "on_triggered_script": "Script to run when alert triggers (optional)",
+          "on_cleared_script": "Script to run when alert clears (optional)",
+          "on_escalated_script": "Script to run when alert escalates (optional)"
         },
         "data_description": {
-          "logical_conditions": "JSON format: `[{\"entity_id\": \"binary_sensor.door\", \"state\": \"on\"}, {\"entity_id\": \"sensor.temp\", \"state\": \"30\"}]`<br/>Use 'and' or 'or' operator",
-          "on_triggered": "Choose a service to call when alert triggers (e.g., notifications, scripts, automations)",
-          "on_cleared": "Choose a service to call when alert automatically clears",
-          "on_escalated": "Choose a service to call if alert is not acknowledged within escalation time"
+          "on_triggered_script": "Select a script to run when the alert condition is met. Create scripts in Settings > Automations & Scenes > Scripts for notifications, automations, etc.",
+          "on_cleared_script": "Select a script to run when the alert condition is no longer met (e.g., cleanup actions)",
+          "on_escalated_script": "Select a script to run if the alert is not acknowledged within the escalation time (e.g., emergency notifications)"
         }
       },
       "edit_alert": {
@@ -169,9 +149,9 @@
           "logical_conditions": "JSON array of conditions for logical triggers",
           "severity": "How urgent is this alert?",
           "escalation_minutes": "Minutes before escalating if not acknowledged",
-          "on_triggered": "List of services to call when alert triggers",
-          "on_cleared": "List of services to call when alert clears",
-          "on_escalated": "List of services to call if alert is not acknowledged within the escalation time"
+          "on_triggered_script": "Script to run when alert triggers (optional)",
+          "on_cleared_script": "Script to run when alert clears (optional)",
+          "on_escalated_script": "Script to run when alert escalates (optional)"
         },
         "data_description": {
           "action": "Choose whether to save your changes or delete this alert entirely",
@@ -183,9 +163,9 @@
           "logical_conditions": "JSON format: `[{\"entity_id\": \"binary_sensor.door\", \"state\": \"on\"}, {\"entity_id\": \"sensor.temp\", \"state\": \"30\"}]`<br/>Use 'and' or 'or' operator",
           "severity": "**Critical**: Urgent issues requiring immediate attention<br/>**Warning**: Important but not critical<br/>**Info**: General notifications",
           "escalation_minutes": "If not acknowledged within this time, escalation actions will run (leave empty to disable)",
-          "on_triggered": "Services in HA format: `[{\"service\": \"notify.mobile_app\", \"data\": {\"message\": \"Alert!\"}}]`",
-          "on_cleared": "Services to run when alert automatically clears",
-          "on_escalated": "Services to run if alert is not acknowledged within escalation time"
+          "on_triggered_script": "Select a script to run when the alert condition is met. Create scripts in Settings > Automations & Scenes > Scripts for notifications, automations, etc.",
+          "on_cleared_script": "Select a script to run when the alert condition is no longer met (e.g., cleanup actions)",
+          "on_escalated_script": "Select a script to run if the alert is not acknowledged within the escalation time (e.g., emergency notifications)"
         }
       },
       "remove_alert": {

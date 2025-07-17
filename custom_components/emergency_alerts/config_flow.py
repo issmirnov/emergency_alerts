@@ -134,24 +134,6 @@ class EmergencyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 class EmergencyOptionsFlow(config_entries.OptionsFlow):
 
-    def _get_available_services(self):
-        """Get available Home Assistant services for dropdown selection."""
-        services = []
-
-        # Get all available services from Home Assistant
-        for domain, domain_services in self.hass.services.async_services().items():
-            for service_name in domain_services.keys():
-                service_call = f"{domain}.{service_name}"
-                # Add some common/useful services with descriptions
-                if domain in ["notify", "script", "automation", "scene", "light", "switch", "media_player", "climate", "alarm_control_panel"]:
-                    services.append({
-                        "value": service_call,
-                        "label": f"{service_call} ({domain.title()} - {service_name.replace('_', ' ').title()})"
-                    })
-
-        # Sort by domain for better organization
-        return sorted(services, key=lambda x: x["value"])
-
     async def async_step_init(self, user_input=None):
         """Manage options based on hub type."""
         hub_type = self.config_entry.data.get("hub_type")
@@ -244,14 +226,23 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                 "severity": user_input.get("severity", "warning")
             }
 
-            # Branch to appropriate trigger configuration step
+            # Store trigger-specific data based on type
             trigger_type = user_input["trigger_type"]
             if trigger_type == "simple":
-                return await self.async_step_add_alert_trigger_simple()
+                # For simple triggers, we need entity_id and trigger_state
+                # These will be collected in the next step
+                pass
             elif trigger_type == "template":
-                return await self.async_step_add_alert_trigger_template()
+                # For template triggers, we need the template
+                # This will be collected in the next step
+                pass
             elif trigger_type == "logical":
-                return await self.async_step_add_alert_trigger_logical()
+                # For logical triggers, we need logical_conditions
+                # This will be collected in the next step
+                pass
+
+            # Continue to trigger-specific configuration
+            return await self.async_step_add_alert_trigger_config()
 
         return self.async_show_form(
             step_id="add_alert",
@@ -276,48 +267,30 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
             })
         )
 
-    async def async_step_add_alert_trigger_simple(self, user_input=None):
-        """Add a new alert to this group - Step 2: Simple Trigger Configuration."""
+    async def async_step_add_alert_trigger_config(self, user_input=None):
+        """Add a new alert to this group - Step 2: Trigger-Specific Configuration."""
         if user_input is not None:
-            # Store simple trigger data
-            self._alert_data["entity_id"] = user_input.get("entity_id")
-            self._alert_data["trigger_state"] = user_input.get("trigger_state")
+            # Store trigger-specific data based on type
+            trigger_type = self._alert_data.get("trigger_type")
 
-            # Convert service selections to proper format (only if not empty)
-            if user_input.get("on_triggered"):
-                self._alert_data["on_triggered"] = [
-                    {"service": user_input["on_triggered"]}]
-            if user_input.get("on_cleared"):
-                self._alert_data["on_cleared"] = [
-                    {"service": user_input["on_cleared"]}]
-            if user_input.get("on_escalated"):
-                self._alert_data["on_escalated"] = [
-                    {"service": user_input["on_escalated"]}]
+            if trigger_type == "simple":
+                self._alert_data["entity_id"] = user_input.get("entity_id")
+                self._alert_data["trigger_state"] = user_input.get(
+                    "trigger_state")
+            elif trigger_type == "template":
+                self._alert_data["template"] = user_input.get("template")
+            elif trigger_type == "logical":
+                self._alert_data["logical_conditions"] = user_input.get(
+                    "logical_conditions")
 
-            # Add the alert to the config entry data
-            alerts = dict(self.config_entry.data.get("alerts", {}))
-            alert_id = self._alert_data["name"].lower().replace(" ", "_")
-            alerts[alert_id] = self._alert_data
+            # Continue to action configuration
+            return await self.async_step_add_alert_actions()
 
-            # Update the config entry
-            new_data = dict(self.config_entry.data)
-            new_data["alerts"] = alerts
+        # Build schema based on trigger type
+        trigger_type = self._alert_data.get("trigger_type")
 
-            self.hass.config_entries.async_update_entry(
-                self.config_entry, data=new_data
-            )
-
-            # Reload the config entry to create new entities
-            await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-
-            return self.async_create_entry(title="Alert Created", data={})
-
-        # Get available services for dropdowns
-        service_options = self._get_available_services()
-
-        return self.async_show_form(
-            step_id="add_alert_trigger_simple",
-            data_schema=vol.Schema({
+        if trigger_type == "simple":
+            schema = vol.Schema({
                 vol.Required("entity_id"): selector.EntitySelector(
                     selector.EntitySelectorConfig()
                 ),
@@ -326,158 +299,104 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                         type=selector.TextSelectorType.TEXT
                     )
                 ),
-                vol.Optional("on_triggered"): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=service_options,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-                vol.Optional("on_cleared"): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=service_options,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-                vol.Optional("on_escalated"): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=service_options,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
             })
-        )
-
-    async def async_step_add_alert_trigger_template(self, user_input=None):
-        """Add a new alert to this group - Step 2: Template Trigger Configuration."""
-        if user_input is not None:
-            # Store template trigger data
-            self._alert_data["template"] = user_input.get("template")
-
-            # Convert service selections to proper format (only if not empty)
-            if user_input.get("on_triggered"):
-                self._alert_data["on_triggered"] = [
-                    {"service": user_input["on_triggered"]}]
-            if user_input.get("on_cleared"):
-                self._alert_data["on_cleared"] = [
-                    {"service": user_input["on_cleared"]}]
-            if user_input.get("on_escalated"):
-                self._alert_data["on_escalated"] = [
-                    {"service": user_input["on_escalated"]}]
-
-            # Add the alert to the config entry data
-            alerts = dict(self.config_entry.data.get("alerts", {}))
-            alert_id = self._alert_data["name"].lower().replace(" ", "_")
-            alerts[alert_id] = self._alert_data
-
-            # Update the config entry
-            new_data = dict(self.config_entry.data)
-            new_data["alerts"] = alerts
-
-            self.hass.config_entries.async_update_entry(
-                self.config_entry, data=new_data
-            )
-
-            # Reload the config entry to create new entities
-            await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-
-            return self.async_create_entry(title="Alert Created", data={})
-
-        # Get available services for dropdowns
-        service_options = self._get_available_services()
-
-        return self.async_show_form(
-            step_id="add_alert_trigger_template",
-            data_schema=vol.Schema({
+        elif trigger_type == "template":
+            schema = vol.Schema({
                 vol.Required("template"): selector.TemplateSelector(
                     selector.TemplateSelectorConfig()
                 ),
-                vol.Optional("on_triggered"): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=service_options,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-                vol.Optional("on_cleared"): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=service_options,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-                vol.Optional("on_escalated"): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=service_options,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
             })
-        )
-
-    async def async_step_add_alert_trigger_logical(self, user_input=None):
-        """Add a new alert to this group - Step 2: Logical Trigger Configuration."""
-        if user_input is not None:
-            # Store logical trigger data
-            self._alert_data["logical_conditions"] = user_input.get(
-                "logical_conditions")
-
-            # Convert service selections to proper format (only if not empty)
-            if user_input.get("on_triggered"):
-                self._alert_data["on_triggered"] = [
-                    {"service": user_input["on_triggered"]}]
-            if user_input.get("on_cleared"):
-                self._alert_data["on_cleared"] = [
-                    {"service": user_input["on_cleared"]}]
-            if user_input.get("on_escalated"):
-                self._alert_data["on_escalated"] = [
-                    {"service": user_input["on_escalated"]}]
-
-            # Add the alert to the config entry data
-            alerts = dict(self.config_entry.data.get("alerts", {}))
-            alert_id = self._alert_data["name"].lower().replace(" ", "_")
-            alerts[alert_id] = self._alert_data
-
-            # Update the config entry
-            new_data = dict(self.config_entry.data)
-            new_data["alerts"] = alerts
-
-            self.hass.config_entries.async_update_entry(
-                self.config_entry, data=new_data
-            )
-
-            # Reload the config entry to create new entities
-            await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-
-            return self.async_create_entry(title="Alert Created", data={})
-
-        # Get available services for dropdowns
-        service_options = self._get_available_services()
-
-        return self.async_show_form(
-            step_id="add_alert_trigger_logical",
-            data_schema=vol.Schema({
+        elif trigger_type == "logical":
+            schema = vol.Schema({
                 vol.Required("logical_conditions"): selector.TextSelector(
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.TEXT
                     )
                 ),
-                vol.Optional("on_triggered"): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=service_options,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-                vol.Optional("on_cleared"): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=service_options,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-                vol.Optional("on_escalated"): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=service_options,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
             })
+        else:
+            return self.async_abort(reason="invalid_trigger_type")
+
+        return self.async_show_form(
+            step_id="add_alert_trigger_config",
+            data_schema=schema,
+        )
+
+    async def async_step_add_alert_actions(self, user_input=None):
+        """Add a new alert to this group - Step 3: Action Configuration."""
+        if user_input is not None:
+            # Parse script selections
+            actions = {}
+
+            # Process triggered actions
+            if user_input.get("on_triggered_script"):
+                actions["on_triggered"] = [{
+                    "service": user_input["on_triggered_script"]
+                }]
+
+            # Process cleared actions
+            if user_input.get("on_cleared_script"):
+                actions["on_cleared"] = [{
+                    "service": user_input["on_cleared_script"]
+                }]
+
+            # Process escalated actions
+            if user_input.get("on_escalated_script"):
+                actions["on_escalated"] = [{
+                    "service": user_input["on_escalated_script"]
+                }]
+
+            # Update alert data with actions
+            self._alert_data.update(actions)
+
+            # Add the alert to the config entry data
+            alerts = dict(self.config_entry.data.get("alerts", {}))
+            alert_id = self._alert_data["name"].lower().replace(" ", "_")
+            alerts[alert_id] = self._alert_data
+
+            # Update the config entry
+            new_data = dict(self.config_entry.data)
+            new_data["alerts"] = alerts
+
+            self.hass.config_entries.async_update_entry(
+                self.config_entry, data=new_data
+            )
+
+            # Reload the config entry to create new entities
+            await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+
+            return self.async_create_entry(title="Alert Created", data={})
+
+        # Get available scripts for dropdowns
+        script_options = self._get_available_scripts()
+
+        return self.async_show_form(
+            step_id="add_alert_actions",
+            data_schema=vol.Schema({
+                # Triggered actions
+                vol.Optional("on_triggered_script"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=script_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+
+                # Cleared actions
+                vol.Optional("on_cleared_script"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=script_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+
+                # Escalated actions
+                vol.Optional("on_escalated_script"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=script_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+            }),
         )
 
     async def async_step_edit_alert(self, user_input=None):
@@ -561,6 +480,30 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                 alert_data = dict(user_input)
                 del alert_data["action"]
 
+                # Parse script selections and convert to action format
+                actions = {}
+
+                # Process triggered actions
+                if user_input.get("on_triggered_script"):
+                    actions["on_triggered"] = [{
+                        "service": user_input["on_triggered_script"]
+                    }]
+
+                # Process cleared actions
+                if user_input.get("on_cleared_script"):
+                    actions["on_cleared"] = [{
+                        "service": user_input["on_cleared_script"]
+                    }]
+
+                # Process escalated actions
+                if user_input.get("on_escalated_script"):
+                    actions["on_escalated"] = [{
+                        "service": user_input["on_escalated_script"]
+                    }]
+
+                # Update alert data with actions
+                alert_data.update(actions)
+
                 if new_alert_id != alert_to_edit:
                     # Remove old alert and add with new id
                     del new_alerts[alert_to_edit]
@@ -581,6 +524,33 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                 await self.hass.config_entries.async_reload(self.config_entry.entry_id)
 
                 return self.async_create_entry(title="Alert Updated", data={})
+
+        # Get available scripts for dropdowns
+        script_options = self._get_available_scripts()
+
+        # Extract current script selections from alert data
+        current_triggered_script = ""
+        current_cleared_script = ""
+        current_escalated_script = ""
+
+        # Parse current actions to extract script names
+        if current_alert.get("on_triggered"):
+            for action in current_alert["on_triggered"]:
+                if action.get("service", "").startswith("script."):
+                    current_triggered_script = action["service"]
+                    break
+
+        if current_alert.get("on_cleared"):
+            for action in current_alert["on_cleared"]:
+                if action.get("service", "").startswith("script."):
+                    current_cleared_script = action["service"]
+                    break
+
+        if current_alert.get("on_escalated"):
+            for action in current_alert["on_escalated"]:
+                if action.get("service", "").startswith("script."):
+                    current_escalated_script = action["service"]
+                    break
 
         return self.async_show_form(
             step_id="edit_alert_form",
@@ -627,19 +597,22 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
-                vol.Optional("on_triggered", default=current_alert.get("on_triggered", "")): selector.TextSelector(
-                    selector.TextSelectorConfig(
-                        type=selector.TextSelectorType.TEXT
+                vol.Optional("on_triggered_script", default=current_triggered_script): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=script_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
-                vol.Optional("on_cleared", default=current_alert.get("on_cleared", "")): selector.TextSelector(
-                    selector.TextSelectorConfig(
-                        type=selector.TextSelectorType.TEXT
+                vol.Optional("on_cleared_script", default=current_cleared_script): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=script_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
-                vol.Optional("on_escalated", default=current_alert.get("on_escalated", "")): selector.TextSelector(
-                    selector.TextSelectorConfig(
-                        type=selector.TextSelectorType.TEXT
+                vol.Optional("on_escalated_script", default=current_escalated_script): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=script_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
             })
@@ -688,3 +661,25 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                 ),
             })
         )
+
+    def _get_available_scripts(self):
+        """Get available Home Assistant scripts for dropdown selection."""
+        scripts = []
+
+        # Get all available scripts from Home Assistant
+        for entity_id in self.hass.states.async_entity_ids("script"):
+            # Skip system scripts
+            if entity_id in ["script.turn_on", "script.turn_off", "script.reload", "script.toggle"]:
+                continue
+
+            # Get the script name from the state
+            state = self.hass.states.get(entity_id)
+            if state:
+                script_name = state.attributes.get("friendly_name", entity_id)
+                scripts.append({
+                    "value": f"script.{entity_id.split('.')[1]}",
+                    "label": f"📜 {script_name} ({entity_id})"
+                })
+
+        # Sort by name for better organization
+        return sorted(scripts, key=lambda x: x["label"])
