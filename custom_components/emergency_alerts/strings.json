@@ -86,31 +86,67 @@
         }
       },
       "add_alert": {
-        "title": "Add Emergency Alert",
-        "description": "Configure a new emergency alert for this group.",
+        "title": "➕ Add New Alert - Step 1: Basic Information",
+        "description": "First, let's set up the basic information for your new emergency alert.",
         "data": {
           "name": "Alert Name",
-          "trigger_type": "Trigger Type",
-          "entity_id": "Entity ID",
-          "trigger_state": "Trigger State",
-          "template": "Template",
-          "logical_conditions": "Logical Conditions",
-          "severity": "Severity Level",
-          "on_triggered": "Action on Triggered",
-          "on_cleared": "Action on Cleared",
-          "on_escalated": "Action on Escalated"
+          "trigger_type": "How should this alert be triggered?",
+          "severity": "How urgent is this alert?"
         },
         "data_description": {
-          "name": "A unique name for this emergency alert within the group",
-          "trigger_type": "How this alert should be triggered - Simple monitors one entity, Template uses Jinja2 expressions, Logical combines multiple conditions",
-          "entity_id": "The Home Assistant entity to monitor (required for Simple triggers)",
-          "trigger_state": "The state value that triggers this alert (e.g., 'on', 'open', 'high', or numeric values)",
-          "template": "Jinja2 template that returns true/false (e.g., {{ states('sensor.temperature')|float > 30 }})",
-          "logical_conditions": "JSON or YAML list of conditions to combine with AND logic",
-          "severity": "Severity level affects how the alert is displayed and prioritized",
-          "on_triggered": "List of services to call when alert is triggered (JSON: [{\"service\": \"notify.notify\", \"data\": {\"message\": \"Alert!\"}}])",
-          "on_cleared": "List of services to call when alert condition clears",
-          "on_escalated": "List of services to call if alert is not acknowledged within the escalation time"
+          "name": "A descriptive name for this alert (e.g., 'Front Door Open', 'High Temperature')",
+          "trigger_type": "**Simple**: Monitor one entity's state<br/>**Template**: Use Jinja2 for complex conditions<br/>**Logical**: Combine multiple entity conditions",
+          "severity": "**Critical**: Urgent issues requiring immediate attention<br/>**Warning**: Important but not critical<br/>**Info**: General notifications"
+        }
+      },
+      "add_alert_trigger_simple": {
+        "title": "➕ Add New Alert - Step 2: Simple Trigger",
+        "description": "Configure which entity to monitor and what state should trigger the alert.",
+        "data": {
+          "entity_id": "Entity to Monitor",
+          "trigger_state": "State that triggers the alert",
+          "on_triggered": "Actions when triggered (optional)",
+          "on_cleared": "Actions when cleared (optional)",
+          "on_escalated": "Actions when escalated (optional)"
+        },
+        "data_description": {
+          "entity_id": "The Home Assistant entity to watch (e.g., binary_sensor.front_door, sensor.temperature)",
+          "trigger_state": "What state should trigger the alert? Examples:<br/>• `on` for binary sensors<br/>• `unavailable` for offline devices<br/>• `30` for numeric thresholds",
+          "on_triggered": "Choose a service to call when alert triggers (e.g., notifications, scripts, automations)",
+          "on_cleared": "Choose a service to call when alert automatically clears",
+          "on_escalated": "Choose a service to call if alert is not acknowledged within escalation time"
+        }
+      },
+      "add_alert_trigger_template": {
+        "title": "➕ Add New Alert - Step 2: Template Trigger",
+        "description": "Create a Jinja2 template that returns True when the alert should trigger.",
+        "data": {
+          "template": "Jinja2 Template",
+          "on_triggered": "Actions when triggered (optional)",
+          "on_cleared": "Actions when cleared (optional)",
+          "on_escalated": "Actions when escalated (optional)"
+        },
+        "data_description": {
+          "template": "Jinja2 template returning True/False. Example:<br/>`{{ states('sensor.temperature')|float > 25 and states('sensor.humidity')|float < 30 }}`",
+          "on_triggered": "Choose a service to call when alert triggers (e.g., notifications, scripts, automations)",
+          "on_cleared": "Choose a service to call when alert automatically clears",
+          "on_escalated": "Choose a service to call if alert is not acknowledged within escalation time"
+        }
+      },
+      "add_alert_trigger_logical": {
+        "title": "➕ Add New Alert - Step 2: Logical Trigger",
+        "description": "Combine multiple entity conditions using AND/OR logic.",
+        "data": {
+          "logical_conditions": "JSON Conditions Array",
+          "on_triggered": "Actions when triggered (optional)",
+          "on_cleared": "Actions when cleared (optional)",
+          "on_escalated": "Actions when escalated (optional)"
+        },
+        "data_description": {
+          "logical_conditions": "JSON format: `[{\"entity_id\": \"binary_sensor.door\", \"state\": \"on\"}, {\"entity_id\": \"sensor.temp\", \"state\": \"30\"}]`<br/>Use 'and' or 'or' operator",
+          "on_triggered": "Choose a service to call when alert triggers (e.g., notifications, scripts, automations)",
+          "on_cleared": "Choose a service to call when alert automatically clears",
+          "on_escalated": "Choose a service to call if alert is not acknowledged within escalation time"
         }
       },
       "edit_alert": {

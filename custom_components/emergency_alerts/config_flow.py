@@ -120,6 +120,27 @@ class EmergencyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 class EmergencyOptionsFlow(config_entries.OptionsFlow):
 
+    def _get_available_services(self):
+        """Get available Home Assistant services for dropdown selection."""
+        services = []
+
+        # Get all available services from Home Assistant
+        for domain, domain_services in self.hass.services.async_services().items():
+            for service_name in domain_services.keys():
+                service_call = f"{domain}.{service_name}"
+                # Add some common/useful services with descriptions
+                if domain in ["notify", "script", "automation", "scene", "light", "switch", "media_player", "climate", "alarm_control_panel"]:
+                    services.append({
+                        "value": service_call,
+                        "label": f"{service_call} ({domain.title()} - {service_name.replace('_', ' ').title()})"
+                    })
+
+        # Add "None" option for optional actions
+        services.insert(0, {"value": "", "label": "None (No Action)"})
+
+        # Sort by domain for better organization
+        return sorted(services[1:], key=lambda x: x["value"]) + [services[0]]
+
     async def async_step_init(self, user_input=None):
         """Manage options based on hub type."""
         hub_type = self.config_entry.data.get("hub_type")
@@ -203,25 +224,23 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
         )
 
     async def async_step_add_alert(self, user_input=None):
-        """Add a new alert to this group."""
+        """Add a new alert to this group - Step 1: Basic Information."""
         if user_input is not None:
-            # Add the alert to the config entry data
-            alerts = dict(self.config_entry.data.get("alerts", {}))
-            alert_id = user_input["name"].lower().replace(" ", "_")
-            alerts[alert_id] = user_input
+            # Store basic alert data for next steps
+            self._alert_data = {
+                "name": user_input["name"],
+                "trigger_type": user_input["trigger_type"],
+                "severity": user_input.get("severity", "warning")
+            }
 
-            # Update the config entry
-            new_data = dict(self.config_entry.data)
-            new_data["alerts"] = alerts
-
-            self.hass.config_entries.async_update_entry(
-                self.config_entry, data=new_data
-            )
-
-            # Reload the config entry to create new entities
-            await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-
-            return self.async_create_entry(title="", data={})
+            # Branch to appropriate trigger configuration step
+            trigger_type = user_input["trigger_type"]
+            if trigger_type == "simple":
+                return await self.async_step_add_alert_trigger_simple()
+            elif trigger_type == "template":
+                return await self.async_step_add_alert_trigger_template()
+            elif trigger_type == "logical":
+                return await self.async_step_add_alert_trigger_logical()
 
         return self.async_show_form(
             step_id="add_alert",
@@ -237,41 +256,214 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
-                vol.Optional("entity_id"): selector.EntitySelector(
-                    selector.EntitySelectorConfig()
-                ),
-                vol.Optional("trigger_state"): selector.TextSelector(
-                    selector.TextSelectorConfig(
-                        type=selector.TextSelectorType.TEXT
-                    )
-                ),
-                vol.Optional("template"): selector.TemplateSelector(
-                    selector.TemplateSelectorConfig()
-                ),
-                vol.Optional("logical_conditions"): selector.TextSelector(
-                    selector.TextSelectorConfig(
-                        type=selector.TextSelectorType.TEXT
-                    )
-                ),
-                vol.Optional("severity", default="warning"): selector.SelectSelector(
+                vol.Required("severity", default="warning"): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=SEVERITY_LEVELS,
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
-                vol.Optional("on_triggered"): selector.TextSelector(
+            })
+        )
+
+    async def async_step_add_alert_trigger_simple(self, user_input=None):
+        """Add a new alert to this group - Step 2: Simple Trigger Configuration."""
+        if user_input is not None:
+            # Store simple trigger data
+            self._alert_data["entity_id"] = user_input.get("entity_id")
+            self._alert_data["trigger_state"] = user_input.get("trigger_state")
+
+            # Convert service selections to proper format (only if not empty)
+            if user_input.get("on_triggered"):
+                self._alert_data["on_triggered"] = [
+                    {"service": user_input["on_triggered"]}]
+            if user_input.get("on_cleared"):
+                self._alert_data["on_cleared"] = [
+                    {"service": user_input["on_cleared"]}]
+            if user_input.get("on_escalated"):
+                self._alert_data["on_escalated"] = [
+                    {"service": user_input["on_escalated"]}]
+
+            # Add the alert to the config entry data
+            alerts = dict(self.config_entry.data.get("alerts", {}))
+            alert_id = self._alert_data["name"].lower().replace(" ", "_")
+            alerts[alert_id] = self._alert_data
+
+            # Update the config entry
+            new_data = dict(self.config_entry.data)
+            new_data["alerts"] = alerts
+
+            self.hass.config_entries.async_update_entry(
+                self.config_entry, data=new_data
+            )
+
+            # Reload the config entry to create new entities
+            await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+
+            return self.async_create_entry(title="Alert Created", data={})
+
+        # Get available services for dropdowns
+        service_options = self._get_available_services()
+
+        return self.async_show_form(
+            step_id="add_alert_trigger_simple",
+            data_schema=vol.Schema({
+                vol.Required("entity_id"): selector.EntitySelector(
+                    selector.EntitySelectorConfig()
+                ),
+                vol.Required("trigger_state"): selector.TextSelector(
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.TEXT
                     )
                 ),
-                vol.Optional("on_cleared"): selector.TextSelector(
+                vol.Optional("on_triggered"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=service_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional("on_cleared"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=service_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional("on_escalated"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=service_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+            })
+        )
+
+    async def async_step_add_alert_trigger_template(self, user_input=None):
+        """Add a new alert to this group - Step 2: Template Trigger Configuration."""
+        if user_input is not None:
+            # Store template trigger data
+            self._alert_data["template"] = user_input.get("template")
+
+            # Convert service selections to proper format (only if not empty)
+            if user_input.get("on_triggered"):
+                self._alert_data["on_triggered"] = [
+                    {"service": user_input["on_triggered"]}]
+            if user_input.get("on_cleared"):
+                self._alert_data["on_cleared"] = [
+                    {"service": user_input["on_cleared"]}]
+            if user_input.get("on_escalated"):
+                self._alert_data["on_escalated"] = [
+                    {"service": user_input["on_escalated"]}]
+
+            # Add the alert to the config entry data
+            alerts = dict(self.config_entry.data.get("alerts", {}))
+            alert_id = self._alert_data["name"].lower().replace(" ", "_")
+            alerts[alert_id] = self._alert_data
+
+            # Update the config entry
+            new_data = dict(self.config_entry.data)
+            new_data["alerts"] = alerts
+
+            self.hass.config_entries.async_update_entry(
+                self.config_entry, data=new_data
+            )
+
+            # Reload the config entry to create new entities
+            await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+
+            return self.async_create_entry(title="Alert Created", data={})
+
+        # Get available services for dropdowns
+        service_options = self._get_available_services()
+
+        return self.async_show_form(
+            step_id="add_alert_trigger_template",
+            data_schema=vol.Schema({
+                vol.Required("template"): selector.TemplateSelector(
+                    selector.TemplateSelectorConfig()
+                ),
+                vol.Optional("on_triggered"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=service_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional("on_cleared"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=service_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional("on_escalated"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=service_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+            })
+        )
+
+    async def async_step_add_alert_trigger_logical(self, user_input=None):
+        """Add a new alert to this group - Step 2: Logical Trigger Configuration."""
+        if user_input is not None:
+            # Store logical trigger data
+            self._alert_data["logical_conditions"] = user_input.get(
+                "logical_conditions")
+
+            # Convert service selections to proper format (only if not empty)
+            if user_input.get("on_triggered"):
+                self._alert_data["on_triggered"] = [
+                    {"service": user_input["on_triggered"]}]
+            if user_input.get("on_cleared"):
+                self._alert_data["on_cleared"] = [
+                    {"service": user_input["on_cleared"]}]
+            if user_input.get("on_escalated"):
+                self._alert_data["on_escalated"] = [
+                    {"service": user_input["on_escalated"]}]
+
+            # Add the alert to the config entry data
+            alerts = dict(self.config_entry.data.get("alerts", {}))
+            alert_id = self._alert_data["name"].lower().replace(" ", "_")
+            alerts[alert_id] = self._alert_data
+
+            # Update the config entry
+            new_data = dict(self.config_entry.data)
+            new_data["alerts"] = alerts
+
+            self.hass.config_entries.async_update_entry(
+                self.config_entry, data=new_data
+            )
+
+            # Reload the config entry to create new entities
+            await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+
+            return self.async_create_entry(title="Alert Created", data={})
+
+        # Get available services for dropdowns
+        service_options = self._get_available_services()
+
+        return self.async_show_form(
+            step_id="add_alert_trigger_logical",
+            data_schema=vol.Schema({
+                vol.Required("logical_conditions"): selector.TextSelector(
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.TEXT
                     )
                 ),
-                vol.Optional("on_escalated"): selector.TextSelector(
-                    selector.TextSelectorConfig(
-                        type=selector.TextSelectorType.TEXT
+                vol.Optional("on_triggered"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=service_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional("on_cleared"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=service_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional("on_escalated"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=service_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
             })
