@@ -1,0 +1,68 @@
+# Emergency Alerts Integration - Configuration Examples
+# 
+# This integration now supports modern Home Assistant config subentries (2025.7+)
+# 
+# SETUP INSTRUCTIONS:
+# 1. Install the integration by copying the emergency_alerts folder to custom_components/
+# 2. Restart Home Assistant
+# 3. Go to Settings > Devices & Services > Add Integration
+# 4. Search for "Emergency Alerts" and set up the main integration hub
+# 5. Once set up, click "Add Entry" to configure individual emergency alerts as subentries
+# 
+# MODERN APPROACH (Recommended):
+# - Main integration: Acts as a hub for managing multiple alerts
+# - Subentries: Each individual alert is configured as a subentry through the UI
+# - Benefits: Better organization, individual management, proper UI integration
+# 
+# BACKWARD COMPATIBILITY:
+# - Existing alerts (like "sun down") will continue to work
+# - Legacy alerts can be reconfigured through the UI
+# - No breaking changes for existing setups
+#
+# FEATURES:
+# - Multiple alert types: simple, template, logical
+# - Severity levels: info, warning, critical  
+# - Alert groups: security, safety, power, lights, environment, other
+# - Actions: acknowledge, clear, escalate
+# - Custom templates for complex conditions
+# - Integration with Home Assistant actions and services
+#
+# UI CONFIGURATION EXAMPLES:
+#
+# Example 1: Simple Entity Monitor
+# Name: "Front Door Open"
+# Trigger Type: simple
+# Entity: binary_sensor.front_door
+# Trigger State: "on"
+# Severity: warning
+# Group: security
+#
+# Example 2: Template-based Alert  
+# Name: "High CPU Usage"
+# Trigger Type: template
+# Template: "{{ states('sensor.processor_use')|float > 80 }}"
+# Severity: warning
+# Group: environment
+#
+# Example 3: Sun Down Alert (Your existing one)
+# Name: "Sun Down"
+# Trigger Type: simple
+# Entity: sun.sun
+# Trigger State: "below_horizon" 
+# Severity: info
+# Group: environment
+#
+# CUSTOM LOVELACE CARD:
+# The companion lovelace-emergency-alerts-card provides:
+# - Visual alerts with severity-based styling
+# - Acknowledge, Clear, and Escalate buttons
+# - Real-time status updates
+# - Automatic deployment to www/ directory
+#
+# SERVICES AVAILABLE:
+# - emergency_alerts.acknowledge: Mark an alert as acknowledged
+# - emergency_alerts.clear: Clear an alert condition
+# - emergency_alerts.escalate: Escalate an alert to higher priority
+#
+# For detailed documentation, visit:
+# https://github.com/issmirnov/emergency_alerts 
