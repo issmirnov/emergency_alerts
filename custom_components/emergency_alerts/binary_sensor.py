@@ -196,14 +196,26 @@ class EmergencyBinarySensor(BinarySensorEntity):
         else:
             self._attr_unique_id = f"emergency_{hub_name}_{alert_id}"
 
-        # Device info for grouping
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, f"{hub_name}_hub")},
-            "name": f"Emergency Alerts - {group.title()}" + (f" ({entry.data.get('custom_name')})" if entry.data.get("custom_name") else ""),
-            "manufacturer": "Emergency Alerts",
-            "model": f"{group.title()} Hub",
-            "sw_version": "1.0",
-        }
+        # Device info - each alert gets its own device under the hub
+        if alert_id == "legacy":
+            # Legacy single alert - create as hub device
+            self._attr_device_info = {
+                "identifiers": {(DOMAIN, f"{hub_name}_hub")},
+                "name": f"Emergency Alerts - {group.title()}" + (f" ({entry.data.get('custom_name')})" if entry.data.get("custom_name") else ""),
+                "manufacturer": "Emergency Alerts",
+                "model": f"{group.title()} Hub",
+                "sw_version": "1.0",
+            }
+        else:
+            # Group alert - create individual device under the hub
+            self._attr_device_info = {
+                "identifiers": {(DOMAIN, f"{hub_name}_{alert_id}")},
+                "name": f"Emergency Alert: {name}",
+                "manufacturer": "Emergency Alerts",
+                "model": f"{self._severity.title()} Alert",
+                "sw_version": "1.0",
+                "via_device": (DOMAIN, f"{hub_name}_hub"),
+            }
 
         # State tracking
         self._is_on = False

@@ -34,18 +34,20 @@ async def async_setup_entry(
         hass.data[DOMAIN]["summary_sensors_created"] = True
         _LOGGER.debug("Global summary sensor created and flag set")
 
-    # Create group-specific summary sensor if this is a group hub AND it has alerts
+    # Create hub device and group summary sensor for group hubs
     if hub_type == "group":
+        group_name = entry.data.get("group", "other")
+        hub_name = entry.data.get("hub_name", group_name)
         alerts_data = entry.data.get("alerts", {})
         _LOGGER.debug(f"Group hub detected, alerts_data: {alerts_data}")
 
-        # Only create group summary sensor if there are actual alerts
-        if alerts_data:
-            group_name = entry.data.get("group", "other")
-            hub_name = entry.data.get("hub_name", group_name)
-            _LOGGER.debug(f"Creating group summary sensor for {group_name}")
+        # Always create hub device sensor (represents the group itself)
+        hub_sensor = EmergencyHubSensor(hass, entry, group_name, hub_name)
+        async_add_entities([hub_sensor], update_before_add=True)
 
-            # Create a summary sensor for this specific group
+        # Create group summary sensor if there are actual alerts
+        if alerts_data:
+            _LOGGER.debug(f"Creating group summary sensor for {group_name}")
             group_sensor = EmergencyGroupSummarySensor(
                 hass, group_name, hub_name)
             async_add_entities([group_sensor], update_before_add=True)
@@ -154,3 +156,43 @@ class EmergencyGroupSummarySensor(SensorEntity):
         self._active_alerts = [
             e.entity_id for e in entities if e.is_on and e._hub_name == self._hub_name
         ]
+
+
+class EmergencyHubSensor(SensorEntity):
+    """Sensor representing the Emergency Alerts hub device."""
+
+    def __init__(self, hass, entry, group_name, hub_name):
+        self.hass = hass
+        self._entry = entry
+        self._group_name = group_name
+        self._hub_name = hub_name
+
+        self._attr_name = f"Emergency Alerts Hub: {group_name}"
+        self._attr_unique_id = f"emergency_alerts_hub_{hub_name}"
+        self._attr_icon = "mdi:shield-alert"
+
+        # This sensor represents the hub device itself
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, f"{hub_name}_hub")},
+            "name": f"Emergency Alerts - {group_name.title()}" + (f" ({entry.data.get('custom_name')})" if entry.data.get("custom_name") else ""),
+            "manufacturer": "Emergency Alerts",
+            "model": f"{group_name.title()} Hub",
+            "sw_version": "1.0",
+        }
+
+    @property
+    def native_value(self):
+        """Return the number of alerts in this hub."""
+        alerts_data = self._entry.data.get("alerts", {})
+        return len(alerts_data)
+
+    @property
+    def extra_state_attributes(self):
+        """Return additional attributes."""
+        alerts_data = self._entry.data.get("alerts", {})
+        return {
+            "group": self._group_name,
+            "hub_name": self._hub_name,
+            "alert_count": len(alerts_data),
+            "alerts": list(alerts_data.keys()),
+        }
