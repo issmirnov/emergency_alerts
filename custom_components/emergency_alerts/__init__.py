@@ -1,5 +1,6 @@
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.components.persistent_notification import async_create
 
 DOMAIN = "emergency_alerts"
 
@@ -86,6 +87,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         hass.services.async_register(DOMAIN, "add_alert", handle_add_alert)
 
         hass.data[DOMAIN]["services_registered"] = True
+
+        # Notify user about available blueprint script (only shown once)
+        async_create(
+            hass,
+            title="Emergency Alerts Integration",
+            message="📋 A default emergency notification script blueprint is now available! "
+            "Go to **Settings** → **Automations & Scenes** → **Blueprints** → **Scripts** to import the "
+            "'Emergency Alert - Fixed Notify' script for use in your alert actions.\n\n"
+            "💡 **Tip**: You can click [here](/config/blueprint/dashboard/script) to go directly to Script Blueprints!",
+            notification_id="emergency_alerts_blueprint_info"
+        )
 
     return True
 

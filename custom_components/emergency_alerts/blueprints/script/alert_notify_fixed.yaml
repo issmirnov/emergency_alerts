@@ -1,0 +1,10 @@
+blueprint:
+  name: Emergency Alert - Fixed Notify
+  description: Sends a basic notification when an emergency alert is triggered.
+  domain: script
+
+sequence:
+  - service: notify.notify
+    data:
+      title: "🚨 Emergency Alert"
+      message: "An emergency alert has been triggered."
