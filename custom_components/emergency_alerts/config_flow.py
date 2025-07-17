@@ -291,25 +291,30 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
         )
 
     async def async_step_edit_alert(self, user_input=None):
-        """Select an alert to edit from this group."""
+        """Select an alert to edit."""
         alerts = self.config_entry.data.get("alerts", {})
 
         if not alerts:
             return self.async_abort(reason="no_alerts_to_edit")
 
         if user_input is not None:
-            # Extract alert_id from the selected option (format: "alert_id: name (type)")
-            selected_option = user_input["alert_id"]
-            alert_to_edit = selected_option.split(":")[0].strip()
+            # Extract alert_id from the selected option (format: "alert_id")
+            selected_alert_id = user_input["alert_id"]
 
             # Store the alert_id for the next step
-            self._alert_to_edit = alert_to_edit
+            self._alert_to_edit = selected_alert_id
             return await self.async_step_edit_alert_form()
 
-        alert_options = [
-            f"{alert_id}: {alert_data['name']} ({alert_data.get('trigger_type', 'simple')})"
-            for alert_id, alert_data in alerts.items()
-        ]
+        # Create better formatted options showing alert info
+        alert_options = []
+        for alert_id, alert_data in alerts.items():
+            name = alert_data.get('name', alert_id)
+            trigger_type = alert_data.get('trigger_type', 'simple')
+            severity = alert_data.get('severity', 'warning')
+
+            # Format: "Alert Name (Type: simple, Severity: warning)"
+            display_text = f"{name} (Type: {trigger_type}, Severity: {severity})"
+            alert_options.append({"value": alert_id, "label": display_text})
 
         return self.async_show_form(
             step_id="edit_alert",
@@ -334,37 +339,71 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
         current_alert = alerts[alert_to_edit]
 
         if user_input is not None:
-            # Update the alert in the config entry data
-            new_alerts = dict(alerts)
+            action = user_input.get("action", "save")
 
-            # If the name changed, we need to update the alert_id
-            new_name = user_input["name"]
-            new_alert_id = new_name.lower().replace(" ", "_")
-
-            if new_alert_id != alert_to_edit:
-                # Remove old alert and add with new id
+            if action == "delete":
+                # Delete the alert
+                new_alerts = dict(alerts)
                 del new_alerts[alert_to_edit]
-                new_alerts[new_alert_id] = user_input
-            else:
-                # Update existing alert
-                new_alerts[alert_to_edit] = user_input
 
-            # Update the config entry
-            new_data = dict(self.config_entry.data)
-            new_data["alerts"] = new_alerts
+                # Update the config entry
+                new_data = dict(self.config_entry.data)
+                new_data["alerts"] = new_alerts
 
-            self.hass.config_entries.async_update_entry(
-                self.config_entry, data=new_data
-            )
+                self.hass.config_entries.async_update_entry(
+                    self.config_entry, data=new_data
+                )
 
-            # Reload the config entry to update entities
-            await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+                # Reload the config entry to remove entities
+                await self.hass.config_entries.async_reload(self.config_entry.entry_id)
 
-            return self.async_create_entry(title="", data={})
+                return self.async_create_entry(title="Alert Deleted", data={})
+
+            else:  # action == "save"
+                # Update the alert in the config entry data
+                new_alerts = dict(alerts)
+
+                # If the name changed, we need to update the alert_id
+                new_name = user_input["name"]
+                new_alert_id = new_name.lower().replace(" ", "_")
+
+                # Remove the action field from user_input before saving
+                alert_data = dict(user_input)
+                del alert_data["action"]
+
+                if new_alert_id != alert_to_edit:
+                    # Remove old alert and add with new id
+                    del new_alerts[alert_to_edit]
+                    new_alerts[new_alert_id] = alert_data
+                else:
+                    # Update existing alert
+                    new_alerts[alert_to_edit] = alert_data
+
+                # Update the config entry
+                new_data = dict(self.config_entry.data)
+                new_data["alerts"] = new_alerts
+
+                self.hass.config_entries.async_update_entry(
+                    self.config_entry, data=new_data
+                )
+
+                # Reload the config entry to update entities
+                await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+
+                return self.async_create_entry(title="Alert Updated", data={})
 
         return self.async_show_form(
             step_id="edit_alert_form",
             data_schema=vol.Schema({
+                vol.Required("action", default="save"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            {"value": "save", "label": "💾 Save Changes"},
+                            {"value": "delete", "label": "🗑️ Delete This Alert"}
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
                 vol.Required("name", default=current_alert.get("name", "")): selector.TextSelector(
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.TEXT

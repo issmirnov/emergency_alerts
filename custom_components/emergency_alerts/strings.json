@@ -116,38 +116,42 @@
         }
       },
       "edit_alert": {
-        "title": "✏️ Edit Alert",
-        "description": "Select an alert to edit from this group",
+        "title": "✏️ Select Alert to Edit",
+        "description": "Choose which alert you want to edit or delete. You'll see all the current settings and can modify them or remove the alert entirely.",
         "data": {
           "alert_id": "Alert to Edit"
         }
       },
       "edit_alert_form": {
-        "title": "✏️ Edit Alert Configuration",
-        "description": "Modify the alert settings below. All current values are pre-filled for your convenience.",
+        "title": "✏️ Edit Alert",
+        "description": "Modify the alert settings below, or choose to delete this alert entirely. All changes will take effect immediately.",
         "data": {
+          "action": "Action",
           "name": "Alert Name",
-          "trigger_type": "Trigger Type",
-          "entity_id": "Entity ID",
-          "trigger_state": "Trigger State",
-          "template": "Template",
-          "logical_conditions": "Logical Conditions",
-          "severity": "Severity Level",
-          "on_triggered": "Action on Triggered",
-          "on_cleared": "Action on Cleared",
-          "on_escalated": "Action on Escalated"
+          "trigger_type": "How should this alert be triggered?",
+          "entity_id": "Entity to monitor (for simple triggers)",
+          "trigger_state": "State that triggers the alert (e.g., 'on', 'off', 'unavailable')",
+          "template": "Jinja2 template that should return True when alert should trigger",
+          "logical_conditions": "JSON array of conditions for logical triggers",
+          "severity": "How urgent is this alert?",
+          "escalation_minutes": "Minutes before escalating if not acknowledged",
+          "on_triggered": "List of services to call when alert triggers",
+          "on_cleared": "List of services to call when alert clears",
+          "on_escalated": "List of services to call if alert is not acknowledged within the escalation time"
         },
         "data_description": {
-          "name": "A unique name for this emergency alert within the group",
-          "trigger_type": "How this alert should be triggered - Simple monitors one entity, Template uses Jinja2 expressions, Logical combines multiple conditions",
-          "entity_id": "The Home Assistant entity to monitor (required for Simple triggers)",
-          "trigger_state": "The state value that triggers this alert (e.g., 'on', 'open', 'high', or numeric values)",
-          "template": "Jinja2 template that returns true/false (e.g., {{ states('sensor.temperature')|float > 30 }})",
-          "logical_conditions": "JSON or YAML list of conditions to combine with AND logic",
-          "severity": "Severity level affects how the alert is displayed and prioritized",
-          "on_triggered": "List of services to call when alert is triggered (JSON: [{\"service\": \"notify.notify\", \"data\": {\"message\": \"Alert!\"}}])",
-          "on_cleared": "List of services to call when alert condition clears",
-          "on_escalated": "List of services to call if alert is not acknowledged within the escalation time"
+          "action": "Choose whether to save your changes or delete this alert entirely",
+          "name": "A descriptive name for this alert (e.g., 'Front Door Open', 'High Temperature')",
+          "trigger_type": "**Simple**: Monitor one entity's state<br/>**Template**: Use Jinja2 for complex conditions<br/>**Logical**: Combine multiple entity conditions",
+          "entity_id": "The Home Assistant entity to watch (e.g., binary_sensor.front_door, sensor.temperature)",
+          "trigger_state": "What state should trigger the alert? Examples:<br/>• `on` for binary sensors<br/>• `unavailable` for offline devices<br/>• `30` for numeric thresholds",
+          "template": "Jinja2 template returning True/False. Example:<br/>`{{ states('sensor.temperature')|float > 25 and states('sensor.humidity')|float < 30 }}`",
+          "logical_conditions": "JSON format: `[{\"entity_id\": \"binary_sensor.door\", \"state\": \"on\"}, {\"entity_id\": \"sensor.temp\", \"state\": \"30\"}]`<br/>Use 'and' or 'or' operator",
+          "severity": "**Critical**: Urgent issues requiring immediate attention<br/>**Warning**: Important but not critical<br/>**Info**: General notifications",
+          "escalation_minutes": "If not acknowledged within this time, escalation actions will run (leave empty to disable)",
+          "on_triggered": "Services in HA format: `[{\"service\": \"notify.mobile_app\", \"data\": {\"message\": \"Alert!\"}}]`",
+          "on_cleared": "Services to run when alert automatically clears",
+          "on_escalated": "Services to run if alert is not acknowledged within escalation time"
         }
       },
       "remove_alert": {
