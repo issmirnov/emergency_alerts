@@ -36,7 +36,16 @@ class EmergencyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema({
                 vol.Required("setup_type"): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=["global", "group"],
+                        options=[
+                            {
+                                "label": "Global Settings Hub - Manage notification settings and escalation (Add Once)",
+                                "value": "global"
+                            },
+                            {
+                                "label": "Alert Group Hub - Create a group of related emergency alerts",
+                                "value": "group"
+                            }
+                        ],
                         mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),

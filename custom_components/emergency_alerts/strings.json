@@ -173,8 +173,8 @@
   "selector": {
     "setup_type": {
       "options": {
-        "global": "Global Settings Hub",
-        "group": "Alert Group Hub"
+        "global": "Global Settings Hub - Manage notification settings and escalation (Add Once)",
+        "group": "Alert Group Hub - Create a group of related emergency alerts"
       }
     }
   }
