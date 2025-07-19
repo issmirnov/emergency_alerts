@@ -2,8 +2,8 @@
 
 echo "Setting up Home Assistant development environment..."
 
-# Use the mounted config directory instead of creating one in home
-HASS_CONFIG_DIR="/workspaces/homeassistant/config"
+# Use the config directory within our workspace
+HASS_CONFIG_DIR="/workspaces/emergency_alerts/config"
 mkdir -p "$HASS_CONFIG_DIR"
 mkdir -p "$HASS_CONFIG_DIR/custom_components"
 
@@ -24,6 +24,13 @@ frontend:
 
 # Enable API
 api:
+
+# Lovelace configuration for development
+lovelace:
+  mode: yaml
+  resources:
+    - url: /local/emergency-alerts-card.js
+      type: module
 
 # Example automation for testing
 automation: !include automations.yaml
@@ -51,6 +58,50 @@ EOF
     touch "$HASS_CONFIG_DIR/scripts.yaml"
     touch "$HASS_CONFIG_DIR/scenes.yaml"
 
+    # Create basic Lovelace dashboard with Emergency Alerts Card
+    cat > "$HASS_CONFIG_DIR/ui-lovelace.yaml" << 'EOF'
+title: Emergency Alerts Development
+views:
+  - title: Emergency Dashboard
+    path: emergency
+    icon: mdi:alert
+    cards:
+      # Emergency Alerts Card - Basic Configuration
+      - type: custom:emergency-alerts-card
+        title: "Emergency Alerts"
+        
+      # Emergency Alerts Card - Compact Mode
+      - type: custom:emergency-alerts-card
+        title: "Compact Alerts"
+        compact_mode: true
+        show_timestamps: false
+        button_style: "icons_only"
+        max_alerts_per_group: 5
+        
+      # Emergency Alerts Card - Critical Only
+      - type: custom:emergency-alerts-card
+        title: "Critical Alerts Only"
+        severity_filter: ["critical"]
+        show_acknowledge_button: false
+        show_escalate_button: false
+
+  - title: Overview
+    path: overview
+    icon: mdi:home
+    cards:
+      - type: entities
+        title: "Emergency Sensors"
+        entities:
+          - entity: binary_sensor.emergency_door_open
+            name: "Door Emergency"
+          - entity: binary_sensor.emergency_window_broken  
+            name: "Window Emergency"
+          - entity: binary_sensor.emergency_fire_alarm
+            name: "Fire Alarm"
+          - entity: binary_sensor.emergency_security_breach
+            name: "Security Breach"
+EOF
+
     # Create a secrets.yaml file
     cat > "$HASS_CONFIG_DIR/secrets.yaml" << 'EOF'
 # Secrets for Home Assistant development
@@ -60,12 +111,12 @@ else
     echo "Using existing Home Assistant configuration..."
 fi
 
-# Create a script to run Home Assistant (use mounted config)
+# Create a script to run Home Assistant
 mkdir -p "$HOME/homeassistant"
 cat > "$HOME/homeassistant/start_hass.sh" << 'EOF'
 #!/bin/bash
-cd "/workspaces/homeassistant/config"
-hass --config "/workspaces/homeassistant/config" --log-file "/workspaces/homeassistant/config/home-assistant.log"
+cd "/workspaces/emergency_alerts/config"
+hass --config "/workspaces/emergency_alerts/config" --log-file "/workspaces/emergency_alerts/config/home-assistant.log"
 EOF
 
 chmod +x "$HOME/homeassistant/start_hass.sh"
@@ -79,6 +130,18 @@ else
     echo "⚠ Emergency alerts component not found at /workspaces/emergency_alerts/custom_components/emergency_alerts"
 fi
 
+# Set up Lovelace card development
+echo "Setting up Lovelace card..."
+mkdir -p "$HASS_CONFIG_DIR/www"
+
+# Copy the built emergency alerts card if it exists
+if [ -f "/workspaces/emergency_alerts/lovelace-emergency-alerts-card/dist/emergency-alerts-card.js" ]; then
+    cp "/workspaces/emergency_alerts/lovelace-emergency-alerts-card/dist/emergency-alerts-card.js" "$HASS_CONFIG_DIR/www/"
+    echo "✓ Copied emergency-alerts-card.js to www folder"
+else
+    echo "⚠ Emergency alerts card not built yet. Run 'cd lovelace-emergency-alerts-card && npm run build' to build it."
+fi
+
 echo "Home Assistant setup complete!"
 echo "Configuration directory: $HASS_CONFIG_DIR (mounted, persistent)"
 echo "Custom components directory: $HASS_CONFIG_DIR/custom_components"
@@ -89,8 +152,8 @@ echo ""
 echo "Home Assistant will be available at: http://localhost:8123"
 
 # Start Home Assistant in the background
-echo "Starting Home Assistant from mounted config..."
-nohup "$HOME/homeassistant/start_hass.sh" > "/workspaces/homeassistant/config/setup.log" 2>&1 &
+echo "Starting Home Assistant..."
+nohup "$HOME/homeassistant/start_hass.sh" > "/workspaces/emergency_alerts/config/setup.log" 2>&1 &
 
-echo "Home Assistant is starting up. Check logs at /workspaces/homeassistant/config/setup.log"
+echo "Home Assistant is starting up. Check logs at /workspaces/emergency_alerts/config/setup.log"
 echo "It may take a few minutes to fully start up."
