@@ -1,0 +1,10 @@
+---
+description: "Append all debug context, decision rationale, and temporal notes to cursor.context.md."
+globs: ["**"]
+alwaysApply: true
+---
+
+- Do not edit or delete existing entries, just append.
+- Each new entry: date, author (Human/AI), summary, code/PR reference.
+- For debugging sessions, include the problem, root cause, actions taken.
+- Use headings like "YYYY‑MM‑DD – Description".

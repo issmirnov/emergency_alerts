@@ -397,9 +397,11 @@ class EmergencyBinarySensor(BinarySensorEntity):
                 try:
                     domain, service = action["service"].split(".", 1)
                     service_data = action.get("data", {})
-                    # Fire and forget service call
-                    _ = self.hass.services.async_call(
-                        domain, service, service_data, blocking=False
+                    # Fire and forget service call - properly schedule the async call
+                    self.hass.async_create_task(
+                        self.hass.services.async_call(
+                            domain, service, service_data, blocking=False
+                        )
                     )
                 except Exception as e:
                     _LOGGER.error(f"Error calling action: {e}")
@@ -412,8 +414,11 @@ class EmergencyBinarySensor(BinarySensorEntity):
                     domain, service = global_service.split(".", 1)
                     message = self._get_global_notification_message()
                     service_data = {"message": message}
-                    _ = self.hass.services.async_call(
-                        domain, service, service_data, blocking=False
+                    # Fire and forget service call - properly schedule the async call
+                    self.hass.async_create_task(
+                        self.hass.services.async_call(
+                            domain, service, service_data, blocking=False
+                        )
                     )
                     _LOGGER.debug(
                         f"Sent global notification for {self._alert_name}")

@@ -1,0 +1,11 @@
+---
+description: "Ensure shared workspace between user and llm agent. Enforce structure for todo.md: atomic, actionable, and dated."
+globs: ["todo.md"]
+alwaysApply: true
+---
+
+- Consume the file in full, and map against your understanding of the project from prior context.
+- Each line must be prepended with `- [ ] YYYY‑MM‑DD: `.
+- Should be short, actionable (no paragraphs).
+- When task is done, change to `- [x] YYYY‑MM‑DD`.
+- Moving or archiving tasks requires adding to context with justification.

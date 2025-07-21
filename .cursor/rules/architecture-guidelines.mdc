@@ -1,0 +1,10 @@
+---
+description: "Ensure all architectural decisions are documented and persisted in architecture.md."
+globs: ["**"]
+alwaysApply: true
+---
+
+- Every architectural decision (e.g., transport patterns, bootstrap logic) must be recorded in `architecture.md`.
+- Use bullet lists with headings and dates.
+- When modifying major flows (e.g., RPC patterns, microservice triggers), append rationale and update diagrams.
+- Provide links to PR or issue in each entry if available.

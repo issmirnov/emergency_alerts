@@ -1,0 +1,10 @@
+---
+description: "Standardize README onboarding structure for humans and LLMs."
+globs: ["readme.md"]
+alwaysApply: false
+---
+
+- Sections required: Project Overview, Tech Stack, Setup, Key Commands, Common Pitfalls.
+- Use code blocks for CLI commands.
+- Keep onboarding path clear: 5‑minute “it works” section.
+- Limit first paragraph to a single concise summary.
