@@ -102,58 +102,6 @@ async def async_setup_entry(
         if "entities" not in hass.data[DOMAIN]:
             hass.data[DOMAIN]["entities"] = []
         hass.data[DOMAIN]["entities"].extend(entities)
-    else:
-        # Legacy support - individual alert entry (backward compatibility)
-        data = entry.data
-        name = data["name"]
-        trigger_type = data.get("trigger_type", "simple")
-        entity_id = data.get("entity_id")
-        trigger_state = data.get("trigger_state")
-        template = data.get("template")
-        logical_conditions = data.get("logical_conditions")
-        action_service = data.get("action_service")
-        severity = data.get("severity", "warning")
-        group = data.get("group", "other")
-        # Parse action fields from strings to lists
-        on_triggered = _parse_actions(data.get("on_triggered"))
-        on_cleared = _parse_actions(data.get("on_cleared"))
-        on_escalated = _parse_actions(data.get("on_escalated"))
-
-        # Parse logical conditions from string to list
-        logical_conditions = _parse_logical_conditions(
-            data.get("logical_conditions"))
-
-        # Create legacy alert data format
-        alert_data = {
-            "name": name,
-            "trigger_type": trigger_type,
-            "entity_id": entity_id,
-            "trigger_state": trigger_state,
-            "template": template,
-            "logical_conditions": logical_conditions,
-            "action_service": action_service,
-            "severity": severity,
-            "on_triggered": on_triggered,
-            "on_cleared": on_cleared,
-            "on_escalated": on_escalated,
-        }
-
-        sensor = EmergencyBinarySensor(
-            hass=hass,
-            entry=entry,
-            alert_id="legacy",
-            alert_data=alert_data,
-            group=group,
-            hub_name="legacy",
-        )
-        async_add_entities([sensor], update_before_add=True)
-
-        # Register entity for service access
-        if DOMAIN not in hass.data:
-            hass.data[DOMAIN] = {}
-        if "entities" not in hass.data[DOMAIN]:
-            hass.data[DOMAIN]["entities"] = []
-        hass.data[DOMAIN]["entities"].append(sensor)
 
 
 class EmergencyBinarySensor(BinarySensorEntity):
