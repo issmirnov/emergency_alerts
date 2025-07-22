@@ -281,9 +281,10 @@ class EmergencyBinarySensor(BinarySensorEntity):
                     state = self.hass.states.get(cond["entity_id"])
                     results.append(state and state.state == cond["state"])
                 else:
-                    _LOGGER.warning(f"Invalid logical condition format: {cond}")
+                    _LOGGER.warning(
+                        f"Invalid logical condition format: {cond}")
                     results.append(False)
-            
+
             # Apply the logical operator
             if self._logical_operator == "or":
                 triggered = any(results) if results else False
@@ -328,13 +329,24 @@ class EmergencyBinarySensor(BinarySensorEntity):
                     domain, service = action["service"].split(".", 1)
                     service_data = action.get("data", {})
                     # Fire and forget service call - properly schedule the async call
-                    self.hass.async_create_task(
-                        self.hass.services.async_call(
-                            domain, service, service_data, blocking=False
-                        )
-                    )
+
+                    async def safe_call():
+                        try:
+                            await self.hass.services.async_call(
+                                domain, service, service_data, blocking=False
+                            )
+                        except Exception as e:
+                            if (
+                                hasattr(e, "__class__") and
+                                e.__class__.__name__ == "ServiceNotFound"
+                            ):
+                                _LOGGER.warning(
+                                    f"Service not found: {domain}.{service}, skipping action.")
+                            else:
+                                _LOGGER.error(f"Error calling action: {e}")
+                    self.hass.async_create_task(safe_call())
                 except Exception as e:
-                    _LOGGER.error(f"Error calling action: {e}")
+                    _LOGGER.error(f"Error preparing action: {e}")
 
         # Send global notification if enabled and this is a trigger event
         if actions == self._on_triggered and self._should_send_global_notification():
