@@ -38,30 +38,10 @@ async def async_setup_entry(
             escalate_button = EmergencyEscalateButton(
                 hass, entry, alert_id, alert_data, group, hub_name
             )
-
             buttons.extend([acknowledge_button, clear_button, escalate_button])
 
         if buttons:
             async_add_entities(buttons, update_before_add=True)
-    else:
-        # Legacy support - individual alert entry (backward compatibility)
-        data = entry.data
-        name = data["name"]
-        group = data.get("group", "other")
-
-        # Create buttons for legacy alert
-        acknowledge_button = EmergencyAcknowledgeButton(
-            hass, entry, "legacy", data, group, "legacy"
-        )
-        clear_button = EmergencyClearButton(
-            hass, entry, "legacy", data, group, "legacy"
-        )
-        escalate_button = EmergencyEscalateButton(
-            hass, entry, "legacy", data, group, "legacy"
-        )
-
-        async_add_entities([acknowledge_button, clear_button,
-                           escalate_button], update_before_add=True)
 
 
 class EmergencyButtonBase(ButtonEntity):
@@ -84,34 +64,17 @@ class EmergencyButtonBase(ButtonEntity):
         self._hub_name = hub_name
         self._action_name = action_name
         self._alert_name = alert_data["name"]
-
         # Entity attributes
         self._attr_name = f"Emergency: {self._alert_name} - {action_name.title()}"
-        if alert_id == "legacy":
-            self._attr_unique_id = f"emergency_{self._alert_name.lower().replace(' ', '_')}_{action_name}"
-        else:
-            self._attr_unique_id = f"emergency_{hub_name}_{alert_id}_{action_name}"
-
-        # Device info - buttons group with their corresponding alert device
-        if alert_id == "legacy":
-            # Legacy single alert - create as hub device
-            self._attr_device_info = {
-                "identifiers": {(DOMAIN, f"{hub_name}_hub")},
-                "name": f"Emergency Alerts - {group.title()}" + (f" ({entry.data.get('custom_name')})" if entry.data.get("custom_name") else ""),
-                "manufacturer": "Emergency Alerts",
-                "model": f"{group.title()} Hub",
-                "sw_version": "1.0",
-            }
-        else:
-            # Group alert - buttons belong to the individual alert device
-            self._attr_device_info = {
-                "identifiers": {(DOMAIN, f"{hub_name}_{alert_id}")},
-                "name": f"Emergency Alert: {alert_data['name']}",
-                "manufacturer": "Emergency Alerts",
-                "model": f"{alert_data.get('severity', 'warning').title()} Alert",
-                "sw_version": "1.0",
-                "via_device": (DOMAIN, f"{hub_name}_hub"),
-            }
+        self._attr_unique_id = f"emergency_{hub_name}_{alert_id}_{action_name}"
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, f"{hub_name}_{alert_id}")},
+            "name": f"Emergency Alert: {alert_data['name']}",
+            "manufacturer": "Emergency Alerts",
+            "model": f"{alert_data.get('severity', 'warning').title()} Alert",
+            "sw_version": "1.0",
+            "via_device": (DOMAIN, f"{hub_name}_hub"),
+        }
 
     def _get_alert_entity(self):
         """Get the corresponding binary sensor entity."""
