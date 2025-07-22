@@ -220,3 +220,42 @@ Based on debug logs and testing:
 - Multi-step creation provides better user experience than single overwhelming form
 - Service dropdowns eliminate user errors and provide better discoverability
 - Documentation now accurately reflects the sophisticated hub-based architecture and modern UI
+
+## 2025-01-22 - Visual Condition Builder for Logical Triggers
+
+**Author**: AI Assistant  
+**Summary**: Implemented a user-friendly visual condition builder for logical triggers, replacing the complex JSON input with an intuitive form-based interface.
+
+**Problem**: Users found it difficult to write JSON format for logical conditions like `[{"entity_id": "sensor.openweather", "state": "rain"}, {"entity_id": "binary_sensor.garage_door", "state": "on"}]`. This required knowledge of JSON syntax and was error-prone.
+
+**Solution**: Created a visual condition builder that:
+- Provides up to 10 entity/state pairs with dropdown selectors
+- Includes AND/OR operator selection with clear descriptions
+- Automatically parses form data into the required JSON format
+- Supports editing existing logical conditions
+- Maintains backward compatibility with existing configurations
+
+**Technical Implementation**:
+- **Config Flow**: Updated `async_step_add_alert_trigger_logical()` to build dynamic schema with entity selectors
+- **Binary Sensor**: Enhanced `_evaluate_trigger()` to support both AND/OR operators
+- **Data Structure**: Added `logical_operator` field to alert configuration
+- **UI Strings**: Updated strings.json and translations with comprehensive field descriptions
+
+**Code References**:
+- `config_flow.py`: Lines 339-400 - Visual condition builder implementation
+- `binary_sensor.py`: Lines 344-362 - Enhanced logical condition evaluation
+- `strings.json`: Lines 140-160 - Updated UI strings and descriptions
+
+**Benefits**:
+- **User Experience**: No more JSON syntax errors or complex formatting
+- **Accessibility**: Visual interface makes logical conditions accessible to all users
+- **Flexibility**: Supports complex scenarios like "rain AND garage open OR motion detected"
+- **Maintainability**: Cleaner code structure with better error handling
+
+**Example Usage**:
+```
+Logical Operator: AND - All conditions must be true
+Condition 1: sensor.openweather = "rain"
+Condition 2: binary_sensor.garage_door = "on"
+Result: Alert triggers when it's raining AND the garage door is open
+```

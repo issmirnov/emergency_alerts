@@ -79,7 +79,10 @@ Emergency Alerts - [Group Name] (Hub Device)
 
 ### **Logical Triggers**
 - Combine multiple entity conditions with AND/OR logic
-- Example: Multiple motion sensors triggering simultaneously
+- **Visual Condition Builder**: User-friendly interface for creating complex conditions
+- **Dynamic Form**: Up to 10 entity/state pairs with operator selection
+- **Operator Support**: AND (all conditions must be true) or OR (any condition can be true)
+- Example: `sensor.openweather=rain AND sensor.garage_door=open`
 
 ---
 

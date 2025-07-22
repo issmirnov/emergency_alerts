@@ -337,31 +337,72 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
         )
 
     async def async_step_add_alert_trigger_logical(self, user_input=None):
-        """Add a new alert to this group - Step 2: Logical Trigger Configuration."""
-        is_editing = hasattr(self, '_editing_alert_id')
-        current_alert = None
-        if is_editing:
-            alerts = self.config_entry.data.get("alerts", {})
-            current_alert = alerts.get(self._editing_alert_id, {})
+        """Multi-step wizard for logical trigger configuration."""
+        # Initialize wizard state if not present
+        if not hasattr(self, '_logical_conditions_wizard'):
+            self._logical_conditions_wizard = []
+            self._logical_wizard_step = 0
 
+        # Step 1: Add a condition
         if user_input is not None:
-            # Store logical trigger data
-            self._alert_data["entity_id"] = user_input.get("entity_id")
-            self._alert_data["logical_conditions"] = user_input.get(
-                "logical_conditions")
+            # Save previous step's condition if present
+            if 'entity_id' in user_input and user_input['entity_id']:
+                self._logical_conditions_wizard.append({
+                    'entity_id': user_input['entity_id'],
+                    'state': user_input.get('state', '')
+                })
+            # If user chose not to add another, go to operator selection
+            if user_input.get('add_another') == 'no':
+                return await self.async_step_add_alert_trigger_logical_operator()
 
-            # Continue to action configuration
-            return await self.async_step_add_alert_actions()
-
+        # Show form to add a new condition
+        # Try to show current state as hint if entity is selected
+        current_state_hint = ''
+        if user_input and user_input.get('entity_id'):
+            entity_id = user_input['entity_id']
+            state_obj = self.hass.states.get(entity_id)
+            if state_obj:
+                current_state_hint = f"Current state: {state_obj.state}"
+        
         return self.async_show_form(
             step_id="add_alert_trigger_logical",
             data_schema=vol.Schema({
-                vol.Required("entity_id", default=current_alert.get("entity_id", "") if current_alert else ""): selector.EntitySelector(
-                    selector.EntitySelectorConfig()
+                vol.Required('entity_id'): selector.EntitySelector(selector.EntitySelectorConfig()),
+                vol.Optional('state', default=''): str,
+                vol.Required('add_another', default='no'): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            selector.SelectOptionDict(value='yes', label='Add another condition'),
+                            selector.SelectOptionDict(value='no', label='Done adding conditions'),
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
                 ),
-                vol.Required("logical_conditions", default=current_alert.get("logical_conditions", "") if current_alert else ""): selector.TextSelector(
-                    selector.TextSelectorConfig(
-                        type=selector.TextSelectorType.TEXT
+            }),
+            description_placeholders={
+                'current_state_hint': current_state_hint
+            },
+        )
+
+    async def async_step_add_alert_trigger_logical_operator(self, user_input=None):
+        """Step to select AND/OR operator and finish logical trigger config."""
+        if user_input is not None:
+            self._alert_data['logical_conditions'] = self._logical_conditions_wizard
+            self._alert_data['logical_operator'] = user_input['logical_operator']
+            # Clean up wizard state
+            del self._logical_conditions_wizard
+            return await self.async_step_add_alert_actions()
+
+        return self.async_show_form(
+            step_id="add_alert_trigger_logical_operator",
+            data_schema=vol.Schema({
+                vol.Required('logical_operator', default='and'): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            selector.SelectOptionDict(value='and', label='AND - All conditions must be true'),
+                            selector.SelectOptionDict(value='or', label='OR - Any condition can be true'),
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
             })
@@ -386,8 +427,22 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
             elif trigger_type == "template":
                 self._alert_data["template"] = user_input.get("template")
             elif trigger_type == "logical":
-                self._alert_data["logical_conditions"] = user_input.get(
-                    "logical_conditions")
+                # Parse the logical conditions from the visual builder
+                conditions = []
+                operator = user_input.get("logical_operator", "and")
+                
+                # Extract conditions from the form
+                for i in range(10):  # Support up to 10 conditions
+                    entity_id = user_input.get(f"condition_{i}_entity")
+                    state = user_input.get(f"condition_{i}_state")
+                    if entity_id and state:
+                        conditions.append({
+                            "entity_id": entity_id,
+                            "state": state
+                        })
+                
+                self._alert_data["logical_conditions"] = conditions
+                self._alert_data["logical_operator"] = operator
 
             # Continue to action configuration
             return await self.async_step_add_alert_actions()
@@ -413,13 +468,41 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                 ),
             })
         elif trigger_type == "logical":
-            schema = vol.Schema({
-                vol.Required("logical_conditions", default=current_alert.get("logical_conditions", "") if current_alert else ""): selector.TextSelector(
+            # Parse existing conditions for editing
+            existing_conditions = []
+            existing_operator = "and"
+            if is_editing and current_alert:
+                logical_data = current_alert.get("logical_conditions", [])
+                if isinstance(logical_data, list):
+                    existing_conditions = logical_data
+                existing_operator = current_alert.get("logical_operator", "and")
+
+            # Build schema for visual condition builder
+            schema_fields = {
+                vol.Required("logical_operator", default=existing_operator): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            selector.SelectOptionDict(value="and", label="AND - All conditions must be true"),
+                            selector.SelectOptionDict(value="or", label="OR - Any condition can be true")
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+            }
+
+            # Add condition fields (up to 10 conditions)
+            for i in range(10):
+                condition = existing_conditions[i] if i < len(existing_conditions) else {}
+                schema_fields[vol.Optional(f"condition_{i}_entity", default=condition.get("entity_id", ""))] = selector.EntitySelector(
+                    selector.EntitySelectorConfig()
+                )
+                schema_fields[vol.Optional(f"condition_{i}_state", default=condition.get("state", ""))] = selector.TextSelector(
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.TEXT
                     )
-                ),
-            })
+                )
+            
+            schema = vol.Schema(schema_fields)
         else:
             return self.async_abort(reason="invalid_trigger_type")
 

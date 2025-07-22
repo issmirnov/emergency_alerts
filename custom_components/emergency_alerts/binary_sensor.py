@@ -183,6 +183,7 @@ class EmergencyBinarySensor(BinarySensorEntity):
         self._template = alert_data.get("template")
         self._logical_conditions = _parse_logical_conditions(
             alert_data.get("logical_conditions"))
+        self._logical_operator = alert_data.get("logical_operator", "and")
         self._action_service = alert_data.get("action_service")
         self._severity = alert_data.get("severity", "warning")
         self._on_triggered = _parse_actions(alert_data.get("on_triggered"))
@@ -341,24 +342,21 @@ class EmergencyBinarySensor(BinarySensorEntity):
                 _LOGGER.error(f"Template evaluation error: {e}")
                 triggered = False
         elif self._trigger_type == "logical" and self._logical_conditions:
-            # Each condition is a dict: {"type": "simple"/"template", ...}
+            # Each condition is a dict: {"entity_id": "...", "state": "..."}
             results = []
             for cond in self._logical_conditions:
-                if cond.get("type") == "simple":
+                if isinstance(cond, dict) and "entity_id" in cond and "state" in cond:
                     state = self.hass.states.get(cond["entity_id"])
-                    results.append(state and state.state ==
-                                   cond["trigger_state"])
-                elif cond.get("type") == "template":
-                    tpl = Template(cond["template"], self.hass)
-                    try:
-                        rendered = tpl.async_render()
-                        results.append(rendered in (
-                            True, "True", "true", 1, "1"))
-                    except Exception as e:
-                        _LOGGER.error(f"Logical template error: {e}")
-                        results.append(False)
-            # Default to AND logic; could add OR support in future
-            triggered = all(results)
+                    results.append(state and state.state == cond["state"])
+                else:
+                    _LOGGER.warning(f"Invalid logical condition format: {cond}")
+                    results.append(False)
+            
+            # Apply the logical operator
+            if self._logical_operator == "or":
+                triggered = any(results) if results else False
+            else:  # Default to AND
+                triggered = all(results) if results else False
         self._set_state(triggered)
 
     @callback

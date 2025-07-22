@@ -141,14 +141,32 @@
       },
       "add_alert_trigger_logical": {
         "title": "➕ Add New Alert - Step 2: Logical Trigger Configuration",
-        "description": "Select an entity to monitor and combine multiple entity conditions using AND/OR logic.",
+        "description": "Combine multiple entity conditions using AND/OR logic. Add up to 10 conditions below.",
         "data": {
-          "entity_id": "Entity to Monitor",
-          "logical_conditions": "JSON Conditions Array"
+          "logical_operator": "Logical Operator",
+          "condition_0_entity": "Condition 1: Entity",
+          "condition_0_state": "Condition 1: State",
+          "condition_1_entity": "Condition 2: Entity",
+          "condition_1_state": "Condition 2: State",
+          "condition_2_entity": "Condition 3: Entity",
+          "condition_2_state": "Condition 3: State",
+          "condition_3_entity": "Condition 4: Entity",
+          "condition_3_state": "Condition 4: State",
+          "condition_4_entity": "Condition 5: Entity",
+          "condition_4_state": "Condition 5: State"
         },
         "data_description": {
-          "entity_id": "The Home Assistant entity to watch (e.g., binary_sensor.front_door, sensor.temperature)",
-          "logical_conditions": "JSON format: `[{\"entity_id\": \"binary_sensor.door\", \"state\": \"on\"}, {\"entity_id\": \"sensor.temp\", \"state\": \"30\"}]`<br/>Use 'and' or 'or' operator to combine conditions"
+          "logical_operator": "Choose how to combine the conditions:<br/>• <strong>AND</strong> - All conditions must be true<br/>• <strong>OR</strong> - Any condition can be true",
+          "condition_0_entity": "First entity to monitor (e.g., binary_sensor.front_door)",
+          "condition_0_state": "State that triggers this condition (e.g., 'on', 'open', '30')",
+          "condition_1_entity": "Second entity to monitor (optional)",
+          "condition_1_state": "State that triggers this condition (optional)",
+          "condition_2_entity": "Third entity to monitor (optional)",
+          "condition_2_state": "State that triggers this condition (optional)",
+          "condition_3_entity": "Fourth entity to monitor (optional)",
+          "condition_3_state": "State that triggers this condition (optional)",
+          "condition_4_entity": "Fifth entity to monitor (optional)",
+          "condition_4_state": "State that triggers this condition (optional)"
         }
       },
       "add_alert_actions": {
