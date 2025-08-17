@@ -6,6 +6,8 @@
 
 A comprehensive Home Assistant custom integration for managing emergency alerts with hub-based organization, group management, and intuitive status tracking.
 
+## ⚠️ AI-Assisted Development Warning: This project has been largely developed with the assistance of AI tools (Claude and Cursor). I only have a basic understanding of what this code does and have been using this project as a way to experiment with AI-assisted development while creating a component I wanted for my dashboard. The code may contain inconsistencies, and best practices might only be partially followed due to the contextual limitations of AI. Use at your own risk and feel free to contribute improvements!
+
 ## ✨ Features
 
 ### 🏗️ **Hub-Based Organization**
