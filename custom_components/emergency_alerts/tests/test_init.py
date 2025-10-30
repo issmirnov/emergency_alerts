@@ -66,14 +66,17 @@ async def test_multiple_config_entries(hass: HomeAssistant, mock_config_entry):
     entry1.add_to_hass(hass)
     entry2.add_to_hass(hass)
 
-    # Setup both using proper HA flow - setup each independently
+    # Setup both entries
     result1 = await hass.config_entries.async_setup(entry1.entry_id)
     await hass.async_block_till_done()
-    result2 = await hass.config_entries.async_setup(entry2.entry_id)
-    await hass.async_block_till_done()
+
+    # Check if entry2 is already loaded (HA may auto-load all entries)
+    if entry2.state.name != "LOADED":
+        result2 = await hass.config_entries.async_setup(entry2.entry_id)
+        await hass.async_block_till_done()
+        assert result2 is True
 
     assert result1 is True
-    assert result2 is True
 
     # Service should still be registered (only once)
     assert hass.services.has_service(DOMAIN, "acknowledge")

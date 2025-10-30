@@ -120,6 +120,7 @@ async def test_acknowledge_switch_turn_on(hass: HomeAssistant, mock_config_entry
     switch = EmergencyAlertAcknowledgeSwitch(
         hass, mock_config_entry, "test_alert", alert_data
     )
+    switch.entity_id = "switch.emergency_test_alert_acknowledged"
 
     # Mock the binary sensor lookup (preserve existing keys)
     hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
@@ -149,6 +150,7 @@ async def test_acknowledge_switch_turn_off(hass: HomeAssistant, mock_config_entr
     switch = EmergencyAlertAcknowledgeSwitch(
         hass, mock_config_entry, "test_alert", alert_data
     )
+    switch.entity_id = "switch.emergency_test_alert_acknowledged"
 
     hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
     mock_binary_sensor._acknowledged = True
@@ -225,8 +227,9 @@ async def test_snooze_switch_turn_off(hass: HomeAssistant, mock_config_entry, mo
     # Set up snoozed state
     mock_binary_sensor._snoozed = True
     mock_binary_sensor._snooze_until = datetime.now() + timedelta(seconds=300)
+    mock_cancel = Mock()
     mock_binary_sensor._snooze_task = Mock()
-    mock_binary_sensor._snooze_task.cancel = Mock()
+    mock_binary_sensor._snooze_task.cancel = mock_cancel
 
     await switch.async_turn_off()
 
@@ -235,8 +238,8 @@ async def test_snooze_switch_turn_off(hass: HomeAssistant, mock_config_entry, mo
     assert mock_binary_sensor._snooze_until is None
     assert switch._attr_is_on is False
 
-    # Verify snooze task cancelled
-    mock_binary_sensor._snooze_task.cancel.assert_called_once()
+    # Verify snooze task cancelled (check the saved mock since _snooze_task is now None)
+    mock_cancel.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -246,6 +249,7 @@ async def test_snooze_timer_auto_expires(hass: HomeAssistant, mock_config_entry,
     switch = EmergencyAlertSnoozeSwitch(
         hass, mock_config_entry, "test_alert", alert_data
     )
+    switch.entity_id = "switch.emergency_test_alert_snoozed"
 
     # Manually call the timer function with short duration
     await switch._snooze_timer(0.1, mock_binary_sensor)
