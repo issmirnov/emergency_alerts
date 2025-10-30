@@ -24,6 +24,7 @@ async def hass():
     hass.config_entries.async_forward_entry_setups = AsyncMock()
     hass.config_entries.async_forward_entry_setup = AsyncMock()
     hass.config_entries.async_forward_entry_unload = AsyncMock(return_value=True)
+    hass.config_entries.async_entries = Mock(return_value=[])  # Return empty list for existing entries
     hass.config_entries.flow = Mock()
     hass.config_entries.flow.async_init = AsyncMock()
     hass.config_entries.flow.async_configure = AsyncMock()
@@ -100,37 +101,49 @@ class MockConfigEntry:
 
 @pytest.fixture
 def mock_config_entry():
-    """Mock config entry for testing."""
+    """Mock config entry for testing (v2.0 hub-based structure)."""
     return MockConfigEntry(
         domain=DOMAIN,
         data={
-            "name": "Test Alert",
-            "trigger_type": "simple",
-            "entity_id": "binary_sensor.test_sensor",
-            "trigger_state": "on",
-            "severity": "warning",
+            "hub_type": "group",
             "group": "security",
+            "hub_name": "test_hub",
+            "alerts": {
+                "test_alert": {
+                    "name": "Test Alert",
+                    "trigger_type": "simple",
+                    "entity_id": "binary_sensor.test_sensor",
+                    "trigger_state": "on",
+                    "severity": "warning",
+                },
+            },
         },
     )
 
 
 @pytest.fixture
 def mock_template_config_entry():
-    """Return a mock config entry with template trigger for testing."""
+    """Return a mock config entry with template trigger for testing (v2.0)."""
     return MockConfigEntry(
         domain=DOMAIN,
         title="Test Template Alert",
         data={
-            "name": "Template Alert",
-            "trigger_type": "template",
-            "template": "{{ states('sensor.temperature') | float > 30 }}",
-            "severity": "critical",
+            "hub_type": "group",
             "group": "environment",
-            "on_triggered": [
-                {"service": "notify.notify", "data": {"message": "High temp!"}}
-            ],
-            "on_cleared": [],
-            "on_escalated": [],
+            "hub_name": "test_hub_env",
+            "alerts": {
+                "template_alert": {
+                    "name": "Template Alert",
+                    "trigger_type": "template",
+                    "template": "{{ states('sensor.temperature') | float > 30 }}",
+                    "severity": "critical",
+                    "on_triggered": [
+                        {"service": "notify.notify", "data": {"message": "High temp!"}}
+                    ],
+                    "on_cleared": [],
+                    "on_escalated": [],
+                },
+            },
         },
         unique_id="test_template_alert_unique_id",
     )
@@ -138,30 +151,60 @@ def mock_template_config_entry():
 
 @pytest.fixture
 def mock_logical_config_entry():
-    """Return a mock config entry with logical trigger for testing."""
+    """Return a mock config entry with logical trigger for testing (v2.0)."""
     return MockConfigEntry(
         domain=DOMAIN,
         title="Test Logical Alert",
         data={
-            "name": "Logical Alert",
-            "trigger_type": "logical",
-            "logical_conditions": [
-                {
-                    "type": "simple",
-                    "entity_id": "binary_sensor.door",
-                    "trigger_state": "on",
-                },
-                {
-                    "type": "simple",
-                    "entity_id": "binary_sensor.alarm",
-                    "trigger_state": "on",
-                },
-            ],
-            "severity": "critical",
+            "hub_type": "group",
             "group": "security",
-            "on_triggered": [],
-            "on_cleared": [],
-            "on_escalated": [],
+            "hub_name": "test_hub_security",
+            "alerts": {
+                "logical_alert": {
+                    "name": "Logical Alert",
+                    "trigger_type": "logical",
+                    "logical_conditions": [
+                        {
+                            "entity_id": "binary_sensor.door",
+                            "state": "on",
+                        },
+                        {
+                            "entity_id": "binary_sensor.alarm",
+                            "state": "on",
+                        },
+                    ],
+                    "logical_operator": "and",
+                    "severity": "critical",
+                    "on_triggered": [],
+                    "on_cleared": [],
+                    "on_escalated": [],
+                },
+            },
         },
         unique_id="test_logical_alert_unique_id",
     )
+
+
+@pytest.fixture
+def create_binary_sensor(hass, mock_config_entry):
+    """Factory fixture to create binary sensors for testing."""
+    def _create_sensor(alert_id="test_alert", alert_data=None):
+        """Create a binary sensor with the given config."""
+        from custom_components.emergency_alerts.binary_sensor import EmergencyBinarySensor
+
+        if alert_data is None:
+            alert_data = mock_config_entry.data["alerts"]["test_alert"]
+
+        group = mock_config_entry.data.get("group", "security")
+        hub_name = mock_config_entry.data.get("hub_name", "test_hub")
+
+        return EmergencyBinarySensor(
+            hass=hass,
+            entry=mock_config_entry,
+            alert_id=alert_id,
+            alert_data=alert_data,
+            group=group,
+            hub_name=hub_name,
+        )
+
+    return _create_sensor
