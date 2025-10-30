@@ -39,6 +39,13 @@ async def hass():
     hass.loop = Mock()  # Mock event loop for async_call_later
     hass.loop.time = Mock(return_value=1000.0)  # Return a float time value
     hass.loop.call_at = Mock(return_value=Mock(cancel=Mock()))
+    hass.loop.call_soon = Mock()
+    hass.loop.call_soon_threadsafe = Mock()
+
+    # Mock the async_write_ha_state helper
+    import threading
+    hass.loop.run_in_executor = AsyncMock(return_value=None)
+    threading.get_ident = Mock(return_value=12345)
 
     # Mock entity and device registries
     hass.helpers = Mock()
