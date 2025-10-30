@@ -203,9 +203,9 @@ class EmergencyAlertAcknowledgeSwitch(BaseEmergencyAlertSwitch):
         binary_sensor._acknowledged = True
         self._attr_is_on = True
 
-        # Cancel escalation timer
+        # Cancel escalation timer (call cancellation function from async_call_later)
         if binary_sensor._escalation_task:
-            binary_sensor._escalation_task.cancel()
+            binary_sensor._escalation_task()  # Call the cancellation function
             binary_sensor._escalation_task = None
 
         # Fire event
@@ -387,9 +387,9 @@ class EmergencyAlertResolveSwitch(BaseEmergencyAlertSwitch):
         binary_sensor._resolved = True
         self._attr_is_on = True
 
-        # Cancel escalation timer
+        # Cancel escalation timer (call cancellation function from async_call_later)
         if binary_sensor._escalation_task:
-            binary_sensor._escalation_task.cancel()
+            binary_sensor._escalation_task()  # Call the cancellation function
             binary_sensor._escalation_task = None
 
         # Fire event

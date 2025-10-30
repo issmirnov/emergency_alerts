@@ -254,6 +254,41 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
             profile_name = user_input["profile_name"]
             profile_id = profile_name.lower().replace(" ", "_")
 
+            # Check for ID collision
+            if profile_id in updated_options["notification_profiles"]:
+                return self.async_show_form(
+                    step_id="add_profile",
+                    data_schema=vol.Schema({
+                        vol.Required("profile_name", default=profile_name): selector.TextSelector(),
+                        vol.Optional("description", default=user_input.get("description", "")): selector.TextSelector(
+                            selector.TextSelectorConfig(multiline=True)
+                        ),
+                        vol.Optional("service_1", default=user_input.get("service_1", "")): selector.TextSelector(
+                            selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
+                        ),
+                        vol.Optional("service_data_1", default=user_input.get("service_data_1", "")): selector.TextSelector(
+                            selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT, multiline=True)
+                        ),
+                        vol.Optional("service_2", default=user_input.get("service_2", "")): selector.TextSelector(),
+                        vol.Optional("service_data_2", default=user_input.get("service_data_2", "")): selector.TextSelector(
+                            selector.TextSelectorConfig(multiline=True)
+                        ),
+                        vol.Optional("service_3", default=user_input.get("service_3", "")): selector.TextSelector(),
+                        vol.Optional("service_data_3", default=user_input.get("service_data_3", "")): selector.TextSelector(
+                            selector.TextSelectorConfig(multiline=True)
+                        ),
+                        vol.Optional("service_4", default=user_input.get("service_4", "")): selector.TextSelector(),
+                        vol.Optional("service_data_4", default=user_input.get("service_data_4", "")): selector.TextSelector(
+                            selector.TextSelectorConfig(multiline=True)
+                        ),
+                        vol.Optional("service_5", default=user_input.get("service_5", "")): selector.TextSelector(),
+                        vol.Optional("service_data_5", default=user_input.get("service_data_5", "")): selector.TextSelector(
+                            selector.TextSelectorConfig(multiline=True)
+                        ),
+                    }),
+                    errors={"profile_name": "profile_already_exists"}
+                )
+
             # Build profile from form data
             profile_data = {
                 "name": profile_name,
@@ -271,8 +306,8 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                         try:
                             import yaml
                             action["data"] = yaml.safe_load(data_yaml)
-                        except:
-                            pass
+                        except Exception as e:
+                            _LOGGER.warning(f"Failed to parse YAML for service {i}: {e}")
                     profile_data["actions"].append(action)
 
             updated_options["notification_profiles"][profile_id] = profile_data
@@ -369,8 +404,8 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                         try:
                             import yaml
                             action["data"] = yaml.safe_load(data_yaml)
-                        except:
-                            pass
+                        except Exception as e:
+                            _LOGGER.warning(f"Failed to parse YAML for service {i}: {e}")
                     profile_data["actions"].append(action)
 
             updated_options["notification_profiles"][self._editing_profile_id] = profile_data
