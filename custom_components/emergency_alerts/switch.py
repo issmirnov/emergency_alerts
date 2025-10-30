@@ -116,7 +116,9 @@ class BaseEmergencyAlertSwitch(SwitchEntity):
 
     def _sync_state_from_binary_sensor(self) -> None:
         """Sync switch state from binary sensor entity attributes."""
-        binary_sensor_id = f"binary_sensor.emergency_{self._alert_data.get('name', self._alert_id).lower().replace(' ', '_')}"
+        # Use the same entity ID pattern as binary sensor: emergency_{hub_name}_{alert_id}
+        hub_name = self._entry.data.get("hub_name", "")
+        binary_sensor_id = f"binary_sensor.emergency_{hub_name}_{self._alert_id}"
         entity = self.hass.states.get(binary_sensor_id)
 
         if entity:
@@ -164,7 +166,7 @@ class BaseEmergencyAlertSwitch(SwitchEntity):
                         _LOGGER.debug(f"Turning off resolved for {self._alert_id} due to {new_state}")
 
                 # Update binary sensor
-                await binary_sensor.async_update_ha_state()
+                binary_sensor.async_write_ha_state()
 
                 # Broadcast switch updates
                 async_dispatcher_send(
@@ -217,7 +219,7 @@ class EmergencyAlertAcknowledgeSwitch(BaseEmergencyAlertSwitch):
             await binary_sensor._execute_action(self._alert_data["on_acknowledged"])
 
         # Update states
-        await binary_sensor.async_update_ha_state()
+        binary_sensor.async_write_ha_state()
         self.async_write_ha_state()
 
         # Broadcast update
@@ -241,7 +243,7 @@ class EmergencyAlertAcknowledgeSwitch(BaseEmergencyAlertSwitch):
         if binary_sensor.is_on:
             await binary_sensor._start_escalation_timer()
 
-        await binary_sensor.async_update_ha_state()
+        binary_sensor.async_write_ha_state()
         self.async_write_ha_state()
 
         async_dispatcher_send(
@@ -300,7 +302,7 @@ class EmergencyAlertSnoozeSwitch(BaseEmergencyAlertSwitch):
             await binary_sensor._execute_action(self._alert_data["on_snoozed"])
 
         # Update states
-        await binary_sensor.async_update_ha_state()
+        binary_sensor.async_write_ha_state()
         self.async_write_ha_state()
 
         # Broadcast update
@@ -321,7 +323,7 @@ class EmergencyAlertSnoozeSwitch(BaseEmergencyAlertSwitch):
             binary_sensor._snooze_task = None
             self._attr_is_on = False
 
-            await binary_sensor.async_update_ha_state()
+            binary_sensor.async_write_ha_state()
             self.async_write_ha_state()
 
             async_dispatcher_send(
@@ -348,7 +350,7 @@ class EmergencyAlertSnoozeSwitch(BaseEmergencyAlertSwitch):
             binary_sensor._snooze_task.cancel()
             binary_sensor._snooze_task = None
 
-        await binary_sensor.async_update_ha_state()
+        binary_sensor.async_write_ha_state()
         self.async_write_ha_state()
 
         async_dispatcher_send(
@@ -401,7 +403,7 @@ class EmergencyAlertResolveSwitch(BaseEmergencyAlertSwitch):
             await binary_sensor._execute_action(self._alert_data["on_resolved"])
 
         # Update states
-        await binary_sensor.async_update_ha_state()
+        binary_sensor.async_write_ha_state()
         self.async_write_ha_state()
 
         # Broadcast update
@@ -421,7 +423,7 @@ class EmergencyAlertResolveSwitch(BaseEmergencyAlertSwitch):
         binary_sensor._resolved = False
         self._attr_is_on = False
 
-        await binary_sensor.async_update_ha_state()
+        binary_sensor.async_write_ha_state()
         self.async_write_ha_state()
 
         async_dispatcher_send(

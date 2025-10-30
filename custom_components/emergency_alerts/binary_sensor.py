@@ -376,7 +376,7 @@ class EmergencyBinarySensor(BinarySensorEntity):
 
                 # Only start escalation if not acknowledged or snoozed
                 if not self._acknowledged and not self._snoozed:
-                    self._start_escalation_timer()
+                    self.hass.async_create_task(self._start_escalation_timer())
 
                 async_dispatcher_send(self.hass, SUMMARY_UPDATE_SIGNAL)
                 # Notify switches
