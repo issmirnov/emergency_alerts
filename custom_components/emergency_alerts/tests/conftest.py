@@ -21,9 +21,10 @@ async def hass():
     hass.services.has_service = Mock(return_value=True)
     hass.services.async_register = AsyncMock()
     hass.config_entries = Mock()
-    hass.config_entries.async_forward_entry_setups = AsyncMock()
+    hass.config_entries.async_forward_entry_setups = AsyncMock(return_value=True)
     hass.config_entries.async_forward_entry_setup = AsyncMock()
     hass.config_entries.async_forward_entry_unload = AsyncMock(return_value=True)
+    hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
     hass.config_entries.async_entries = Mock(return_value=[])  # Return empty list for existing entries
     hass.config_entries.flow = Mock()
     hass.config_entries.flow.async_init = AsyncMock()

@@ -165,10 +165,15 @@ async def test_logical_trigger_evaluation(mock_threading, hass: HomeAssistant, m
 
 
 @patch("threading.get_ident", return_value=12345)
-async def test_acknowledgment(mock_threading, hass: HomeAssistant, create_binary_sensor):
+@patch("custom_components.emergency_alerts.binary_sensor.async_dispatcher_send")
+async def test_acknowledgment(mock_dispatcher, mock_threading, hass: HomeAssistant, create_binary_sensor):
     """Test acknowledgment functionality."""
     sensor = create_binary_sensor()
     sensor.entity_id = "binary_sensor.emergency_test_alert"
+
+    # Mock event bus
+    hass.bus = Mock()
+    hass.bus.async_fire = Mock()
 
     # Initial state
     assert sensor._acknowledged is False

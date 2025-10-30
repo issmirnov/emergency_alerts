@@ -121,8 +121,8 @@ async def test_acknowledge_switch_turn_on(hass: HomeAssistant, mock_config_entry
         hass, mock_config_entry, "test_alert", alert_data
     )
 
-    # Mock the binary sensor lookup
-    hass.data = {DOMAIN: {"entities": [mock_binary_sensor]}}
+    # Mock the binary sensor lookup (preserve existing keys)
+    hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
 
     # Mock event bus
     hass.bus = Mock()
@@ -150,7 +150,7 @@ async def test_acknowledge_switch_turn_off(hass: HomeAssistant, mock_config_entr
         hass, mock_config_entry, "test_alert", alert_data
     )
 
-    hass.data = {DOMAIN: {"entities": [mock_binary_sensor]}}
+    hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
     mock_binary_sensor._acknowledged = True
     mock_binary_sensor.is_on = True
     mock_binary_sensor._start_escalation_timer = AsyncMock()
@@ -189,7 +189,7 @@ async def test_snooze_switch_turn_on(hass: HomeAssistant, mock_config_entry, moc
         hass, mock_config_entry, "test_alert", alert_data
     )
 
-    hass.data = {DOMAIN: {"entities": [mock_binary_sensor]}}
+    hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
     hass.bus = Mock()
     hass.bus.async_fire = Mock()
 
@@ -217,7 +217,7 @@ async def test_snooze_switch_turn_off(hass: HomeAssistant, mock_config_entry, mo
         hass, mock_config_entry, "test_alert", alert_data
     )
 
-    hass.data = {DOMAIN: {"entities": [mock_binary_sensor]}}
+    hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
 
     # Set up snoozed state
     mock_binary_sensor._snoozed = True
@@ -277,7 +277,7 @@ async def test_resolve_switch_turn_on(hass: HomeAssistant, mock_config_entry, mo
         hass, mock_config_entry, "test_alert", alert_data
     )
 
-    hass.data = {DOMAIN: {"entities": [mock_binary_sensor]}}
+    hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
     hass.bus = Mock()
     hass.bus.async_fire = Mock()
 
@@ -299,7 +299,7 @@ async def test_resolve_switch_turn_off(hass: HomeAssistant, mock_config_entry, m
         hass, mock_config_entry, "test_alert", alert_data
     )
 
-    hass.data = {DOMAIN: {"entities": [mock_binary_sensor]}}
+    hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
     mock_binary_sensor._resolved = True
 
     await switch.async_turn_off()
@@ -318,7 +318,7 @@ async def test_switch_mutual_exclusivity(hass: HomeAssistant, mock_config_entry,
     snooze_switch = EmergencyAlertSnoozeSwitch(hass, mock_config_entry, "test_alert", alert_data)
     resolve_switch = EmergencyAlertResolveSwitch(hass, mock_config_entry, "test_alert", alert_data)
 
-    hass.data = {DOMAIN: {"entities": [mock_binary_sensor]}}
+    hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
     hass.bus = Mock()
     hass.bus.async_fire = Mock()
 
@@ -348,7 +348,7 @@ async def test_switch_handles_missing_binary_sensor(hass: HomeAssistant, mock_co
     alert_data = mock_config_entry.data["alerts"]["test_alert"]
     switch = EmergencyAlertAcknowledgeSwitch(hass, mock_config_entry, "test_alert", alert_data)
 
-    hass.data = {DOMAIN: {"entities": []}}  # No binary sensor
+    hass.data[DOMAIN] = {"entities": []}  # No binary sensor
 
     # Should not raise exception
     await switch.async_turn_on()
@@ -363,7 +363,7 @@ async def test_switch_executes_configured_actions(hass: HomeAssistant, mock_conf
 
     switch = EmergencyAlertAcknowledgeSwitch(hass, mock_config_entry, "test_alert", alert_data)
 
-    hass.data = {DOMAIN: {"entities": [mock_binary_sensor]}}
+    hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
     hass.bus = Mock()
     hass.bus.async_fire = Mock()
 

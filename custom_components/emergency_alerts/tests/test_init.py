@@ -17,10 +17,9 @@ async def test_setup_entry(hass: HomeAssistant, mock_config_entry):
     # Check that the service is registered
     assert hass.services.has_service(DOMAIN, "acknowledge")
 
-    # Check that platforms are forwarded (2 calls: binary_sensor and sensor)
-    assert hass.async_create_task.call_count == 2
-    # The async_forward_entry_setup should be called for both binary_sensor and sensor
-    assert hass.config_entries.async_forward_entry_setup.call_count == 2
+    # Check that platforms are forwarded (v2.0 uses async_forward_entry_setups)
+    # For a group hub, it should forward to: binary_sensor, sensor, switch
+    assert hass.config_entries.async_forward_entry_setups.call_count == 1
 
 
 async def test_unload_entry(hass: HomeAssistant, mock_config_entry):
@@ -45,12 +44,18 @@ async def test_multiple_config_entries(hass: HomeAssistant, mock_config_entry):
         domain=DOMAIN,
         title="Test Alert 2",
         data={
-            "name": "Test Alert 2",
-            "trigger_type": "simple",
-            "entity_id": "binary_sensor.test_sensor_2",
-            "trigger_state": "on",
-            "severity": "critical",
+            "hub_type": "group",
             "group": "safety",
+            "hub_name": "test_hub_2",
+            "alerts": {
+                "test_alert_2": {
+                    "name": "Test Alert 2",
+                    "trigger_type": "simple",
+                    "entity_id": "binary_sensor.test_sensor_2",
+                    "trigger_state": "on",
+                    "severity": "critical",
+                },
+            },
         },
         unique_id="test_alert_2_unique_id",
     )
