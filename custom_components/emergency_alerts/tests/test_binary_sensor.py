@@ -171,9 +171,10 @@ async def test_acknowledgment(mock_dispatcher, mock_threading, hass: HomeAssista
     sensor = create_binary_sensor()
     sensor.entity_id = "binary_sensor.emergency_test_alert"
 
-    # Mock event bus
+    # Mock event bus and async_create_task
     hass.bus = Mock()
     hass.bus.async_fire = Mock()
+    hass.async_create_task = Mock(return_value=Mock(cancel=Mock()))
 
     # Initial state
     assert sensor._acknowledged is False

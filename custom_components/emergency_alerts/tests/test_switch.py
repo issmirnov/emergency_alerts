@@ -120,6 +120,7 @@ async def test_acknowledge_switch_turn_on(hass: HomeAssistant, mock_config_entry
     switch = EmergencyAlertAcknowledgeSwitch(
         hass, mock_config_entry, "test_alert", alert_data
     )
+    switch.entity_id = "switch.emergency_test_alert_acknowledged"  # Set entity_id
 
     # Mock the binary sensor lookup (preserve existing keys)
     hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
@@ -149,6 +150,7 @@ async def test_acknowledge_switch_turn_off(hass: HomeAssistant, mock_config_entr
     switch = EmergencyAlertAcknowledgeSwitch(
         hass, mock_config_entry, "test_alert", alert_data
     )
+    switch.entity_id = "switch.emergency_test_alert_acknowledged"
 
     hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
     mock_binary_sensor._acknowledged = True
@@ -171,6 +173,7 @@ async def test_snooze_switch_initialization(hass: HomeAssistant, mock_config_ent
     alert_data = mock_config_entry.data["alerts"]["test_alert"]
 
     switch = EmergencyAlertSnoozeSwitch(
+    switch.entity_id = "switch.emergency_test_alert_snoozed"
         hass, mock_config_entry, "test_alert", alert_data
     )
 
@@ -186,6 +189,7 @@ async def test_snooze_switch_turn_on(hass: HomeAssistant, mock_config_entry, moc
     """Test turning on snooze switch."""
     alert_data = mock_config_entry.data["alerts"]["test_alert"]
     switch = EmergencyAlertSnoozeSwitch(
+    switch.entity_id = "switch.emergency_test_alert_snoozed"
         hass, mock_config_entry, "test_alert", alert_data
     )
 
@@ -214,6 +218,7 @@ async def test_snooze_switch_turn_off(hass: HomeAssistant, mock_config_entry, mo
     """Test turning off snooze switch (cancel snooze)."""
     alert_data = mock_config_entry.data["alerts"]["test_alert"]
     switch = EmergencyAlertSnoozeSwitch(
+    switch.entity_id = "switch.emergency_test_alert_snoozed"
         hass, mock_config_entry, "test_alert", alert_data
     )
 
@@ -241,6 +246,7 @@ async def test_snooze_timer_auto_expires(hass: HomeAssistant, mock_config_entry,
     """Test snooze timer automatically expires."""
     alert_data = mock_config_entry.data["alerts"]["test_alert"]
     switch = EmergencyAlertSnoozeSwitch(
+    switch.entity_id = "switch.emergency_test_alert_snoozed"
         hass, mock_config_entry, "test_alert", alert_data
     )
 
@@ -259,6 +265,7 @@ async def test_resolve_switch_initialization(hass: HomeAssistant, mock_config_en
     alert_data = mock_config_entry.data["alerts"]["test_alert"]
 
     switch = EmergencyAlertResolveSwitch(
+    switch.entity_id = "switch.emergency_test_alert_resolved"
         hass, mock_config_entry, "test_alert", alert_data
     )
 
@@ -274,6 +281,7 @@ async def test_resolve_switch_turn_on(hass: HomeAssistant, mock_config_entry, mo
     """Test turning on resolve switch."""
     alert_data = mock_config_entry.data["alerts"]["test_alert"]
     switch = EmergencyAlertResolveSwitch(
+    switch.entity_id = "switch.emergency_test_alert_resolved"
         hass, mock_config_entry, "test_alert", alert_data
     )
 
@@ -296,6 +304,7 @@ async def test_resolve_switch_turn_off(hass: HomeAssistant, mock_config_entry, m
     """Test turning off resolve switch."""
     alert_data = mock_config_entry.data["alerts"]["test_alert"]
     switch = EmergencyAlertResolveSwitch(
+    switch.entity_id = "switch.emergency_test_alert_resolved"
         hass, mock_config_entry, "test_alert", alert_data
     )
 
@@ -315,8 +324,13 @@ async def test_switch_mutual_exclusivity(hass: HomeAssistant, mock_config_entry,
     alert_data = mock_config_entry.data["alerts"]["test_alert"]
 
     ack_switch = EmergencyAlertAcknowledgeSwitch(hass, mock_config_entry, "test_alert", alert_data)
+    ack_switch.entity_id = "switch.emergency_test_alert_acknowledged"
     snooze_switch = EmergencyAlertSnoozeSwitch(hass, mock_config_entry, "test_alert", alert_data)
+    snooze_switch.entity_id = "switch.emergency_test_alert_snoozed"
+    switch.entity_id = "switch.emergency_test_alert_snoozed"
     resolve_switch = EmergencyAlertResolveSwitch(hass, mock_config_entry, "test_alert", alert_data)
+    resolve_switch.entity_id = "switch.emergency_test_alert_resolved"
+    switch.entity_id = "switch.emergency_test_alert_resolved"
 
     hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
     hass.bus = Mock()
