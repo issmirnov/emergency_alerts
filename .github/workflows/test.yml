@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main, master, develop ]
   pull_request:
-    branches: [ main, master, develop ]
+    # Run on ALL pull requests to any branch
   schedule:
     - cron: "0 0 * * *"
   workflow_dispatch:
