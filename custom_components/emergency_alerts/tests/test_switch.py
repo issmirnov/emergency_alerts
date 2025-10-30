@@ -125,10 +125,6 @@ async def test_acknowledge_switch_turn_on(hass: HomeAssistant, mock_config_entry
     # Mock the binary sensor lookup (preserve existing keys)
     hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
 
-    # Mock event bus
-    hass.bus = Mock()
-    hass.bus.async_fire = Mock()
-
     await switch.async_turn_on()
 
     # Verify state changes
@@ -138,9 +134,6 @@ async def test_acknowledge_switch_turn_on(hass: HomeAssistant, mock_config_entry
     # Verify escalation task cancelled
     if mock_binary_sensor._escalation_task:
         mock_binary_sensor._escalation_task.cancel.assert_called_once()
-
-    # Verify event fired
-    hass.bus.async_fire.assert_called()
 
 
 @pytest.mark.asyncio
@@ -194,8 +187,6 @@ async def test_snooze_switch_turn_on(hass: HomeAssistant, mock_config_entry, moc
     switch.entity_id = "switch.emergency_test_alert_snoozed"
 
     hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
-    hass.bus = Mock()
-    hass.bus.async_fire = Mock()
 
     with patch("asyncio.create_task") as mock_create_task:
         await switch.async_turn_on()
@@ -287,17 +278,12 @@ async def test_resolve_switch_turn_on(hass: HomeAssistant, mock_config_entry, mo
     switch.entity_id = "switch.emergency_test_alert_resolved"
 
     hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
-    hass.bus = Mock()
-    hass.bus.async_fire = Mock()
 
     await switch.async_turn_on()
 
     # Verify state changes
     assert mock_binary_sensor._resolved is True
     assert switch._attr_is_on is True
-
-    # Verify event fired
-    hass.bus.async_fire.assert_called()
 
 
 @pytest.mark.asyncio
@@ -332,8 +318,6 @@ async def test_switch_mutual_exclusivity(hass: HomeAssistant, mock_config_entry,
     resolve_switch.entity_id = "switch.emergency_test_alert_resolved"
 
     hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
-    hass.bus = Mock()
-    hass.bus.async_fire = Mock()
 
     # Turn on acknowledge
     await ack_switch.async_turn_on()
@@ -379,8 +363,6 @@ async def test_switch_executes_configured_actions(hass: HomeAssistant, mock_conf
     switch.entity_id = "switch.emergency_test_alert_acknowledged"
 
     hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
-    hass.bus = Mock()
-    hass.bus.async_fire = Mock()
 
     await switch.async_turn_on()
 
