@@ -32,6 +32,8 @@ For each alert, the integration now creates:
 - `switch.emergency_[name]_snoozed` - ON = snoozed (temporary silence, auto-off after 5 min)
 - `switch.emergency_[name]_resolved` - ON = resolved (problem fixed, won't re-trigger until condition clears)
 
+**Note:** There is NO `switch.*_escalate` entity. Escalation is automatic (via timer) or manual (via service call).
+
 ---
 
 ## State Machine Semantics
@@ -66,6 +68,31 @@ Turning on any switch automatically turns off the other two:
 
 The integration enforces this via `STATE_EXCLUSIONS` rules.
 
+### Escalation Behavior
+
+**NO escalate switch** - Escalation is handled differently:
+
+1. **Automatic Escalation** (Timer-based):
+   - Default: 5 minutes after alert triggers (if not acknowledged/snoozed)
+   - Configurable in Global Settings Hub: `default_escalation_time`
+   - Timer cancels when: acknowledge ON or snooze ON
+   - Timer restarts when: acknowledge toggles OFF while alert still active
+   - Sets `escalated: true` attribute on binary sensor
+
+2. **Manual Escalation** (Service call):
+   - Service: `emergency_alerts.escalate`
+   - Use for immediate escalation before timer expires
+   - Called from card with custom "Escalate Now" button (optional)
+
+3. **De-escalation**:
+   - Turn ON acknowledge switch → clears `escalated` flag
+   - State: `[ESCALATED] ──(acknowledge)──> [ACKNOWLEDGED]`
+
+**For Card Implementation:**
+- Read `alert.attributes.escalated` boolean from binary sensor
+- Optionally provide "Escalate Now" button calling service
+- Visual indicator when `escalated === true`
+
 ---
 
 ## Card Implementation Changes
@@ -95,6 +122,7 @@ interface Alert {
     acknowledged: boolean; // NEW
     snoozed: boolean; // NEW
     resolved: boolean; // NEW
+    escalated: boolean; // NEW - escalation state flag
     snooze_until?: string; // ISO timestamp when snooze expires
     status: string; // detailed status
     // ... other attributes
@@ -152,6 +180,14 @@ private async _handleResolve(alertEntityId: string): Promise<void> {
 
   await this.hass.callService('switch', 'toggle', {
     entity_id: switchId
+  });
+}
+
+// OPTIONAL: Manual escalation (no switch for this, uses service call)
+private async _handleEscalate(alertEntityId: string): Promise<void> {
+  // Call the escalate service directly (not a switch)
+  await this.hass.callService('emergency_alerts', 'escalate', {
+    entity_id: alertEntityId // Pass binary_sensor entity ID
   });
 }
 ```
@@ -223,6 +259,20 @@ private _renderAlertActions(alert: Alert): TemplateResult {
             Resolve
           </button>
         `
+      }
+
+      <!-- OPTIONAL: Manual Escalate -->
+      ${this._config.show_escalate_button && !alert.attributes.escalated
+        ? html`
+          <button
+            class="action-btn escalate-btn"
+            @click=${() => this._handleEscalate(alert.entity_id)}
+            ?disabled=${alert.state !== 'on'}
+          >
+            ⚠️ Escalate Now
+          </button>
+        `
+        : ''
       }
     </div>
   `;
