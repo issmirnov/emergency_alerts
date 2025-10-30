@@ -156,26 +156,53 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
         return self.async_abort(reason="invalid_hub_type")
 
     async def async_step_global_options(self, user_input=None):
-        """Manage global Emergency Alerts options."""
-        if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
-
-        # Get current options or set defaults
+        """Show menu for global options."""
         options = self.config_entry.options
-        default_escalation_time = options.get(
-            "default_escalation_time", 300)  # 5 minutes
-        global_notification_service = options.get(
-            "global_notification_service", "")
-        enable_global_notifications = options.get(
-            "enable_global_notifications", False)
+        profile_count = len(options.get("notification_profiles", {}))
+
+        return self.async_show_menu(
+            step_id="global_options",
+            menu_options=["escalation_settings", "notification_profiles", "legacy_notifications"],
+            description_placeholders={
+                "profile_count": str(profile_count)
+            }
+        )
+
+    async def async_step_escalation_settings(self, user_input=None):
+        """Configure escalation settings."""
+        if user_input is not None:
+            # Merge with existing options
+            updated_options = dict(self.config_entry.options)
+            updated_options.update(user_input)
+            return self.async_create_entry(title="", data=updated_options)
+
+        options = self.config_entry.options
+        default_escalation_time = options.get("default_escalation_time", 300)
 
         return self.async_show_form(
-            step_id="global_options",
+            step_id="escalation_settings",
             data_schema=vol.Schema({
                 vol.Optional(
                     "default_escalation_time",
                     default=default_escalation_time
                 ): vol.All(vol.Coerce(int), vol.Range(min=60, max=3600)),
+            })
+        )
+
+    async def async_step_legacy_notifications(self, user_input=None):
+        """Configure legacy global notifications."""
+        if user_input is not None:
+            updated_options = dict(self.config_entry.options)
+            updated_options.update(user_input)
+            return self.async_create_entry(title="", data=updated_options)
+
+        options = self.config_entry.options
+        global_notification_service = options.get("global_notification_service", "")
+        enable_global_notifications = options.get("enable_global_notifications", False)
+
+        return self.async_show_form(
+            step_id="legacy_notifications",
+            data_schema=vol.Schema({
                 vol.Optional(
                     "enable_global_notifications",
                     default=enable_global_notifications
@@ -199,6 +226,223 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                         multiline=True
                     )
                 ),
+            })
+        )
+
+    async def async_step_notification_profiles(self, user_input=None):
+        """Manage notification profiles."""
+        profiles = self.config_entry.options.get("notification_profiles", {})
+        profile_count = len(profiles)
+
+        return self.async_show_menu(
+            step_id="notification_profiles",
+            menu_options=["add_profile"] +
+            (["edit_profile", "remove_profile"] if profile_count > 0 else []),
+            description_placeholders={
+                "profile_count": str(profile_count)
+            }
+        )
+
+    async def async_step_add_profile(self, user_input=None):
+        """Add a new notification profile."""
+        if user_input is not None:
+            # Store profile in options
+            updated_options = dict(self.config_entry.options)
+            if "notification_profiles" not in updated_options:
+                updated_options["notification_profiles"] = {}
+
+            profile_name = user_input["profile_name"]
+            profile_id = profile_name.lower().replace(" ", "_")
+
+            # Build profile from form data
+            profile_data = {
+                "name": profile_name,
+                "description": user_input.get("description", ""),
+                "actions": []
+            }
+
+            # Collect up to 5 service calls
+            for i in range(1, 6):
+                service = user_input.get(f"service_{i}")
+                if service:
+                    action = {"service": service}
+                    data_yaml = user_input.get(f"service_data_{i}", "")
+                    if data_yaml:
+                        try:
+                            import yaml
+                            action["data"] = yaml.safe_load(data_yaml)
+                        except:
+                            pass
+                    profile_data["actions"].append(action)
+
+            updated_options["notification_profiles"][profile_id] = profile_data
+            return self.async_create_entry(title="", data=updated_options)
+
+        return self.async_show_form(
+            step_id="add_profile",
+            data_schema=vol.Schema({
+                vol.Required("profile_name"): selector.TextSelector(),
+                vol.Optional("description"): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                ),
+                vol.Optional("service_1"): selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        type=selector.TextSelectorType.TEXT,
+                    )
+                ),
+                vol.Optional("service_data_1"): selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        type=selector.TextSelectorType.TEXT,
+                        multiline=True
+                    )
+                ),
+                vol.Optional("service_2"): selector.TextSelector(),
+                vol.Optional("service_data_2"): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                ),
+                vol.Optional("service_3"): selector.TextSelector(),
+                vol.Optional("service_data_3"): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                ),
+                vol.Optional("service_4"): selector.TextSelector(),
+                vol.Optional("service_data_4"): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                ),
+                vol.Optional("service_5"): selector.TextSelector(),
+                vol.Optional("service_data_5"): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                ),
+            })
+        )
+
+    async def async_step_edit_profile(self, user_input=None):
+        """Edit an existing profile."""
+        profiles = self.config_entry.options.get("notification_profiles", {})
+
+        if user_input is not None:
+            profile_id = user_input.get("profile_id")
+            if profile_id:
+                self._editing_profile_id = profile_id
+                return await self.async_step_edit_profile_form()
+            return await self.async_step_notification_profiles()
+
+        # Build profile selector
+        profile_options = [
+            {"label": f"{p['name']} - {p.get('description', 'No description')}",
+             "value": pid}
+            for pid, p in profiles.items()
+        ]
+
+        return self.async_show_form(
+            step_id="edit_profile",
+            data_schema=vol.Schema({
+                vol.Required("profile_id"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=profile_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN
+                    )
+                )
+            })
+        )
+
+    async def async_step_edit_profile_form(self, user_input=None):
+        """Form for editing a profile."""
+        profiles = self.config_entry.options.get("notification_profiles", {})
+        profile = profiles.get(self._editing_profile_id, {})
+
+        if user_input is not None:
+            # Update profile
+            updated_options = dict(self.config_entry.options)
+            profile_name = user_input["profile_name"]
+            profile_data = {
+                "name": profile_name,
+                "description": user_input.get("description", ""),
+                "actions": []
+            }
+
+            for i in range(1, 6):
+                service = user_input.get(f"service_{i}")
+                if service:
+                    action = {"service": service}
+                    data_yaml = user_input.get(f"service_data_{i}", "")
+                    if data_yaml:
+                        try:
+                            import yaml
+                            action["data"] = yaml.safe_load(data_yaml)
+                        except:
+                            pass
+                    profile_data["actions"].append(action)
+
+            updated_options["notification_profiles"][self._editing_profile_id] = profile_data
+            del self._editing_profile_id
+            return self.async_create_entry(title="", data=updated_options)
+
+        # Pre-fill form with current data
+        defaults = {"profile_name": profile.get("name", ""),
+                    "description": profile.get("description", "")}
+
+        for i, action in enumerate(profile.get("actions", [])[:5], start=1):
+            defaults[f"service_{i}"] = action.get("service", "")
+            if "data" in action:
+                import yaml
+                defaults[f"service_data_{i}"] = yaml.dump(action["data"])
+
+        return self.async_show_form(
+            step_id="edit_profile_form",
+            data_schema=vol.Schema({
+                vol.Required("profile_name", default=defaults.get("profile_name")): selector.TextSelector(),
+                vol.Optional("description", default=defaults.get("description", "")): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                ),
+                vol.Optional("service_1", default=defaults.get("service_1", "")): selector.TextSelector(),
+                vol.Optional("service_data_1", default=defaults.get("service_data_1", "")): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                ),
+                vol.Optional("service_2", default=defaults.get("service_2", "")): selector.TextSelector(),
+                vol.Optional("service_data_2", default=defaults.get("service_data_2", "")): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                ),
+                vol.Optional("service_3", default=defaults.get("service_3", "")): selector.TextSelector(),
+                vol.Optional("service_data_3", default=defaults.get("service_data_3", "")): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                ),
+                vol.Optional("service_4", default=defaults.get("service_4", "")): selector.TextSelector(),
+                vol.Optional("service_data_4", default=defaults.get("service_data_4", "")): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                ),
+                vol.Optional("service_5", default=defaults.get("service_5", "")): selector.TextSelector(),
+                vol.Optional("service_data_5", default=defaults.get("service_data_5", "")): selector.TextSelector(
+                    selector.TextSelectorConfig(multiline=True)
+                ),
+            })
+        )
+
+    async def async_step_remove_profile(self, user_input=None):
+        """Remove a notification profile."""
+        profiles = self.config_entry.options.get("notification_profiles", {})
+
+        if user_input is not None:
+            profile_id = user_input.get("profile_id")
+            if profile_id:
+                updated_options = dict(self.config_entry.options)
+                del updated_options["notification_profiles"][profile_id]
+                return self.async_create_entry(title="", data=updated_options)
+            return await self.async_step_notification_profiles()
+
+        profile_options = [
+            {"label": p["name"], "value": pid}
+            for pid, p in profiles.items()
+        ]
+
+        return self.async_show_form(
+            step_id="remove_profile",
+            data_schema=vol.Schema({
+                vol.Required("profile_id"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=profile_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN
+                    )
+                )
             })
         )
 
@@ -519,6 +763,15 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
             }
         )
 
+    def _get_notification_profiles(self):
+        """Get available notification profiles from global settings."""
+        # Find global settings entry
+        for entry in self.hass.config_entries.async_entries(DOMAIN):
+            if entry.data.get("hub_type") == "global":
+                profiles = entry.options.get("notification_profiles", {})
+                return profiles
+        return {}
+
     async def async_step_add_alert_actions(self, user_input=None):
         """Add a new alert to this group - Step 3: Action Configuration."""
         is_editing = hasattr(self, '_editing_alert_id')
@@ -528,26 +781,68 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
             current_alert = alerts.get(self._editing_alert_id, {})
 
         if user_input is not None:
-            # Parse script selections
+            # Parse script selections and profile references
             actions = {}
 
             # Process triggered actions
-            if user_input.get("on_triggered_script"):
-                actions["on_triggered"] = [{
-                    "service": user_input["on_triggered_script"]
-                }]
+            triggered_value = user_input.get("on_triggered_script")
+            if triggered_value:
+                if triggered_value.startswith("profile:"):
+                    actions["on_triggered"] = triggered_value  # Store profile reference
+                else:
+                    actions["on_triggered"] = [{
+                        "service": triggered_value
+                    }]
 
             # Process cleared actions
-            if user_input.get("on_cleared_script"):
-                actions["on_cleared"] = [{
-                    "service": user_input["on_cleared_script"]
-                }]
+            cleared_value = user_input.get("on_cleared_script")
+            if cleared_value:
+                if cleared_value.startswith("profile:"):
+                    actions["on_cleared"] = cleared_value
+                else:
+                    actions["on_cleared"] = [{
+                        "service": cleared_value
+                    }]
 
             # Process escalated actions
-            if user_input.get("on_escalated_script"):
-                actions["on_escalated"] = [{
-                    "service": user_input["on_escalated_script"]
-                }]
+            escalated_value = user_input.get("on_escalated_script")
+            if escalated_value:
+                if escalated_value.startswith("profile:"):
+                    actions["on_escalated"] = escalated_value
+                else:
+                    actions["on_escalated"] = [{
+                        "service": escalated_value
+                    }]
+
+            # Process acknowledged actions (NEW)
+            ack_value = user_input.get("on_acknowledged_script")
+            if ack_value:
+                if ack_value.startswith("profile:"):
+                    actions["on_acknowledged"] = ack_value
+                else:
+                    actions["on_acknowledged"] = [{
+                        "service": ack_value
+                    }]
+
+            # Process snoozed actions (NEW)
+            snooze_value = user_input.get("on_snoozed_script")
+            if snooze_value:
+                if snooze_value.startswith("profile:"):
+                    actions["on_snoozed"] = snooze_value
+                else:
+                    actions["on_snoozed"] = [{
+                        "service": snooze_value
+                    }]
+
+            # Process resolved actions (NEW)
+            resolve_value = user_input.get("on_resolved_script")
+            if resolve_value:
+                if resolve_value.startswith("profile:"):
+                    actions["on_resolved"] = resolve_value
+                else:
+                    actions["on_resolved"] = [{
+                        "service": resolve_value
+                    }]
 
             # Update alert data with actions
             self._alert_data.update(actions)
@@ -581,21 +876,40 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
 
             return self.async_create_entry(title=success_message, data={})
 
-        # Get available scripts for dropdowns
+        # Get available scripts and profiles for dropdowns
         script_options = self._get_available_scripts()
+        profiles = self._get_notification_profiles()
 
-        # Extract current script selections from alert data if editing
+        # Build combined options list (profiles first, then scripts)
+        action_options = []
+        for profile_id, profile_data in profiles.items():
+            action_options.append({
+                "label": f"📋 Profile: {profile_data['name']}",
+                "value": f"profile:{profile_id}"
+            })
+        action_options.extend(script_options)
+
+        # Extract current script/profile selections from alert data if editing
         current_triggered_script = ""
         current_cleared_script = ""
         current_escalated_script = ""
+        current_acknowledged_script = ""
+        current_snoozed_script = ""
+        current_resolved_script = ""
 
         if current_alert:
-            current_triggered_script = self._extract_script_from_actions(
+            current_triggered_script = self._extract_value_from_actions(
                 current_alert.get("on_triggered", []))
-            current_cleared_script = self._extract_script_from_actions(
+            current_cleared_script = self._extract_value_from_actions(
                 current_alert.get("on_cleared", []))
-            current_escalated_script = self._extract_script_from_actions(
+            current_escalated_script = self._extract_value_from_actions(
                 current_alert.get("on_escalated", []))
+            current_acknowledged_script = self._extract_value_from_actions(
+                current_alert.get("on_acknowledged", []))
+            current_snoozed_script = self._extract_value_from_actions(
+                current_alert.get("on_snoozed", []))
+            current_resolved_script = self._extract_value_from_actions(
+                current_alert.get("on_resolved", []))
 
         return self.async_show_form(
             step_id="add_alert_actions",
@@ -603,7 +917,25 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                 # Triggered actions
                 vol.Optional("on_triggered_script", default=current_triggered_script): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=script_options,
+                        options=action_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                        custom_value=True,
+                    )
+                ),
+
+                # Acknowledged actions (NEW)
+                vol.Optional("on_acknowledged_script", default=current_acknowledged_script): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=action_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                        custom_value=True,
+                    )
+                ),
+
+                # Snoozed actions (NEW)
+                vol.Optional("on_snoozed_script", default=current_snoozed_script): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=action_options,
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         custom_value=True,
                     )
@@ -612,7 +944,7 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                 # Cleared actions
                 vol.Optional("on_cleared_script", default=current_cleared_script): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=script_options,
+                        options=action_options,
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         custom_value=True,
                     )
@@ -621,7 +953,16 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                 # Escalated actions
                 vol.Optional("on_escalated_script", default=current_escalated_script): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=script_options,
+                        options=action_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                        custom_value=True,
+                    )
+                ),
+
+                # Resolved actions (NEW)
+                vol.Optional("on_resolved_script", default=current_resolved_script): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=action_options,
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         custom_value=True,
                     )
@@ -751,12 +1092,24 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
         # Sort by name for better organization
         return sorted(scripts, key=lambda x: x["label"])
 
-    def _extract_script_from_actions(self, actions):
-        """Helper method to extract script service from actions list."""
-        for action in actions:
-            service = action.get("service", "")
-            if service.startswith("script."):
-                # Convert service format (script.script_name) to entity_id format (script.script_name)
-                # The service format is already correct, just return it
-                return service
+    def _extract_value_from_actions(self, actions):
+        """Helper method to extract profile reference or script service from actions.
+
+        Returns:
+            - "profile:profile_id" if actions is a profile reference string
+            - "script.name" if actions is a list containing a script service call
+            - "" if no valid value found
+        """
+        # Check if it's a profile reference (string starting with "profile:")
+        if isinstance(actions, str) and actions.startswith("profile:"):
+            return actions
+
+        # Check if it's a list of action dicts
+        if isinstance(actions, list):
+            for action in actions:
+                if isinstance(action, dict):
+                    service = action.get("service", "")
+                    if service:
+                        return service
+
         return ""
