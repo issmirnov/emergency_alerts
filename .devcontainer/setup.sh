@@ -7,6 +7,16 @@ HASS_CONFIG_DIR="/workspaces/emergency_alerts/config"
 mkdir -p "$HASS_CONFIG_DIR"
 mkdir -p "$HASS_CONFIG_DIR/custom_components"
 
+# Install Node.js (for E2E testing with Playwright)
+echo "Installing Node.js..."
+if ! command -v node &> /dev/null; then
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    apt-get install -y nodejs
+    echo "✓ Node.js installed: $(node --version)"
+else
+    echo "✓ Node.js already installed: $(node --version)"
+fi
+
 # Install Home Assistant
 echo "Installing Home Assistant..."
 pip install homeassistant
@@ -157,3 +167,21 @@ nohup "$HOME/homeassistant/start_hass.sh" > "/workspaces/emergency_alerts/config
 
 echo "Home Assistant is starting up. Check logs at /workspaces/emergency_alerts/config/setup.log"
 echo "It may take a few minutes to fully start up."
+
+# Set up E2E testing
+echo ""
+echo "Setting up E2E testing infrastructure..."
+if [ -d "/workspaces/emergency_alerts/e2e-tests" ]; then
+    cd "/workspaces/emergency_alerts/e2e-tests"
+    echo "Installing E2E test dependencies..."
+    npm install
+    echo "Installing Playwright browsers..."
+    npx playwright install --with-deps chromium
+    cd "/workspaces/emergency_alerts"
+    echo "✓ E2E testing infrastructure ready"
+    echo ""
+    echo "To run E2E tests:"
+    echo "  ./scripts/run-e2e.sh"
+else
+    echo "⚠️  E2E tests directory not found. E2E testing will not be available."
+fi
