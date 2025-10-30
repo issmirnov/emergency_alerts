@@ -28,7 +28,10 @@ async def hass():
     hass.config_entries.flow = Mock()
     hass.config_entries.flow.async_init = AsyncMock()
     hass.config_entries.flow.async_configure = AsyncMock()
-    hass.data = {}
+    hass.data = {
+        "integrations": {},  # Required for Home Assistant integration loading
+        DOMAIN: {}  # Initialize domain data
+    }
     hass.async_block_till_done = AsyncMock()
     hass.async_create_task = Mock()
     hass.loop_thread_id = 12345  # Mock thread ID for async_write_ha_state
