@@ -1,120 +1,30 @@
 """Test configuration for Emergency Alerts integration."""
 
-from unittest.mock import AsyncMock, Mock
-
 import pytest
+pytest_plugins = "pytest_homeassistant_custom_component"
+
+from unittest.mock import AsyncMock, Mock
 from homeassistant.core import HomeAssistant
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.emergency_alerts.const import DOMAIN
 
 
-# Simple Home Assistant fixture for testing
-@pytest.fixture
-async def hass():
-    """Create a test Home Assistant instance."""
-    hass = Mock(spec=HomeAssistant)
-    hass.states = Mock()
-    hass.states.async_set = Mock()
-    hass.states.get = Mock()
-    hass.services = Mock()
-    hass.services.async_call = AsyncMock()
-    hass.services.has_service = Mock(return_value=True)
-    hass.services.async_register = AsyncMock()
-    hass.config_entries = Mock()
-    hass.config_entries.async_forward_entry_setups = AsyncMock(return_value=True)
-    hass.config_entries.async_forward_entry_setup = AsyncMock()
-    hass.config_entries.async_forward_entry_unload = AsyncMock(return_value=True)
-    hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
-    hass.config_entries.async_entries = Mock(return_value=[])  # Return empty list for existing entries
-    hass.config_entries.flow = Mock()
-    hass.config_entries.flow.async_init = AsyncMock()
-    hass.config_entries.flow.async_configure = AsyncMock()
-    hass.data = {
-        "integrations": {},  # Required for Home Assistant integration loading
-        DOMAIN: {}  # Initialize domain data
-    }
-    hass.async_block_till_done = AsyncMock()
-    hass.async_create_task = Mock()
-    hass.loop_thread_id = 12345  # Mock thread ID for async_write_ha_state
-    hass.loop = Mock()  # Mock event loop for async_call_later
-    hass.loop.time = Mock(return_value=1000.0)  # Return a float time value
-    hass.loop.call_at = Mock(return_value=Mock(cancel=Mock()))
-    hass.loop.call_soon = Mock()
-    hass.loop.call_soon_threadsafe = Mock()
-
-    # Mock the async_write_ha_state helper
-    import threading
-    hass.loop.run_in_executor = AsyncMock(return_value=None)
-    threading.get_ident = Mock(return_value=12345)
-
-    # Mock entity and device registries
-    hass.helpers = Mock()
-    hass.helpers.entity_registry = Mock()
-    hass.helpers.device_registry = Mock()
-
-    # Setup state mock to return mock state objects
-    def mock_get_state(entity_id):
-        mock_state = Mock()
-        mock_state.state = "off"  # Default state
-        return mock_state
-
-    hass.states.get.side_effect = mock_get_state
-
-    return hass
+@pytest.fixture(autouse=True)
+def auto_enable_custom_integrations(enable_custom_integrations):
+    """Enable custom integrations for all tests."""
+    return
 
 
-# Mock entities fixture for sensor tests
-@pytest.fixture
-def mock_entities():
-    """Create mock entities for sensor testing."""
-    entity1 = Mock()
-    entity1.is_on = True
-    entity1._severity = "critical"
-    entity1._group = "security"
-
-    entity2 = Mock()
-    entity2.is_on = True
-    entity2._severity = "warning"
-    entity2._group = "security"
-
-    entity3 = Mock()
-    entity3.is_on = False
-    entity3._severity = "info"
-    entity3._group = "safety"
-
-    return [entity1, entity2, entity3]
-
-
-# Create a simple MockConfigEntry that doesn't require the HA plugin
-class MockConfigEntry:
-    """Mock config entry for testing."""
-
-    def __init__(
-        self, domain: str, data: dict, title: str = "Test Entry", unique_id: str = None
-    ):
-        self.domain = domain
-        self.data = data
-        self.title = title
-        self.unique_id = unique_id or "test_unique_id"
-        self.entry_id = "test_entry_id"
-        self.state = "loaded"
-        self.version = 1
-        self.minor_version = 1
-        self.source = "user"
-
-    def add_to_hass(self, hass):
-        """Add this config entry to hass."""
-        # Mock implementation - just store reference in hass.data
-        if "config_entries" not in hass.data:
-            hass.data["config_entries"] = []
-        hass.data["config_entries"].append(self)
-
-
+# Mock config entries with v2.0 hub-based structure
 @pytest.fixture
 def mock_config_entry():
     """Mock config entry for testing (v2.0 hub-based structure)."""
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
     return MockConfigEntry(
         domain=DOMAIN,
+        version=2,
         data={
             "hub_type": "group",
             "group": "security",
@@ -135,8 +45,11 @@ def mock_config_entry():
 @pytest.fixture
 def mock_template_config_entry():
     """Return a mock config entry with template trigger for testing (v2.0)."""
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
     return MockConfigEntry(
         domain=DOMAIN,
+        version=2,
         title="Test Template Alert",
         data={
             "hub_type": "group",
@@ -163,8 +76,11 @@ def mock_template_config_entry():
 @pytest.fixture
 def mock_logical_config_entry():
     """Return a mock config entry with logical trigger for testing (v2.0)."""
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
     return MockConfigEntry(
         domain=DOMAIN,
+        version=2,
         title="Test Logical Alert",
         data={
             "hub_type": "group",
@@ -197,7 +113,7 @@ def mock_logical_config_entry():
 
 
 @pytest.fixture
-def create_binary_sensor(hass, mock_config_entry):
+async def create_binary_sensor(hass: HomeAssistant, mock_config_entry):
     """Factory fixture to create binary sensors for testing."""
     def _create_sensor(alert_id="test_alert", alert_data=None):
         """Create a binary sensor with the given config."""
@@ -219,3 +135,51 @@ def create_binary_sensor(hass, mock_config_entry):
         )
 
     return _create_sensor
+
+
+# Mock entities fixture for sensor tests
+@pytest.fixture
+def mock_entities():
+    """Create mock entities for sensor testing."""
+    entity1 = Mock()
+    entity1.entity_id = "binary_sensor.alert1"
+    entity1.is_on = True
+    entity1._severity = "critical"
+    entity1._group = "security"
+
+    entity2 = Mock()
+    entity2.entity_id = "binary_sensor.alert2"
+    entity2.is_on = True
+    entity2._severity = "warning"
+    entity2._group = "security"
+
+    entity3 = Mock()
+    entity3.entity_id = "binary_sensor.alert3"
+    entity3.is_on = False
+    entity3._severity = "info"
+    entity3._group = "safety"
+
+    return [entity1, entity2, entity3]
+
+
+# Mock binary sensor for switch tests
+@pytest.fixture
+def mock_binary_sensor():
+    """Create a mock binary sensor entity."""
+    sensor = Mock()
+    sensor.entity_id = "binary_sensor.emergency_test_alert"
+    sensor._alert_id = "test_alert"
+    sensor._config_entry = Mock()
+    sensor._config_entry.entry_id = "test_entry_123"
+    sensor._acknowledged = False
+    sensor._snoozed = False
+    sensor._resolved = False
+    sensor._escalated = False
+    sensor._escalation_task = Mock(cancel=Mock())  # Mock with cancel method
+    sensor._snooze_task = Mock(cancel=Mock())  # Mock with cancel method
+    sensor._snooze_until = None
+    sensor.is_on = False
+    sensor.async_update_ha_state = AsyncMock()
+    sensor._execute_action = AsyncMock()
+    sensor._start_escalation_timer = AsyncMock()
+    return sensor

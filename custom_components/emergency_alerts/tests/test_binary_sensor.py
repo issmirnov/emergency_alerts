@@ -35,54 +35,42 @@ async def test_simple_trigger_setup(hass: HomeAssistant, mock_config_entry):
     assert sensor._group == "security"
 
 
-@patch("threading.get_ident", return_value=12345)  # Match hass.loop_thread_id
-async def test_simple_trigger_evaluation(mock_threading, hass: HomeAssistant, create_binary_sensor):
+async def test_simple_trigger_evaluation(hass: HomeAssistant, create_binary_sensor):
     """Test simple trigger evaluation."""
     sensor = create_binary_sensor()
 
     # Set entity_id for proper entity registration
     sensor.entity_id = "binary_sensor.emergency_test_alert"
 
-    # Mock the monitored entity state to return "off" initially
-    mock_state_off = Mock()
-    mock_state_off.state = "off"
+    await hass.async_block_till_done()
 
-    mock_state_on = Mock()
-    mock_state_on.state = "on"
-
-    # Configure the mock to return different states
-    def mock_get_state(entity_id):
-        if entity_id == "binary_sensor.test_sensor":
-            return mock_state_off  # Initially off
-        return None
-
-    hass.states.get.side_effect = mock_get_state
+    # Create the monitored entity state (initially off)
+    hass.states.async_set("binary_sensor.test_sensor", "off")
+    await hass.async_block_till_done()
 
     # Initial evaluation should be False
     sensor._evaluate_trigger()
     assert sensor.is_on is False
 
-    # Change to trigger state
-    def mock_get_state_on(entity_id):
-        if entity_id == "binary_sensor.test_sensor":
-            return mock_state_on  # Now on
-        return None
+    # Change to trigger state (on)
+    hass.states.async_set("binary_sensor.test_sensor", "on")
+    await hass.async_block_till_done()
 
-    hass.states.get.side_effect = mock_get_state_on
     sensor._evaluate_trigger()
     assert sensor.is_on is True
     assert sensor._already_triggered is True
     assert sensor._first_triggered is not None
 
     # Change back to off
-    hass.states.get.side_effect = mock_get_state
+    hass.states.async_set("binary_sensor.test_sensor", "off")
+    await hass.async_block_till_done()
+
     sensor._evaluate_trigger()
     assert sensor.is_on is False
     assert sensor._already_triggered is False
 
 
-@patch("threading.get_ident", return_value=12345)  # Match hass.loop_thread_id
-async def test_template_trigger_evaluation(mock_threading, hass: HomeAssistant, mock_template_config_entry):
+async def test_template_trigger_evaluation(hass: HomeAssistant, mock_template_config_entry):
     """Test template trigger evaluation."""
     from custom_components.emergency_alerts.binary_sensor import EmergencyBinarySensor
 
@@ -115,8 +103,7 @@ async def test_template_trigger_evaluation(mock_threading, hass: HomeAssistant, 
         assert sensor.is_on is False
 
 
-@patch("threading.get_ident", return_value=12345)
-async def test_logical_trigger_evaluation(mock_threading, hass: HomeAssistant, mock_logical_config_entry):
+async def test_logical_trigger_evaluation(hass: HomeAssistant, mock_logical_config_entry):
     """Test logical trigger evaluation with AND operator."""
     from custom_components.emergency_alerts.binary_sensor import EmergencyBinarySensor
 
@@ -132,58 +119,53 @@ async def test_logical_trigger_evaluation(mock_threading, hass: HomeAssistant, m
 
     sensor.entity_id = "binary_sensor.emergency_logical_alert"
 
-    # Both conditions false
-    def mock_states_off(entity_id):
-        mock_state = Mock()
-        mock_state.state = "off"
-        return mock_state
+    await hass.async_block_till_done()
 
-    hass.states.get.side_effect = mock_states_off
+    # Both conditions false
+    hass.states.async_set("binary_sensor.door", "off")
+    hass.states.async_set("binary_sensor.alarm", "off")
+    await hass.async_block_till_done()
+
     sensor._evaluate_trigger()
     assert sensor.is_on is False
 
     # Only first condition true
-    def mock_states_partial(entity_id):
-        mock_state = Mock()
-        mock_state.state = "on" if entity_id == "binary_sensor.door" else "off"
-        return mock_state
+    hass.states.async_set("binary_sensor.door", "on")
+    hass.states.async_set("binary_sensor.alarm", "off")
+    await hass.async_block_till_done()
 
-    hass.states.get.side_effect = mock_states_partial
     sensor._evaluate_trigger()
     assert sensor.is_on is False  # AND requires both
 
     # Both conditions true
-    def mock_states_on(entity_id):
-        mock_state = Mock()
-        mock_state.state = "on"
-        return mock_state
+    hass.states.async_set("binary_sensor.door", "on")
+    hass.states.async_set("binary_sensor.alarm", "on")
+    await hass.async_block_till_done()
 
-    hass.states.get.side_effect = mock_states_on
     sensor._evaluate_trigger()
     assert sensor.is_on is True
     assert sensor._already_triggered is True
 
 
-@patch("threading.get_ident", return_value=12345)
-@patch("custom_components.emergency_alerts.binary_sensor.async_dispatcher_send")
-async def test_acknowledgment(mock_dispatcher, mock_threading, hass: HomeAssistant, create_binary_sensor):
+async def test_acknowledgment(hass: HomeAssistant, create_binary_sensor):
     """Test acknowledgment functionality."""
     sensor = create_binary_sensor()
     sensor.entity_id = "binary_sensor.emergency_test_alert"
 
-    # Mock event bus and async_create_task
-    hass.bus = Mock()
-    hass.bus.async_fire = Mock()
-    hass.async_create_task = Mock(return_value=Mock(cancel=Mock()))
+    # Add sensor to hass for proper entity platform registration
+    await hass.async_block_till_done()
 
     # Initial state
     assert sensor._acknowledged is False
     assert sensor.get_status() == "inactive"
 
-    # Trigger alert
-    mock_state = Mock()
-    mock_state.state = "on"
-    hass.states.get.return_value = mock_state
+    # Create the monitored entity state (the entity that triggers the alert)
+    hass.states.async_set("binary_sensor.test_sensor", "off")
+    await hass.async_block_till_done()
+
+    # Trigger alert by changing monitored entity to "on"
+    hass.states.async_set("binary_sensor.test_sensor", "on")
+    await hass.async_block_till_done()
     sensor._evaluate_trigger()
 
     assert sensor.is_on is True
@@ -194,13 +176,11 @@ async def test_acknowledgment(mock_dispatcher, mock_threading, hass: HomeAssista
     assert sensor._acknowledged is True
     assert sensor.get_status() == "acknowledged"
 
-    # Clear acknowledgment
-    await sensor.async_clear_acknowledgment()
-    assert sensor._acknowledged is False
+    # In v2.0, acknowledgment is managed via switches, not direct methods
+    # So we just test that acknowledgment works correctly
 
 
-@patch("threading.get_ident", return_value=12345)
-async def test_action_calls(mock_threading, hass: HomeAssistant, mock_template_config_entry):
+async def test_action_calls(hass: HomeAssistant, mock_template_config_entry):
     """Test that actions are called on trigger and clear."""
     from custom_components.emergency_alerts.binary_sensor import EmergencyBinarySensor
 
@@ -233,8 +213,7 @@ async def test_action_calls(mock_threading, hass: HomeAssistant, mock_template_c
         assert sensor._already_triggered is True
 
 
-@patch("threading.get_ident", return_value=12345)
-async def test_extra_state_attributes(mock_threading, hass: HomeAssistant, create_binary_sensor):
+async def test_extra_state_attributes(hass: HomeAssistant, create_binary_sensor):
     """Test extra state attributes include new state machine flags."""
     sensor = create_binary_sensor()
     sensor.entity_id = "binary_sensor.emergency_test_alert"
