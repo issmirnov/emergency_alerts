@@ -106,7 +106,7 @@ class EmergencyHubSensor(SensorEntity):
 
         # This sensor represents the hub device itself
         self._attr_device_info = {
-            "identifiers": {(DOMAIN, f"{hub_name}_hub")},
+            "identifiers": {(DOMAIN, f"hub_{entry.entry_id}")},
             "name": f"Emergency Alerts - {group_name.title()}" + (f" ({entry.data.get('custom_name')})" if entry.data.get("custom_name") else ""),
             "manufacturer": "Emergency Alerts",
             "model": f"{group_name.title()} Hub",
