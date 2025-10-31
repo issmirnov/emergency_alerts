@@ -65,7 +65,7 @@ test.describe('Integration Tests', () => {
 
     // Verify backend state updated
     const state = await haApi.getState(
-      `switch.emergency_${testAlertId}_acknowledged`
+      `switch.${testAlertId}_acknowledged`
     );
     expect(state.state).toBe('on');
   });
@@ -79,7 +79,7 @@ test.describe('Integration Tests', () => {
 
     // Turn on acknowledge via API
     await haApi.callService('switch', 'turn_on', {
-      entity_id: `switch.emergency_${testAlertId}_acknowledged`,
+      entity_id: `switch.${testAlertId}_acknowledged`,
     });
 
     // Wait for UI to update
@@ -109,7 +109,7 @@ test.describe('Integration Tests', () => {
 
     // Verify backend state
     const state = await haApi.getState(
-      `switch.emergency_${testAlertId}_snoozed`
+      `switch.${testAlertId}_snoozed`
     );
     expect(state.state).toBe('on');
 
@@ -137,7 +137,7 @@ test.describe('Integration Tests', () => {
 
     // Verify backend state
     const state = await haApi.getState(
-      `switch.emergency_${testAlertId}_resolved`
+      `switch.${testAlertId}_resolved`
     );
     expect(state.state).toBe('on');
 
@@ -171,7 +171,7 @@ test.describe('Integration Tests', () => {
 
     // Verify acknowledge is on
     let ackState = await haApi.getState(
-      `switch.emergency_${testAlertId}_acknowledged`
+      `switch.${testAlertId}_acknowledged`
     );
     expect(ackState.state).toBe('on');
 
@@ -180,12 +180,12 @@ test.describe('Integration Tests', () => {
 
     // Verify snooze is on and acknowledge is now off
     const snoozeState = await haApi.getState(
-      `switch.emergency_${testAlertId}_snoozed`
+      `switch.${testAlertId}_snoozed`
     );
     expect(snoozeState.state).toBe('on');
 
     ackState = await haApi.getState(
-      `switch.emergency_${testAlertId}_acknowledged`
+      `switch.${testAlertId}_acknowledged`
     );
     expect(ackState.state).toBe('off');
 
@@ -194,12 +194,12 @@ test.describe('Integration Tests', () => {
 
     // Verify resolve is on and snooze is now off
     const resolveState = await haApi.getState(
-      `switch.emergency_${testAlertId}_resolved`
+      `switch.${testAlertId}_resolved`
     );
     expect(resolveState.state).toBe('on');
 
     const newSnoozeState = await haApi.getState(
-      `switch.emergency_${testAlertId}_snoozed`
+      `switch.${testAlertId}_snoozed`
     );
     expect(newSnoozeState.state).toBe('off');
   });

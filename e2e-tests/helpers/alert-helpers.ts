@@ -65,8 +65,9 @@ export class AlertHelpers {
     await switchLocator.click();
 
     // Wait for backend state to update
+    // Note: alertId is already the sanitized name from binary_sensor entity ID
     await this.haApi.waitForState(
-      `switch.emergency_${alertId}_acknowledged`,
+      `switch.${alertId}_acknowledged`,
       'on',
       5000
     );
@@ -81,7 +82,7 @@ export class AlertHelpers {
 
     // Wait for backend state to update
     await this.haApi.waitForState(
-      `switch.emergency_${alertId}_snoozed`,
+      `switch.${alertId}_snoozed`,
       'on',
       5000
     );
@@ -96,7 +97,7 @@ export class AlertHelpers {
 
     // Wait for backend state to update
     await this.haApi.waitForState(
-      `switch.emergency_${alertId}_resolved`,
+      `switch.${alertId}_resolved`,
       'on',
       5000
     );
@@ -130,6 +131,7 @@ export class AlertHelpers {
 
   /**
    * Get alert state from backend
+   * @param alertId The sanitized alert name (e.g., "critical_test_alert")
    */
   async getAlertState(alertId: string) {
     return await this.haApi.getState(`binary_sensor.emergency_${alertId}`);

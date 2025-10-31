@@ -91,7 +91,7 @@ test('My test', async ({ page, request }) => {
   await alertHelpers.acknowledgeAlert('test_alert');
 
   // Verify backend state
-  const state = await haApi.getState('switch.emergency_test_alert_acknowledged');
+  const state = await haApi.getState('switch.test_alert_acknowledged');
   expect(state.state).toBe('on');
 });
 ```

@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import * as path from 'path';
 
 /**
  * E2E Test Configuration for Emergency Alerts
@@ -16,6 +17,9 @@ import { defineConfig, devices } from '@playwright/test';
  * - Headed mode: npm run test:headed (see browser)
  * - View report: npm run report
  */
+
+// Load environment variables from .env file
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 export default defineConfig({
   testDir: './tests',

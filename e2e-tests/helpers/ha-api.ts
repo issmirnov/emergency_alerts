@@ -35,9 +35,15 @@ export class HomeAssistantAPI {
   private request: APIRequestContext;
   private token?: string;
 
-  constructor(request: APIRequestContext, baseUrl = 'http://localhost:8123') {
+  constructor(request: APIRequestContext, baseUrl?: string) {
     this.request = request;
-    this.baseUrl = baseUrl;
+    this.baseUrl = baseUrl || process.env.HA_BASE_URL || 'http://localhost:8123';
+
+    // Automatically load token from environment if available
+    const envToken = process.env.HA_TOKEN;
+    if (envToken) {
+      this.token = envToken;
+    }
   }
 
   /**
@@ -171,14 +177,29 @@ export class HomeAssistantAPI {
   }
 
   /**
-   * Find all emergency alert switches
+   * Find all emergency alert switches for a specific alert
+   * @param alertId The sanitized alert name (e.g., "critical_test_alert")
    */
   async getEmergencyAlertSwitches(alertId?: string): Promise<HAState[]> {
     const states = await this.getAllStates();
-    const pattern = alertId
-      ? `switch.emergency_${alertId}_`
-      : 'switch.emergency_';
-    return states.filter(s => s.entity_id.startsWith(pattern));
+
+    if (alertId) {
+      // Find switches for a specific alert: switch.{alertId}_acknowledged, etc.
+      return states.filter(s =>
+        s.entity_id.startsWith(`switch.${alertId}_`) &&
+        (s.entity_id.endsWith('_acknowledged') ||
+         s.entity_id.endsWith('_snoozed') ||
+         s.entity_id.endsWith('_resolved'))
+      );
+    } else {
+      // Find all emergency alert switches (any switch ending with our suffixes)
+      return states.filter(s =>
+        s.entity_id.startsWith('switch.') &&
+        (s.entity_id.endsWith('_acknowledged') ||
+         s.entity_id.endsWith('_snoozed') ||
+         s.entity_id.endsWith('_resolved'))
+      );
+    }
   }
 
   /**
