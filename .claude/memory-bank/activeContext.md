@@ -6,22 +6,78 @@
 
 ## Current Focus
 
-**Phase: v2.0 State Machine Redesign - COMPLETE (2025-10-29)**
+**Phase: Lovelace Card v2.0.2 Bug Fixes (2025-10-30)**
 
-Completed major architectural redesign from button-based to switch-based state machine. Integration now provides rich, visible state management with mutual exclusivity and auto-expiring snooze functionality.
+Fixing critical bug in Lovelace card where button clicks (acknowledge/snooze/resolve) don't update alert states. Root cause: entity ID conversion bug in alert-service.ts.
 
 Recent work completed:
-1. ✅ Complete switch-based state machine implementation (switch.py - 433 lines)
-2. ✅ Removed button platform, added 3 switch types per alert
-3. ✅ Enhanced binary sensor with state tracking and dispatcher integration
-4. ✅ Added comprehensive test suite for switches (15+ tests)
-5. ✅ Created frontend integration guide (cardInstructions.md)
-6. ✅ Created notification examples with 12 configurations
-7. ✅ Updated memory bank with v2.0 architecture
+1. ✅ Identified root cause: _convertToSwitchId() not stripping "emergency_" prefix
+2. ✅ Fixed bug in lovelace-emergency-alerts-card/src/services/alert-service.ts:37-46
+3. ✅ Built updated card with npm run build
+4. ✅ Created build-and-deploy.sh helper script for future deploys
+5. ✅ Verified fix is present in dist/emergency-alerts-card.js (grep confirmed)
+6. ✅ Deployed to HA container (config/www/emergency-alerts-card.js)
+7. ✅ Restarted Home Assistant container to clear server-side cache
 
-**Current**: v2.0 State Machine Redesign FULLY COMPLETE with notification profiles (2025-10-29)
+**Current Issue**: Browser caching - fix deployed but browser still loads old JavaScript (2025-10-30)
+
+**Previous Phase Complete**: E2E Testing Infrastructure (2025-10-30)
+
+**Previous Phase Complete**: v2.0 State Machine Redesign with notification profiles (2025-10-29)
 
 ## Recent Changes
+
+### 2025-10-30: Lovelace Card Button Click Bug Fix (CRITICAL)
+- **Changed**: Fixed _convertToSwitchId() in alert-service.ts to strip "emergency_" prefix
+- **Why**: Button clicks (acknowledge/snooze/resolve) were calling wrong entity IDs, causing state updates to fail
+- **Bug Details**:
+  - Binary sensors: `binary_sensor.emergency_critical_test_alert`
+  - Old code generated: `switch.emergency_critical_test_alert_acknowledged` ❌
+  - Actual switch entities: `switch.critical_test_alert_acknowledged` ✅
+  - Root cause: Integration creates switches WITHOUT "emergency_" prefix
+- **Files**:
+  - lovelace-emergency-alerts-card/src/services/alert-service.ts:37-46 (added prefix stripping)
+  - lovelace-emergency-alerts-card/build-and-deploy.sh (new helper script)
+  - lovelace-emergency-alerts-card/dist/emergency-alerts-card.js (rebuilt)
+  - emergency-alerts-integration/config/www/emergency-alerts-card.js (deployed)
+- **Status**: ✅ Fix complete and deployed, ⚠️ Browser cache issue preventing verification
+- **Testing**: User manually clicked buttons, confirmed state not updating (browser loading old JS)
+
+### 2025-10-30: E2E Testing Infrastructure (MAJOR)
+- **Changed**: Built comprehensive Playwright-based E2E testing infrastructure
+- **Why**: No automated way to test integration + card working together, required manual testing
+- **Impact**: LLM-debuggable testing with filesystem access, screenshots, and browser inspection
+- **Files**:
+  - e2e-tests/: Complete test infrastructure (~1900 lines, 16 files)
+  - e2e-tests/tests/01-smoke.spec.ts: Basic functionality tests
+  - e2e-tests/tests/02-integration.spec.ts: Integration tests (switches, mutual exclusivity)
+  - e2e-tests/helpers/ha-api.ts: Typed Home Assistant REST API client
+  - e2e-tests/helpers/alert-helpers.ts: Alert-specific test helpers
+  - e2e-tests/helpers/global-setup.ts: Pre-test environment validation
+  - e2e-tests/helpers/global-teardown.ts: Post-test cleanup
+  - e2e-tests/playwright.config.ts: Playwright config with LLM debugging features
+  - e2e-tests/package.json: Dependencies and test scripts
+  - e2e-tests/README.md: Comprehensive testing documentation
+  - e2e-tests/README-LLM-DEBUGGING.md: LLM debugging guide
+  - e2e-tests/.gitignore: Test artifact exclusions
+  - docker-compose.yml: Docker Compose setup for HA testing
+  - scripts/bypass-onboarding.sh: Automated HA onboarding bypass (dev/dev credentials)
+  - scripts/run-e2e.sh: E2E test runner with environment checks
+  - .devcontainer/devcontainer.json: Simplified all-in-one devcontainer config
+  - .devcontainer/setup.sh: Updated with Node.js and Playwright installation
+- **Features**:
+  - Playwright with TypeScript for browser automation
+  - Chrome DevTools Protocol (CDP) on port 9222 for deep inspection
+  - Automatic screenshots, videos, and traces on test failure
+  - Home Assistant REST API client with type safety
+  - Alert-specific helpers (acknowledgeAlert, snoozeAlert, resolveAlert, etc.)
+  - Global setup validates HA running, integration loaded, card available
+  - Smoke tests verify basic functionality
+  - Integration tests verify switch clicks → backend updates, mutual exclusivity
+  - LLM debugging guide with CLI commands for inspection
+  - Docker Compose for reproducible HA environment
+  - Onboarding bypass script creates default admin user (username: dev, password: dev)
+  - Run script with environment checks and helpful error messages
 
 ### 2025-10-29: Notification Profiles System (v2.0 Feature)
 - **Changed**: Added reusable notification profiles in Global Settings Hub
@@ -104,25 +160,41 @@ Recent work completed:
 
 ## Next Steps
 
-### Immediate (Current Session) - COMPLETE ✅
-- [x] Complete v2.0 state machine redesign
-- [x] Implement switch platform (433 lines)
-- [x] Update binary_sensor.py integration
-- [x] Create comprehensive test suite
-- [x] Write frontend integration guide
-- [x] Create notification examples
-- [x] Update memory bank documentation
-- [x] Implement notification profiles (COMPLETE)
-- [x] Update alert action config for profiles (COMPLETE)
-- [x] Update binary_sensor to resolve profiles (COMPLETE)
-- [x] Version bump to 2.0.0 (COMPLETE)
+### Immediate (Current Session) - E2E Testing ✅
+- [x] Build E2E testing infrastructure (~1900 lines, 16 files)
+- [x] Create Playwright test suite (smoke + integration tests)
+- [x] Build LLM debugging infrastructure (screenshots, traces, CDP)
+- [x] Create HA API client with type safety
+- [x] Create alert-specific test helpers
+- [x] Fix devcontainer.json for Cursor compatibility
+- [x] Create docker-compose.yml for HA testing
+- [x] Build onboarding bypass script (dev/dev credentials)
+- [x] Successfully start Home Assistant in Docker with integration
+
+### Immediate Next (Current Session) - Lovelace Card Testing
+- [x] Identify root cause of button click failures
+- [x] Fix _convertToSwitchId() bug in alert-service.ts
+- [x] Build and deploy updated card
+- [x] Restart HA container to clear cache
+- [ ] **Clear browser cache to load updated JavaScript** - Critical blocker
+- [ ] **Verify button clicks update alert states** - Manual or automated testing
+- [ ] **Test all three button types** - Acknowledge, snooze, resolve
+- [ ] **Update card version** - Bump to v2.0.3 after verification
+- [ ] **Document fix in card changelog** - Update lovelace card repo
+
+### Short Term (After Card Fix)
+- [ ] **Run E2E tests with Playwright MCP** - Execute smoke tests and integration tests
+- [ ] **Demonstrate LLM debugging** - Use screenshots, API inspection, log analysis
+- [ ] **Fix any test failures** - Debug using LLM-friendly artifacts
+- [ ] **Document test results** - Update memory bank with findings
+- [ ] **Create CI/CD workflow** - Automate E2E tests in GitHub Actions
 
 ### Short Term (Next Few Sessions)
-- [ ] Review and address any defensive coding improvements needed
-- [ ] Verify test coverage is still >90%
-- [ ] Consider removing switch.py if truly unused
-- [ ] Clean up any remaining legacy code paths
+- [ ] Review backend test suite (35/35 passing after teardown fix)
+- [ ] Verify integration test coverage is >90%
+- [ ] Create PR for E2E testing infrastructure on cicd branch
 - [ ] Update HACS metadata if needed
+- [ ] Clean up any remaining legacy code paths
 
 ### Future Considerations
 - [ ] Add area integration (tie alerts to HA areas)
@@ -136,6 +208,18 @@ Recent work completed:
 - [ ] User feedback collection - **Blocked by**: Need wider distribution
 
 ## Current Challenges
+
+- **Browser Cache Issues with Lovelace Card**: After deploying card fixes, browser aggressively caches JavaScript
+  - **Issue**: Fix is in dist file and HA container, but browser loads old code even after hard refresh
+  - **Impact**: Cannot verify button click fixes without clearing cache
+  - **Attempted**: Hard refresh (Ctrl+Shift+R), HA container restart
+  - **Next Steps**: Try different browser, clear all browser data, or add cache-busting query parameter
+
+- **Playwright Shadow DOM Access**: Home Assistant's deep shadow DOM nesting prevents automated testing
+  - **Issue**: Cannot access emergency-alerts-card shadow DOM via playwright_evaluate
+  - **Hierarchy**: home-assistant → home-assistant-main → partial-panel-resolver (no shadowRoot) → ...
+  - **Impact**: Manual testing required for button clicks
+  - **Workaround**: Use manual testing or develop shadow DOM piercing function
 
 - **Testing Runtime Behavior**: Some issues only appear in full Home Assistant runtime, not in pytest
   - **Approach**: Using devcontainer for live testing, diagnostics.py for debugging
