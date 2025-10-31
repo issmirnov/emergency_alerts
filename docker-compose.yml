@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  homeassistant:
+    image: homeassistant/home-assistant:latest
+    container_name: emergency-alerts-ha
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      # Home Assistant config
+      - ./config:/config
+      # Mount our custom integration
+      - ./custom_components/emergency_alerts:/config/custom_components/emergency_alerts
+      # Mount the Lovelace card
+      - ../lovelace-emergency-alerts-card/dist:/config/www:ro
+    environment:
+      - TZ=America/New_York
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8123"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s

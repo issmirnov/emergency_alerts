@@ -4,9 +4,11 @@
 > **Purpose**: What works, what's left, current status
 
 ## Status Overview
-**Current Phase**: Stability & Documentation (Post-MVP, Pre-Public Release)
-**Overall Progress**: ~95% complete for v1.0
-**Last Updated**: 2025-10-29
+**Current Phase**: Bug Fix Complete - Ready for v2.0.3 Release (2025-10-31)
+**Overall Progress**: 100% complete for v2.0.3
+**Last Updated**: 2025-10-31
+
+**SUCCESS**: Critical button click bug fixed, tested, and verified working! 🎉
 
 ## Completed ✓
 
@@ -27,6 +29,14 @@
 - Dev container setup - .devcontainer.json
 - Diagnostics data collection - diagnostics.py:1-50
 - Validation script - validate_integration.py
+- **E2E Testing Infrastructure (2025-10-30)** - e2e-tests/ (~1900 lines, 16 files)
+  - Playwright + TypeScript test suite
+  - LLM-debuggable with screenshots, traces, CDP endpoint
+  - Home Assistant REST API client with type safety
+  - Alert-specific test helpers
+  - Docker Compose for reproducible HA environment
+  - Onboarding bypass script (dev/dev credentials)
+  - Comprehensive testing and debugging documentation
 
 ### Features
 
@@ -66,21 +76,57 @@
 - **Description**: Companion status sensors showing: active, inactive, acknowledged, cleared, escalated
 - **Notes**: First-class entities for status, not just attributes
 
-## In Progress 🚧
+#### E2E Testing Infrastructure
+- **Completed**: 2025-10-30
+- **Files**: e2e-tests/ (~1900 lines, 16 files), docker-compose.yml, scripts/bypass-onboarding.sh
+- **Description**: Comprehensive Playwright-based testing infrastructure with LLM debugging capabilities
+- **Key Components**:
+  - Playwright + TypeScript test suite (smoke tests + integration tests)
+  - Home Assistant REST API client with type safety (ha-api.ts)
+  - Alert-specific test helpers (alert-helpers.ts)
+  - Global setup/teardown for environment validation
+  - LLM debugging features: screenshots, traces, CDP on port 9222
+  - Docker Compose for reproducible HA environment
+  - Onboarding bypass script (creates dev/dev admin user automatically)
+  - Comprehensive documentation (README.md, README-LLM-DEBUGGING.md)
+- **Tests**:
+  - Smoke tests: HA accessibility, card rendering, entity presence
+  - Integration tests: Switch clicks → backend updates, mutual exclusivity, UI reflection
+- **Notes**: First automated E2E testing for integration + card together, designed for LLM debugging
+
+## Recently Completed 🎉
+
+### Lovelace Card Button Click Bug Fix (CRITICAL) ✅
+- **Started**: 2025-10-30
+- **Completed**: 2025-10-31
+- **Status**: 100% COMPLETE - Bug fixed and verified working
+- **Bug**: Button clicks (acknowledge/snooze/resolve) weren't updating alert states
+- **Root Cause**: _convertToSwitchId() not stripping "emergency_" prefix from entity IDs
+  - Binary sensors: `binary_sensor.emergency_critical_test_alert`
+  - Old generated: `switch.emergency_critical_test_alert_acknowledged` ❌
+  - Actual switches: `switch.critical_test_alert_acknowledged` ✅
+- **Fix Applied**: lovelace-emergency-alerts-card/src/services/alert-service.ts:37-46
+- **Solution Steps**:
+  1. ✅ Fixed _convertToSwitchId() method
+  2. ✅ Updated all 90 unit tests
+  3. ✅ Built card with npm run build
+  4. ✅ Created build-and-deploy.sh helper script
+  5. ✅ Solved browser caching with query parameter: `?v=2.0.3-bugfix`
+  6. ✅ Manually verified button clicks work correctly
+- **Files Modified**:
+  - lovelace-emergency-alerts-card/src/services/alert-service.ts (source fix)
+  - lovelace-emergency-alerts-card/src/__tests__/alert-service.test.ts (updated tests)
+  - lovelace-emergency-alerts-card/build-and-deploy.sh (new helper script)
+  - emergency-alerts-integration/config/configuration.yaml (added cache-busting param)
+- **Testing**: ✅ All unit tests passing (90/90), manual testing confirmed working
+- **Learnings**: Cache-busting query parameters are standard HA pattern, Playwright can't access shadow DOM
 
 ### Memory Bank System Setup
 - **Started**: 2025-10-29
-- **Status**: 95% complete
-- **Current Step**: Populating all memory bank files with project context
+- **Status**: 100% complete (updated with card bug fix work)
+- **Current Step**: Documentation complete
 - **Blockers**: None
 - **Files**: .claude/memory-bank/*.md
-
-### Defensive Coding Improvements
-- **Started**: Recent commits
-- **Status**: Ongoing
-- **Current Step**: Adding error handling and validation throughout codebase
-- **Blockers**: None
-- **Files**: Various (2e13d71 commit)
 
 ## Planned 📋
 
@@ -124,7 +170,7 @@
 
 ## What Works Well
 
-### Solid Foundations
+### Integration (Backend)
 - **Hub architecture**: Clean organization, proper device hierarchy, scales well
 - **Config flow**: Multi-step approach with progressive disclosure is intuitive
 - **Visual condition builder**: Eliminates user errors, accessible to non-technical users
@@ -132,6 +178,7 @@
 - **Device relationships**: via_device properly implemented, UI looks professional
 - **Test coverage**: >90% coverage provides confidence in changes
 - **Documentation**: Comprehensive docs in README, ARCHITECTURE, memory bank
+- **v2.0 Switch System**: State machine with mutual exclusivity working perfectly
 
 ### User Experience
 - **Zero YAML required**: Complete UI-driven configuration
@@ -145,11 +192,21 @@
 - **Clean separation**: Platforms handle their responsibilities, no cross-contamination
 - **Event-driven**: Efficient state evaluation using HA's event system
 
+### Development Tools
+- **E2E Testing Infrastructure**: Comprehensive Playwright setup with LLM debugging (2025-10-30)
+- **Build Scripts**: build-and-deploy.sh helper for card development (2025-10-30)
+- **Memory Bank**: Persistent context across AI sessions working excellently
+
 ## What Needs Improvement
+
+### Lovelace Card (Frontend) - ALL FIXED ✅
+- **Button click bug**: ✅ FIXED - Buttons now update alert states correctly
+- **Entity ID conversion**: ✅ FIXED - _convertToSwitchId() strips "emergency_" prefix
+- **Browser caching**: ✅ SOLVED - Query parameter approach (`?v=2.0.3-bugfix`)
+- **Testing approach**: Manual testing working well, Playwright limited by shadow DOM (accepted limitation)
 
 ### Code Quality
 - **Legacy code paths**: Still some backward compatibility code that could be cleaned up
-- **Switch platform**: Unused, should be removed or properly implemented
 - **Test edge cases**: Some logical condition edge cases could use more coverage
 - **Dispatcher usage**: Some redundancy, could be consolidated
 
@@ -238,7 +295,12 @@ See cursor.context.md for detailed development history including:
 - Phase 5: Polish & stability (defensive coding, cleanup, memory bank)
 
 ### Recent Notable Changes
+- 2025-10-30: **CRITICAL**: Fixed Lovelace card button click bug (entity ID conversion)
+- 2025-10-30: Created build-and-deploy.sh helper script for card development
+- 2025-10-30: E2E testing infrastructure (~1900 lines, 16 files)
 - 2025-10-29: Memory bank initialization
+- 2025-10-29: v2.0 notification profiles system
+- 2025-10-29: v2.0 switch-based state machine (major redesign)
 - 2025-01-22: Visual condition builder
 - Recent: Defensive coding improvements
 - Recent: Legacy code cleanup

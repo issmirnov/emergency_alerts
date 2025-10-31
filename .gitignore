@@ -13,3 +13,6 @@ temp_venv/
 
 # hass actual config
 config/*
+
+# Screenshots from testing
+.screenshots/
