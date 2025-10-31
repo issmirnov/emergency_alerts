@@ -6,27 +6,61 @@
 
 ## Current Focus
 
-**Phase: Bug Fix Complete - Ready for Release (2025-10-31)**
+**Phase: Device Identifier Fix Complete (2025-10-31)**
 
-Successfully fixed and verified critical bug in Lovelace card where button clicks weren't updating alert states.
+Successfully fixed device identifier mismatch causing "Unnamed device" issue with comprehensive testing and PR creation.
 
-**COMPLETED WORK (2025-10-30 to 2025-10-31)**:
-1. ✅ Identified root cause: _convertToSwitchId() not stripping "emergency_" prefix
-2. ✅ Fixed bug in lovelace-emergency-alerts-card/src/services/alert-service.ts:37-46
-3. ✅ Updated all unit tests to match new behavior (90/90 tests passing)
-4. ✅ Built updated card with npm run build
-5. ✅ Created build-and-deploy.sh helper script for future deploys
-6. ✅ Deployed to HA container (config/www/emergency-alerts-card.js)
-7. ✅ Solved browser caching with query parameter: `?v=2.0.3-bugfix`
-8. ✅ Manually verified button clicks work correctly
-9. ✅ Documented E2E testing insights from external LLM
-10. ✅ Committed and pushed both repos
+**COMPLETED WORK (2025-10-31)**:
+1. ✅ Identified device identifier mismatch between components
+2. ✅ Standardized all device identifiers to use `entry.entry_id`
+3. ✅ Fixed binary_sensor.py and sensor.py device info
+4. ✅ All 35 backend pytest tests passing
+5. ✅ Comprehensive local testing with Docker HA
+6. ✅ Verified device registry structure
+7. ✅ Created PR #6 with detailed documentation
+8. ✅ All CI/CD checks passed (Backend, HACS, Integration, Lint)
+9. ✅ Documented breaking change nature and migration path
+10. ✅ Identified additional via_device timing issue for follow-up
 
-**Status**: ✅ BUG FIXED AND VERIFIED - Ready for release as v2.0.3
+**Status**: ✅ PR #6 ready for merge - Fixes unnamed device issue
+
+**Previous Phase Complete**: Lovelace Card Button Click Bug Fix (2025-10-30/31)
 
 **Previous Phase Complete**: E2E Testing Infrastructure (2025-10-30)
 
-**Previous Phase Complete**: v2.0 State Machine Redesign with notification profiles (2025-10-29)
+## Recent Changes
+
+### 2025-10-31: Device Identifier Standardization (CRITICAL BUG FIX)
+- **Changed**: Standardized device identifiers across all platforms to use `entry.entry_id`
+- **Why**: Inconsistent device identifiers caused switches to appear as separate "Unnamed device"
+- **Bug Details**:
+  - Hub sensor used: `{hub_name}_hub` (e.g., `test_alerts_hub`)
+  - Binary sensor used: `{hub_name}_{alert_id}` (e.g., `test_alerts_critical_test`)
+  - Switches used: `alert_{entry.entry_id}_{alert_id}` ✅ (e.g., `alert_HZBABGAT26NRXVT9QNNZ70DN7X_critical_test`)
+  - Mismatch prevented switches from linking to binary sensor device
+- **Files Changed**:
+  - custom_components/emergency_alerts/sensor.py:109 (hub device identifier)
+  - custom_components/emergency_alerts/binary_sensor.py:158 (alert device identifier)
+  - custom_components/emergency_alerts/binary_sensor.py:163 (alert via_device reference)
+- **New Device Identifier Pattern**:
+  - Hub device: `hub_{entry.entry_id}`
+  - Alert device: `alert_{entry.entry_id}_{alert_id}`
+  - Via device: `hub_{entry.entry_id}`
+- **Testing Performed**:
+  - ✅ All 35 backend pytest tests pass
+  - ✅ Integration loads with new identifiers
+  - ✅ Device registry structure verified
+  - ✅ CI/CD all checks passed (Backend, HACS, Integration, Lint)
+- **Breaking Change**: Device identifiers can't change in-place in HA
+  - Existing users see old devices + new unnamed stub devices
+  - Migration: Remove and re-add integration
+  - Impact: Minimal (single user - project maintainer)
+- **Additional Discovery**: Hub devices created AFTER alerts causes via_device warning
+  - Warning: "Detected non existing via_device... This will stop working in HA 2025.12.0"
+  - Root cause: async_setup_entry creates binary sensors before hub sensor
+  - **Action Item**: Create follow-up issue to fix setup order
+- **PR**: #6 created with comprehensive documentation
+- **Status**: ✅ All CI/CD passed, ready for merge
 
 ## Recent Changes
 

@@ -121,6 +121,47 @@
 - **Testing**: ✅ All unit tests passing (90/90), manual testing confirmed working
 - **Learnings**: Cache-busting query parameters are standard HA pattern, Playwright can't access shadow DOM
 
+### Device Identifier Standardization (CRITICAL BUG FIX) ✅
+- **Started**: 2025-10-31
+- **Completed**: 2025-10-31
+- **Status**: 100% COMPLETE - PR #6 created, all CI/CD passed
+- **Bug**: "Unnamed device" with 3 switches appearing separately from alert binary sensor
+- **Root Cause**: Inconsistent device identifier patterns across components
+  - Hub sensor: `{hub_name}_hub` (e.g., `test_alerts_hub`)
+  - Binary sensor: `{hub_name}_{alert_id}` (e.g., `test_alerts_critical_test`)
+  - Switches: `alert_{entry.entry_id}_{alert_id}` ✅ (e.g., `alert_HZBABGAT26NRXVT9QNNZ70DN7X_critical_test`)
+  - Mismatch prevented switches from linking to same device as binary sensor
+- **Fix Applied**: Standardized all device identifiers to use `entry.entry_id`
+- **Files Changed**:
+  - custom_components/emergency_alerts/sensor.py:109 (hub device: `hub_{entry.entry_id}`)
+  - custom_components/emergency_alerts/binary_sensor.py:158 (alert device: `alert_{entry.entry_id}_{alert_id}`)
+  - custom_components/emergency_alerts/binary_sensor.py:163 (via_device: `hub_{entry.entry_id}`)
+- **Testing Performed**:
+  - ✅ All 35 backend pytest tests pass
+  - ✅ Integration loads successfully with new identifiers
+  - ✅ Device registry structure verified via storage files
+  - ✅ All CI/CD checks passed: Backend Tests, HACS Validation, Integration Tests, Lint
+- **PR #6**: Created with comprehensive documentation
+  - Detailed root cause analysis
+  - Breaking change notice with migration path
+  - Additional finding about via_device timing issue
+  - URL: https://github.com/issmirnov/emergency_alerts/pull/6
+- **Breaking Change Nature**: Device identifiers can't change in-place in HA
+  - Old devices remain in registry with metadata
+  - New devices created as unnamed stubs
+  - Migration: Users must remove and re-add integration
+  - Impact: Minimal (single user - project maintainer)
+- **Additional Discovery**: Hub created after alerts causes via_device warning
+  - Warning: "Detected non existing via_device... This will stop working in HA 2025.12.0"
+  - Root cause: async_setup_entry order creates binary_sensors before hub sensor
+  - Action item: Follow-up issue to fix platform setup order
+- **Learnings**:
+  - Device identifiers are immutable in HA device registry
+  - Changes to device identifiers are breaking changes
+  - Use `entry.entry_id` for stable, unique identifiers vs user-configurable strings
+  - Platform setup order matters for via_device relationships
+  - Device registry can be inspected via .storage files for debugging
+
 ### Memory Bank System Setup
 - **Started**: 2025-10-29
 - **Status**: 100% complete (updated with card bug fix work)
