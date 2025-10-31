@@ -135,7 +135,7 @@
 - [ ] Review test coverage and add edge case tests - **Priority: Medium**
 - [ ] Decide on switch.py fate (remove or implement) - **Priority: Low**
 - [ ] Clean up remaining legacy code paths - **Priority: Medium**
-- [ ] Verify HACS submission requirements - **Priority: High**
+- [ ] Submit to Home Assistant Brands repository - **Priority: Medium** (See HACS Brands section below)
 
 ### Medium Term
 - [ ] Add area integration (tie alerts to HA areas) - **Priority: Medium**
@@ -305,3 +305,52 @@ See cursor.context.md for detailed development history including:
 - Recent: Defensive coding improvements
 - Recent: Legacy code cleanup
 - Recent: Documentation updates
+
+## HACS Distribution Status
+
+### Brands Repository Submission
+- **Status**: ❌ Not yet submitted
+- **Required**: Submit to [home-assistant/brands](https://github.com/home-assistant/brands) repository
+- **Purpose**: Provides consistent branding and icons for HACS
+- **Requirements**:
+  - Create `custom_integrations/emergency_alerts/manifest.json` in brands repo
+  - Add 256x256px `icon.png` (alert/warning symbol with emergency colors)
+  - Optional: Add `logo.png`
+- **Alternative**: Can ignore brands check in HACS validation with `ignore: "brands"` in GitHub Action
+- **Recommendation**: Submit after gaining community adoption and feedback
+- **Impact**: Integration works without brands entry, but may show generic icon in HACS
+
+### Current HACS Compliance
+- ✅ Repository structure follows HACS requirements
+- ✅ Proper manifest.json with all required fields
+- ✅ HACS validation passes in CI/CD
+- ✅ GitHub topics configured for discoverability
+- ⏳ Brands repository entry (optional, recommended for polish)
+
+## E2E Testing Status
+
+### Infrastructure (Completed 2025-10-30)
+- ✅ Playwright + TypeScript framework operational
+- ✅ Docker Compose environment with Home Assistant 2025.10.4
+- ✅ Emergency Alerts integration v2.0 loaded and working
+- ✅ Lovelace card v2.0.2 deployed and registered
+- ✅ Card rendering on dashboard ("No alerts to display" - correct state)
+- ✅ LLM-debuggable artifacts: screenshots, videos, traces, error contexts
+
+### Test Results (First Run)
+- ✅ 1 test passed (screenshot capability)
+- ❌ 8 tests failed (authentication not persisted between tests)
+- ⏭️ 6 tests skipped (dependency failures)
+- 📝 15 tests total defined (8 smoke tests, 7 integration tests)
+
+### Known Issues
+1. **Authentication**: Tests don't persist login from global setup (needs storageState fix)
+2. **API Tests**: API calls require long-lived access tokens
+3. **Test Alerts**: Need to create test alert data for full integration testing
+
+### Next Steps for E2E
+1. Add authentication persistence to playwright.config.ts
+2. Create auth fixture in global-setup.ts
+3. Add test alert group with sample alerts
+4. Verify switch interactions (acknowledge/snooze/resolve)
+5. Run full E2E suite with authentication fixed

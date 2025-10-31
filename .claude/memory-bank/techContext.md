@@ -97,6 +97,47 @@ python validate_integration.py
 ./run_tests.sh --backend-only
 ```
 
+### Docker-Based Development
+
+#### Docker Linting (Useful on Arch Linux)
+```bash
+# Build linting container
+docker build -f Dockerfile.lint -t emergency-alerts-lint .
+
+# Run all checks
+docker run --rm -v $(pwd):/app emergency-alerts-lint
+
+# Auto-fix formatting
+docker run --rm -v $(pwd):/app emergency-alerts-lint black custom_components/emergency_alerts/
+docker run --rm -v $(pwd):/app emergency-alerts-lint isort custom_components/emergency_alerts/
+```
+
+#### Dev Container Setup
+- **VS Code Dev Containers**: Open folder and select "Reopen in Container"
+- **Auto-Setup**: Home Assistant automatically installed and configured
+- **Hot Reload**: Integration changes reflected immediately via symlink
+- **Card Development**: `update-card.sh` script rebuilds and copies Lovelace card
+- **Access**: http://localhost:8123 (port 8123 exposed)
+- **Persistent Config**: `config/` directory persists between restarts
+
+#### Docker Compose for E2E Testing
+```bash
+# Start Home Assistant with integration
+docker-compose up -d
+
+# View logs
+docker-compose logs -f homeassistant
+
+# Stop environment
+docker-compose down
+```
+
+Configuration includes:
+- Volume mounts for integration and card
+- Port 8123 for web access
+- Port 9222 for Chrome DevTools Protocol (E2E debugging)
+- Persistent config directory
+
 ## Technical Constraints
 
 ### Performance Requirements
