@@ -155,12 +155,12 @@ class EmergencyBinarySensor(BinarySensorEntity):
         self._attr_name = f"Emergency: {name}"
         self._attr_unique_id = f"emergency_{hub_name}_{alert_id}"
         self._attr_device_info = {
-            "identifiers": {(DOMAIN, f"{hub_name}_{alert_id}")},
+            "identifiers": {(DOMAIN, f"alert_{entry.entry_id}_{alert_id}")},
             "name": f"Emergency Alert: {name}",
             "manufacturer": "Emergency Alerts",
             "model": f"{self._severity.title()} Alert",
             "sw_version": "1.0",
-            "via_device": (DOMAIN, f"{hub_name}_hub"),
+            "via_device": (DOMAIN, f"hub_{entry.entry_id}"),
         }
 
         # State tracking
