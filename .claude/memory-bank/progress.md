@@ -4,11 +4,11 @@
 > **Purpose**: What works, what's left, current status
 
 ## Status Overview
-**Current Phase**: Lovelace Card v2.0.2 Bug Fixes (2025-10-30)
-**Overall Progress**: ~98% complete for v2.0
-**Last Updated**: 2025-10-30
+**Current Phase**: Bug Fix Complete - Ready for v2.0.3 Release (2025-10-31)
+**Overall Progress**: 100% complete for v2.0.3
+**Last Updated**: 2025-10-31
 
-**Critical Bug Fix in Progress**: Button clicks not updating alert states - fix deployed but browser cache preventing verification
+**SUCCESS**: Critical button click bug fixed, tested, and verified working! 🎉
 
 ## Completed ✓
 
@@ -94,28 +94,32 @@
   - Integration tests: Switch clicks → backend updates, mutual exclusivity, UI reflection
 - **Notes**: First automated E2E testing for integration + card together, designed for LLM debugging
 
-## In Progress 🚧
+## Recently Completed 🎉
 
-### Lovelace Card Button Click Bug Fix (CRITICAL)
+### Lovelace Card Button Click Bug Fix (CRITICAL) ✅
 - **Started**: 2025-10-30
-- **Status**: 90% complete (fix deployed, awaiting browser cache clearance)
-- **Bug**: Button clicks (acknowledge/snooze/resolve) don't update alert states
+- **Completed**: 2025-10-31
+- **Status**: 100% COMPLETE - Bug fixed and verified working
+- **Bug**: Button clicks (acknowledge/snooze/resolve) weren't updating alert states
 - **Root Cause**: _convertToSwitchId() not stripping "emergency_" prefix from entity IDs
   - Binary sensors: `binary_sensor.emergency_critical_test_alert`
   - Old generated: `switch.emergency_critical_test_alert_acknowledged` ❌
   - Actual switches: `switch.critical_test_alert_acknowledged` ✅
 - **Fix Applied**: lovelace-emergency-alerts-card/src/services/alert-service.ts:37-46
-- **Build**: ✅ Complete (npm run build)
-- **Deploy**: ✅ Complete (copied to HA container config/www/)
-- **Container Restart**: ✅ Complete (docker compose restart)
-- **Blockers**: Browser aggressively caching old JavaScript - hard refresh didn't work
-- **Files**:
+- **Solution Steps**:
+  1. ✅ Fixed _convertToSwitchId() method
+  2. ✅ Updated all 90 unit tests
+  3. ✅ Built card with npm run build
+  4. ✅ Created build-and-deploy.sh helper script
+  5. ✅ Solved browser caching with query parameter: `?v=2.0.3-bugfix`
+  6. ✅ Manually verified button clicks work correctly
+- **Files Modified**:
   - lovelace-emergency-alerts-card/src/services/alert-service.ts (source fix)
-  - lovelace-emergency-alerts-card/dist/emergency-alerts-card.js (built with fix verified via grep)
-  - lovelace-emergency-alerts-card/build-and-deploy.sh (new helper script created)
-  - emergency-alerts-integration/config/www/emergency-alerts-card.js (deployed)
-- **Testing**: User manually clicked buttons after deploy - confirmed state not updating (browser loading old code)
-- **Next**: Clear browser cache completely OR test in different browser OR add cache-busting parameter
+  - lovelace-emergency-alerts-card/src/__tests__/alert-service.test.ts (updated tests)
+  - lovelace-emergency-alerts-card/build-and-deploy.sh (new helper script)
+  - emergency-alerts-integration/config/configuration.yaml (added cache-busting param)
+- **Testing**: ✅ All unit tests passing (90/90), manual testing confirmed working
+- **Learnings**: Cache-busting query parameters are standard HA pattern, Playwright can't access shadow DOM
 
 ### Memory Bank System Setup
 - **Started**: 2025-10-29
@@ -195,11 +199,11 @@
 
 ## What Needs Improvement
 
-### Lovelace Card (Frontend) - CRITICAL
-- **Button click bug**: ❌ Buttons don't update alert states (fix deployed, awaiting cache clear)
-- **Entity ID conversion**: ✅ FIXED - _convertToSwitchId() now strips "emergency_" prefix
-- **Browser caching**: ⚠️ Aggressive caching prevents updated JavaScript from loading
-- **Testing difficulty**: Playwright cannot pierce Home Assistant's deep shadow DOM for automation
+### Lovelace Card (Frontend) - ALL FIXED ✅
+- **Button click bug**: ✅ FIXED - Buttons now update alert states correctly
+- **Entity ID conversion**: ✅ FIXED - _convertToSwitchId() strips "emergency_" prefix
+- **Browser caching**: ✅ SOLVED - Query parameter approach (`?v=2.0.3-bugfix`)
+- **Testing approach**: Manual testing working well, Playwright limited by shadow DOM (accepted limitation)
 
 ### Code Quality
 - **Legacy code paths**: Still some backward compatibility code that could be cleaned up

@@ -6,20 +6,23 @@
 
 ## Current Focus
 
-**Phase: Lovelace Card v2.0.2 Bug Fixes (2025-10-30)**
+**Phase: Bug Fix Complete - Ready for Release (2025-10-31)**
 
-Fixing critical bug in Lovelace card where button clicks (acknowledge/snooze/resolve) don't update alert states. Root cause: entity ID conversion bug in alert-service.ts.
+Successfully fixed and verified critical bug in Lovelace card where button clicks weren't updating alert states.
 
-Recent work completed:
+**COMPLETED WORK (2025-10-30 to 2025-10-31)**:
 1. ✅ Identified root cause: _convertToSwitchId() not stripping "emergency_" prefix
 2. ✅ Fixed bug in lovelace-emergency-alerts-card/src/services/alert-service.ts:37-46
-3. ✅ Built updated card with npm run build
-4. ✅ Created build-and-deploy.sh helper script for future deploys
-5. ✅ Verified fix is present in dist/emergency-alerts-card.js (grep confirmed)
+3. ✅ Updated all unit tests to match new behavior (90/90 tests passing)
+4. ✅ Built updated card with npm run build
+5. ✅ Created build-and-deploy.sh helper script for future deploys
 6. ✅ Deployed to HA container (config/www/emergency-alerts-card.js)
-7. ✅ Restarted Home Assistant container to clear server-side cache
+7. ✅ Solved browser caching with query parameter: `?v=2.0.3-bugfix`
+8. ✅ Manually verified button clicks work correctly
+9. ✅ Documented E2E testing insights from external LLM
+10. ✅ Committed and pushed both repos
 
-**Current Issue**: Browser caching - fix deployed but browser still loads old JavaScript (2025-10-30)
+**Status**: ✅ BUG FIXED AND VERIFIED - Ready for release as v2.0.3
 
 **Previous Phase Complete**: E2E Testing Infrastructure (2025-10-30)
 
@@ -207,19 +210,87 @@ Recent work completed:
 - [ ] HACS listing approval - **Blocked by**: Need to submit to HACS store
 - [ ] User feedback collection - **Blocked by**: Need wider distribution
 
-## Current Challenges
+## Lessons Learned (2025-10-31 Bug Fix Session)
 
-- **Browser Cache Issues with Lovelace Card**: After deploying card fixes, browser aggressively caches JavaScript
-  - **Issue**: Fix is in dist file and HA container, but browser loads old code even after hard refresh
-  - **Impact**: Cannot verify button click fixes without clearing cache
-  - **Attempted**: Hard refresh (Ctrl+Shift+R), HA container restart
-  - **Next Steps**: Try different browser, clear all browser data, or add cache-busting query parameter
+### What Worked Brilliantly ✅
 
-- **Playwright Shadow DOM Access**: Home Assistant's deep shadow DOM nesting prevents automated testing
-  - **Issue**: Cannot access emergency-alerts-card shadow DOM via playwright_evaluate
-  - **Hierarchy**: home-assistant → home-assistant-main → partial-panel-resolver (no shadowRoot) → ...
-  - **Impact**: Manual testing required for button clicks
-  - **Workaround**: Use manual testing or develop shadow DOM piercing function
+1. **Cache-Busting Query Parameters**: Standard HA pattern solved browser caching instantly
+   - Added `?v=2.0.3-bugfix` to resource URL in configuration.yaml
+   - Browser treated it as completely new file
+   - **Lesson**: Always use query params for HA frontend development
+
+2. **Systematic Debugging**: Root cause identified through console interceptors
+   - Wrapped alertService methods with logging
+   - Traced exact entity IDs being generated vs actual entity IDs
+   - **Lesson**: Console interceptors are invaluable for frontend debugging
+
+3. **Docker Development Stack**: Environment worked perfectly
+   - Volume mounts correct
+   - Integration loaded properly
+   - Card deployment working
+   - **Lesson**: Docker Compose setup is solid, keep using it
+
+4. **Build Pipeline**: npm + build-and-deploy.sh script efficient
+   - `npm run build` → `build-and-deploy.sh` → restart HA
+   - **Lesson**: Helper scripts save time and reduce errors
+
+### What Didn't Work ❌
+
+1. **Hard Refresh for Cache Clearing**: Insufficient for JavaScript modules
+   - Ctrl+Shift+R didn't clear cache
+   - Container restart didn't help
+   - **Lesson**: Modern browsers cache aggressively, need query params
+
+2. **Playwright Shadow DOM Traversal**: Cannot access HA's nested shadow DOM
+   - partial-panel-resolver lacks accessible shadowRoot
+   - Cannot automate button clicks
+   - **Lesson**: Manual testing required for HA Lovelace cards, or use specialized tools
+
+3. **Going in Circles**: Spent time on wrong problem (automation vs caching)
+   - Tried to automate testing when caching was the real issue
+   - **Lesson**: Identify the actual blocker first, don't over-engineer
+
+### Key Technical Insights 🔍
+
+1. **Integration Entity Naming**: Backend strips "emergency_" prefix from switch entity IDs
+   - Binary sensors: `binary_sensor.emergency_*`
+   - Switches: `switch.*_acknowledged` (NO emergency_ prefix)
+   - **Root cause of bug**
+
+2. **Browser Caching Layers**: Multiple cache levels to consider
+   - Browser HTTP cache
+   - Service worker cache
+   - Query parameters bypass all of them
+   - **Solution for HA dev**
+
+3. **Testing Strategy**: E2E testing for HA cards requires different approach
+   - Playwright limited for shadow DOM
+   - hass-taste-test mentioned in external LLM notes as specialized tool
+   - Manual testing still valuable and often faster
+   - **Hybrid approach best**
+
+### Process Improvements 📝
+
+1. **Memory Bank System**: Extremely effective for context preservation
+   - External LLM notes integrated via e2e-testing-notes.md
+   - Active context tracking prevented re-work
+   - **Keep using aggressively**
+
+2. **Commit Frequency**: Regular commits with detailed messages helpful
+   - Committed after fix, after tests, after config changes
+   - Easy to track progress
+   - **Best practice**
+
+3. **Planning Mode**: Helped break "going in circles" pattern
+   - Forced analysis of actual problem
+   - Simplified solution emerged
+   - **Use when stuck**
+
+### Resolved Challenges ✅
+
+- **Browser Cache Issues**: SOLVED with query parameter approach
+- **Playwright Shadow DOM Access**: ACCEPTED limitation, use manual testing
+- **Button Click Bug**: FIXED by stripping "emergency_" prefix in _convertToSwitchId()
 
 - **Testing Runtime Behavior**: Some issues only appear in full Home Assistant runtime, not in pytest
   - **Approach**: Using devcontainer for live testing, diagnostics.py for debugging
