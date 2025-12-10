@@ -27,12 +27,11 @@ COPY custom_components/emergency_alerts/test_requirements.txt ./test_requirement
 RUN pip install --no-cache-dir -r test_requirements.txt pytz
 
 ENV PYTHONPATH="/app:/usr/local/lib/python3.11/site-packages"
-ENV TZ=UTC
 
 # Create test runner script
 RUN echo '#!/bin/bash\nset -e\necho "🚦 Running Emergency Alerts Integration Backend Tests"\necho "Working directory: $(pwd)"\necho "Python version: $(python --version)"\necho "Timezone: $(cat /etc/timezone)"\necho ""\necho "Test files:"\nfind custom_components/emergency_alerts/tests -name "test_*.py" -type f | sort\necho ""\npytest custom_components/emergency_alerts/tests/ --cov=custom_components.emergency_alerts --cov-report=term-missing -v' > /app/run_tests.sh && chmod +x /app/run_tests.sh
 
-# Set timezone environment
+# Set timezone environment (consistent with system timezone configuration)
 ENV TZ=America/Los_Angeles
 
 ENTRYPOINT ["/app/run_tests.sh"] 

@@ -57,6 +57,8 @@ if _config_class is not None:
                 
                 # Set the timezone using the original method's logic
                 self._time_zone = time_zone
+                # Also set the global default timezone (required for dt_util.now() etc.)
+                dt_util.set_default_time_zone(time_zone)
 
             # Apply the patch on Config class
             _config_class.set_time_zone = _patched_set_time_zone
@@ -78,6 +80,8 @@ try:
     SYRUPY_AVAILABLE = True
 except ImportError:
     SYRUPY_AVAILABLE = False
+    # Create a dummy type for type checking when syrupy is not available
+    SnapshotAssertion = type('SnapshotAssertion', (), {})
 
 
 @pytest.fixture(autouse=True)
@@ -87,7 +91,7 @@ def auto_enable_custom_integrations(enable_custom_integrations):
 
 
 @pytest.fixture
-def snapshot(snapshot: SnapshotAssertion) -> SnapshotAssertion:
+def snapshot(snapshot):  # type: ignore[type-arg]
     """Return snapshot assertion fixture with Home Assistant extension."""
     if SYRUPY_AVAILABLE:
         try:

@@ -33,7 +33,14 @@ SUMMARY_UPDATE_SIGNAL = "emergency_alerts_summary_update"
 
 
 def _parse_actions(action_string):
-    """Parse action string (JSON/YAML) into a list of action dictionaries."""
+    """Parse action string (JSON/YAML) into a list of action dictionaries.
+    
+    Supports:
+    - Profile references: "profile:profile_id" (returns as-is for later resolution)
+    - Single action dict: {"service": "...", "data": {...}}
+    - List of actions: [{"service": "..."}, ...]
+    - Already parsed list: [dict, ...]
+    """
     if not action_string:
         return []
 
@@ -41,24 +48,40 @@ def _parse_actions(action_string):
         return action_string  # Already a list
 
     if isinstance(action_string, str):
+        # Check if it's a profile reference (starts with "profile:")
+        if action_string.startswith("profile:"):
+            return action_string  # Return as-is for later resolution
+        
         try:
             # Try parsing as JSON first
             result = json.loads(action_string)
-            # Ensure result is a list
-            if not isinstance(result, list):
-                return []
-            return result
+            # If it's a single dict, wrap it in a list
+            if isinstance(result, dict):
+                return [result]
+            # If it's already a list, return it
+            if isinstance(result, list):
+                return result
+            # Otherwise, return empty list (invalid format)
+            return []
         except json.JSONDecodeError:
             try:
                 # Try parsing as YAML
                 result = yaml.safe_load(action_string)
-                # Ensure result is a list
-                if not isinstance(result, list):
-                    return []
-                return result
+                # If it's a single dict, wrap it in a list
+                if isinstance(result, dict):
+                    return [result]
+                # If it's already a list, return it
+                if isinstance(result, list):
+                    return result
+                # Otherwise, return empty list (invalid format)
+                return []
             except yaml.YAMLError:
                 _LOGGER.error(f"Failed to parse actions: {action_string}")
                 return []
+
+    # If it's already a dict (from config flow), wrap it in a list
+    if isinstance(action_string, dict):
+        return [action_string]
 
     return []
 
@@ -197,9 +220,6 @@ class EmergencyBinarySensor(BinarySensorEntity):
         # Timers and async tasks
         self._escalation_task = None
         self._snooze_task = None
-        
-        # Register cleanup callback
-        self.async_on_remove(self._cleanup_timers)
         self._snooze_until = None
 
         # Store config entry for switch access
@@ -237,6 +257,9 @@ class EmergencyBinarySensor(BinarySensorEntity):
         )
 
     async def async_added_to_hass(self):
+        # Register cleanup callback when entity is properly added to hass
+        self.async_on_remove(self._cleanup_timers)
+        
         # Track all referenced entities for state changes
         entities = set()
         if self._trigger_type == "simple" and self._entity_id:
