@@ -85,6 +85,10 @@ async def test_template_trigger_evaluation(hass: HomeAssistant, mock_template_co
     )
 
     sensor.entity_id = "binary_sensor.emergency_template_alert"
+    
+    # Register entity with hass for proper cleanup
+    sensor.hass = hass
+    sensor.async_on_remove(sensor._cleanup_timers)
 
     # Mock template evaluation
     with patch(
@@ -97,10 +101,19 @@ async def test_template_trigger_evaluation(hass: HomeAssistant, mock_template_co
         assert sensor.is_on is True
         assert sensor._already_triggered is True
 
-        # Template returns False
+        # Wait for async tasks to complete (escalation timer setup)
+        await hass.async_block_till_done()
+
+        # Template returns False (this should cancel the escalation timer)
         mock_tpl.async_render.return_value = False
         sensor._evaluate_trigger()
         assert sensor.is_on is False
+        
+        # Wait for async operations to complete
+        await hass.async_block_till_done()
+        
+        # Clean up escalation timer if it was started
+        sensor._cleanup_timers()
 
 
 async def test_logical_trigger_evaluation(hass: HomeAssistant, mock_logical_config_entry):
@@ -118,6 +131,10 @@ async def test_logical_trigger_evaluation(hass: HomeAssistant, mock_logical_conf
     )
 
     sensor.entity_id = "binary_sensor.emergency_logical_alert"
+    
+    # Register entity with hass for proper cleanup
+    sensor.hass = hass
+    sensor.async_on_remove(sensor._cleanup_timers)
 
     await hass.async_block_till_done()
 
@@ -145,6 +162,18 @@ async def test_logical_trigger_evaluation(hass: HomeAssistant, mock_logical_conf
     sensor._evaluate_trigger()
     assert sensor.is_on is True
     assert sensor._already_triggered is True
+    
+    # Wait for async tasks to complete (escalation timer setup)
+    await hass.async_block_till_done()
+    
+    # Clear the trigger to cancel the escalation timer
+    hass.states.async_set("binary_sensor.door", "off")
+    await hass.async_block_till_done()
+    sensor._evaluate_trigger()
+    await hass.async_block_till_done()
+    
+    # Clean up escalation timer if it was started
+    sensor._cleanup_timers()
 
 
 async def test_acknowledgment(hass: HomeAssistant, create_binary_sensor):
@@ -167,14 +196,23 @@ async def test_acknowledgment(hass: HomeAssistant, create_binary_sensor):
     hass.states.async_set("binary_sensor.test_sensor", "on")
     await hass.async_block_till_done()
     sensor._evaluate_trigger()
+    
+    # Wait for async tasks to complete (escalation timer setup)
+    await hass.async_block_till_done()
 
     assert sensor.is_on is True
     assert sensor.get_status() == "active"
 
-    # Acknowledge
+    # Acknowledge (this should cancel the escalation timer)
     await sensor.async_acknowledge()
     assert sensor._acknowledged is True
     assert sensor.get_status() == "acknowledged"
+    
+    # Wait for async operations to complete
+    await hass.async_block_till_done()
+    
+    # Clean up escalation timer if it was started
+    sensor._cleanup_timers()
 
     # In v2.0, acknowledgment is managed via switches, not direct methods
     # So we just test that acknowledgment works correctly
@@ -195,6 +233,10 @@ async def test_action_calls(hass: HomeAssistant, mock_template_config_entry):
     )
 
     sensor.entity_id = "binary_sensor.emergency_template_alert"
+    
+    # Register entity with hass for proper cleanup
+    sensor.hass = hass
+    sensor.async_on_remove(sensor._cleanup_timers)
 
     # Mock template to return True
     with patch(
@@ -207,10 +249,21 @@ async def test_action_calls(hass: HomeAssistant, mock_template_config_entry):
         sensor._evaluate_trigger()
         assert sensor.is_on is True
 
+        # Wait for async tasks to complete (escalation timer setup)
+        await hass.async_block_till_done()
+
         # Check that service was called (on_triggered has notify.notify service)
         # Note: Actions are called asynchronously, and we'd need to await them
         # For now, just check the state changed
         assert sensor._already_triggered is True
+        
+        # Clear the trigger to cancel the escalation timer
+        mock_tpl.async_render.return_value = False
+        sensor._evaluate_trigger()
+        await hass.async_block_till_done()
+        
+        # Clean up escalation timer if it was started
+        sensor._cleanup_timers()
 
 
 async def test_extra_state_attributes(hass: HomeAssistant, create_binary_sensor):

@@ -45,14 +45,35 @@ The testing suite includes:
 
 Located in: `custom_components/emergency_alerts/tests/`
 
-### Test Structure
+### Test Structure (Following Home Assistant Best Practices)
 ```
 tests/
 ├── __init__.py
-├── conftest.py          # Test fixtures and configuration
-├── test_init.py         # Integration setup/teardown
-├── test_binary_sensor.py # Alert entity logic
-└── test_config_flow.py  # UI configuration flow
+├── conftest.py                    # Enhanced fixtures following HA patterns
+├── helpers/                       # Test helper utilities
+│   ├── entity_factory.py         # Factory for creating test entities
+│   ├── state_helpers.py          # State manipulation utilities
+│   ├── assertion_helpers.py      # Custom assertions for HA entities
+│   └── timer_helpers.py          # Time manipulation for timer testing
+├── unit/                          # Pure unit tests (minimal HA dependencies)
+│   ├── test_action_parsing.py    # Action parsing logic
+│   ├── test_trigger_evaluation.py # Trigger evaluation logic
+│   └── test_state_machine.py     # State machine transitions
+├── integration/                   # Integration tests (component interactions)
+│   ├── test_binary_sensor_integration.py
+│   ├── test_switch_binary_sensor_integration.py
+│   ├── test_sensor_updates.py
+│   ├── test_service_integration.py
+│   ├── test_e2e_scenarios.py
+│   ├── test_api_contracts.py
+│   └── test_state_sync.py
+├── fixtures/                      # Test data fixtures (YAML/JSON)
+├── snapshots/                     # Snapshot test files (syrupy)
+├── test_init.py                   # Integration setup/teardown
+├── test_binary_sensor.py          # Alert entity logic
+├── test_config_flow.py            # UI configuration flow
+├── test_sensor.py                 # Summary sensors
+└── test_switch.py                 # Switch entities
 ```
 
 ### What's Tested
@@ -78,29 +99,76 @@ tests/
 - ✅ **Action Configuration**: Service call definitions
 - ✅ **Error Handling**: Invalid configurations
 
-### Test Fixtures
+### Test Fixtures (Following HA Patterns)
+
+The test suite uses Home Assistant best practices with `pytest-homeassistant-custom-component`:
+
+#### init_integration Fixtures
 ```python
-# Simple trigger alert
-@pytest.fixture
-def mock_config_entry():
-    return MockConfigEntry(
-        domain=DOMAIN,
-        data={
-            "name": "Test Alert",
-            "trigger_type": "simple",
-            "entity_id": "binary_sensor.test_sensor",
-            "trigger_state": "on",
-            "severity": "warning",
-            "group": "security"
-        }
+# Use init_integration fixtures for component setup
+async def test_my_feature(hass: HomeAssistant, init_group_hub):
+    """Test using initialized integration."""
+    await hass.async_block_till_done()
+    
+    # Test through public APIs (entity states)
+    state = hass.states.get("binary_sensor.emergency_test_hub_test_alert")
+    assert state is not None
+```
+
+#### Factory Fixtures
+```python
+# Use alert_config_factory for creating test configurations
+def test_custom_alert(hass: HomeAssistant, alert_config_factory):
+    config = alert_config_factory(
+        name="Custom Alert",
+        trigger_type="template",
+        template="{{ True }}",
+        severity="critical"
     )
+    # Use config in tests
+```
+
+#### Snapshot Testing
+```python
+# Use snapshot fixture for stable outputs
+async def test_diagnostics(hass: HomeAssistant, init_group_hub, snapshot):
+    """Test diagnostics output."""
+    diagnostics = await get_diagnostics(hass, init_group_hub)
+    assert diagnostics == snapshot
 ```
 
 ### Running Backend Tests
+
 ```bash
+# Run all tests
 cd custom_components/emergency_alerts
 python -m pytest tests/ -v --cov=. --cov-report=html
+
+# Run only unit tests (fast)
+pytest -m unit -v
+
+# Run only integration tests
+pytest -m integration -v
+
+# Run specific test file
+pytest tests/unit/test_action_parsing.py -v
+
+# Run with parallel execution
+pytest -n auto
+
+# Update snapshots
+pytest --snapshot-update
 ```
+
+### Test Categories
+
+Tests are organized into categories using pytest markers:
+
+- **`@pytest.mark.unit`**: Pure unit tests with minimal HA dependencies
+- **`@pytest.mark.integration`**: Integration tests testing component interactions
+- **`@pytest.mark.snapshot`**: Snapshot tests for stable outputs
+- **`@pytest.mark.slow`**: Tests that take longer to run
+- **`@pytest.mark.no_parallel`**: Tests that cannot run in parallel
 
 ## 🎨 Frontend Tests
 
@@ -161,6 +229,55 @@ npm test -- --coverage     # With coverage
 
 ## 🔗 Integration Tests
 
+### Component Integration Tests
+
+Integration tests verify that components work together correctly:
+
+#### Binary Sensor Integration (`test_binary_sensor_integration.py`)
+- Entity creation and registration
+- Trigger evaluation through entity state changes
+- Status sensor creation and updates
+- State synchronization
+
+#### Switch ↔ Binary Sensor Integration (`test_switch_binary_sensor_integration.py`)
+- Switch state updates binary sensor attributes
+- Mutual exclusivity enforcement
+- State synchronization between switches and binary sensors
+
+#### Sensor Updates (`test_sensor_updates.py`)
+- Global summary sensor updates
+- Hub summary sensor counts
+- Multiple alerts interaction
+
+#### Service Integration (`test_service_integration.py`)
+- Service calls update entity states
+- Service data format validation
+- Error handling for invalid service calls
+
+### End-to-End Scenarios (`test_e2e_scenarios.py`)
+
+Complete user workflows tested:
+- Alert lifecycle: trigger → acknowledge → clear
+- Multiple alerts interaction
+- Alert resolution behavior
+- State transitions
+
+### API Contract Tests (`test_api_contracts.py`)
+
+Ensures entity state structure matches UI expectations:
+- Required attributes present
+- Attribute types correct
+- Status values valid
+- Service call formats correct
+
+### State Synchronization Tests (`test_state_sync.py`)
+
+Verifies UI-visible state stays in sync:
+- Binary sensor ↔ status sensor sync
+- Switch ↔ binary sensor sync
+- Summary sensor sync
+- Concurrent updates maintain consistency
+
 ### File Structure Validation
 Verifies all required files exist:
 - Backend: `__init__.py`, `manifest.json`, `binary_sensor.py`, etc.
@@ -169,9 +286,9 @@ Verifies all required files exist:
 ### Python Import Validation
 ```python
 # Verifies imports work correctly
-from const import DOMAIN
-from binary_sensor import EmergencyBinarySensor
-from config_flow import EmergencyConfigFlow
+from custom_components.emergency_alerts.const import DOMAIN
+from custom_components.emergency_alerts.binary_sensor import EmergencyBinarySensor
+from custom_components.emergency_alerts.config_flow import EmergencyConfigFlow
 ```
 
 ### TypeScript Compilation
@@ -277,7 +394,11 @@ npm test -- --verbose
 ### Docker Testing
 ```bash
 # Build and run Docker tests
-./docker-test.sh
+docker build -f Dockerfile.test -t emergency-alerts-test .
+docker run --rm emergency-alerts-test
+
+# Run specific test suite
+docker run --rm emergency-alerts-test pytest -m unit -v
 
 # Debug Docker container
 docker run -it --rm emergency-alerts-test bash
@@ -285,6 +406,8 @@ docker run -it --rm emergency-alerts-test bash
 # Check container environment
 docker run --rm emergency-alerts-test env | grep PYTHON
 ```
+
+**Note**: The Docker test environment uses Python 3.11 and includes all test dependencies. Ensure timezone data is properly configured if you encounter timezone-related errors.
 
 ## 🚨 Troubleshooting Guide
 
@@ -568,8 +691,35 @@ npm run test:watch
 
 ## 📋 Current Status & Next Steps
 
-### ✅ Completed Fixes
-Based on recent troubleshooting sessions, the following issues have been resolved:
+### ✅ Completed Improvements (2024-12-09)
+
+1. **Enhanced Test Infrastructure**:
+   - Added `init_integration` fixtures following HA patterns
+   - Created test helpers (entity_factory, state_helpers, assertion_helpers, timer_helpers)
+   - Added snapshot testing support with syrupy
+   - Added pytest markers for test categorization
+
+2. **Pure Unit Tests**:
+   - Created unit tests for action parsing (pure Python, no HA)
+   - Created unit tests for trigger evaluation
+   - Created unit tests for state machine logic
+
+3. **Integration Tests**:
+   - Binary sensor integration tests
+   - Switch ↔ binary sensor interaction tests
+   - Sensor update tests
+   - Service integration tests
+   - End-to-end scenario tests
+   - API contract tests
+   - State synchronization tests
+
+4. **Configuration Updates**:
+   - Updated `test_requirements.txt` with freezegun, syrupy, pytest-xdist
+   - Updated `pytest.ini` with markers and configuration
+   - Enhanced `Dockerfile.test` with timezone support
+
+### ✅ Previously Completed Fixes
+Based on earlier troubleshooting sessions, the following issues have been resolved:
 
 1. **Config Flow Logging**: Added comprehensive logging to `config_flow.py` for debugging 500 errors
 2. **Docker Build Dependencies**: Fixed missing C++ compiler tools in `Dockerfile.test`
@@ -634,14 +784,48 @@ Some issues may still need attention depending on your environment:
 
 ## 💡 Tips for Contributors
 
-1. **Write Tests First**: TDD approach for new features
-2. **Mock External Dependencies**: Isolate units under test
-3. **Test Edge Cases**: Empty states, error conditions
-4. **Keep Tests Simple**: One assertion per test when possible
-5. **Use Descriptive Names**: Test names should explain intent
-6. **Update Tests with Changes**: Keep tests synchronized with code
-7. **Document Issues**: Add troubleshooting notes when encountering new problems
-8. **Test in Multiple Environments**: Verify changes work in local, Docker, and CI environments
+### Writing Tests Following HA Best Practices
+
+1. **Use pytest-homeassistant-custom-component**: Don't create custom mocks - use the official package
+2. **Test Through Public APIs**: Test entity states (`hass.states.get()`), attributes, and services - not internal methods
+3. **Use init_integration Pattern**: Create fixtures that set up config entries properly using `MockConfigEntry.add_to_hass()`
+4. **Always Use async_block_till_done()**: After state changes to ensure async operations complete
+5. **Use Test Helpers**: Leverage helper functions from `tests/helpers/` for common operations
+6. **Mark Tests Appropriately**: Use `@pytest.mark.unit` or `@pytest.mark.integration`
+7. **Write Tests First**: TDD approach for new features
+8. **Test Edge Cases**: Empty states, error conditions, boundary values
+9. **Keep Tests Simple**: One assertion per test when possible
+10. **Use Descriptive Names**: Test names should explain intent
+11. **Update Tests with Changes**: Keep tests synchronized with code
+12. **Document Issues**: Add troubleshooting notes when encountering new problems
+13. **Test in Multiple Environments**: Verify changes work in local, Docker, and CI environments
+
+### Example: Writing a New Integration Test
+
+```python
+"""Example integration test following HA best practices."""
+
+import pytest
+from homeassistant.core import HomeAssistant
+from custom_components.emergency_alerts.tests.helpers.state_helpers import (
+    set_entity_state,
+    assert_binary_sensor_is_on,
+)
+
+@pytest.mark.integration
+async def test_my_new_feature(hass: HomeAssistant, init_group_hub):
+    """Test my new feature."""
+    await hass.async_block_till_done()
+    
+    # Set up test state
+    set_entity_state(hass, "binary_sensor.test", "on")
+    await hass.async_block_till_done()
+    
+    # Test through public API
+    state = hass.states.get("binary_sensor.emergency_test_hub_test_alert")
+    assert state.state == "on"
+    assert state.attributes.get("status") == "active"
+```
 
 ## 📞 Getting Help
 
