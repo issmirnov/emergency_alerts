@@ -1,19 +1,83 @@
 """Test configuration for Emergency Alerts integration."""
 
 import pytest
+import os
+
+# Set timezone environment before importing pytest-homeassistant-custom-component
+# This helps with timezone validation in Docker environments
+if "TZ" not in os.environ:
+    os.environ["TZ"] = "America/Los_Angeles"
+
 pytest_plugins = "pytest_homeassistant_custom_component"
 
-from unittest.mock import AsyncMock, Mock
+# Patch Home Assistant's Config.set_time_zone method
+# This is a workaround for pytest-homeassistant-custom-component hardcoding US/Pacific
+import homeassistant.core as ha_core
+from homeassistant.util import dt as dt_util
+
+# Store original method
+_original_set_time_zone = ha_core.Config.set_time_zone
+
+def _patched_set_time_zone(self, time_zone_str: str) -> None:
+    """Patched version of set_time_zone that handles timezone aliases."""
+    # Map common timezone aliases
+    timezone_map = {
+        "US/Pacific": "America/Los_Angeles",
+        "US/Mountain": "America/Denver",
+        "US/Central": "America/Chicago",
+        "US/Eastern": "America/New_York",
+    }
+    
+    # Use mapped timezone if available
+    actual_timezone = timezone_map.get(time_zone_str, time_zone_str)
+    
+    # Try to get the timezone
+    time_zone = dt_util.get_time_zone(actual_timezone)
+    if time_zone is None:
+        # Fallback to UTC if timezone is still invalid
+        time_zone = dt_util.get_time_zone("UTC")
+    
+    if time_zone is None:
+        raise ValueError(f"Received invalid time zone {time_zone_str}")
+    
+    # Set the timezone using the original method's logic
+    self._time_zone = time_zone
+
+# Apply the patch on Config class
+ha_core.Config.set_time_zone = _patched_set_time_zone
+
+from unittest.mock import AsyncMock, Mock, patch
+from typing import Any
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.emergency_alerts.const import DOMAIN
+
+# Try to import snapshot testing support (optional)
+try:
+    from syrupy.assertion import SnapshotAssertion
+    SYRUPY_AVAILABLE = True
+except ImportError:
+    SYRUPY_AVAILABLE = False
 
 
 @pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations):
     """Enable custom integrations for all tests."""
     return
+
+
+@pytest.fixture
+def snapshot(snapshot: SnapshotAssertion) -> SnapshotAssertion:
+    """Return snapshot assertion fixture with Home Assistant extension."""
+    if SYRUPY_AVAILABLE:
+        try:
+            from pytest_homeassistant_custom_component.syrupy import HomeAssistantSnapshotExtension
+            return snapshot.use_extension(HomeAssistantSnapshotExtension)
+        except ImportError:
+            # Fallback if extension not available
+            return snapshot
+    return snapshot
 
 
 # Mock config entries with v2.0 hub-based structure
@@ -183,3 +247,188 @@ def mock_binary_sensor():
     sensor._execute_action = AsyncMock()
     sensor._start_escalation_timer = AsyncMock()
     return sensor
+
+
+# init_integration fixtures following HA patterns
+@pytest.fixture
+async def init_global_hub(hass: HomeAssistant):
+    """Initialize a global settings hub integration."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        version=2,
+        title="Emergency Alerts - Global Settings",
+        data={
+            "hub_type": "global",
+            "name": "Global Settings"
+        },
+        options={
+            "default_escalation_time": 300,
+            "enable_global_notifications": False,
+            "notification_profiles": {}
+        }
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    return entry
+
+
+@pytest.fixture
+async def init_group_hub(hass: HomeAssistant):
+    """Initialize a group hub integration with default test alert."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        version=2,
+        title="Emergency Alerts - Test Group",
+        data={
+            "hub_type": "group",
+            "group": "security",
+            "hub_name": "test_hub",
+            "alerts": {
+                "test_alert": {
+                    "name": "Test Alert",
+                    "trigger_type": "simple",
+                    "entity_id": "binary_sensor.test_sensor",
+                    "trigger_state": "on",
+                    "severity": "warning",
+                },
+            },
+        },
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    return entry
+
+
+@pytest.fixture
+async def init_group_hub_with_template(hass: HomeAssistant):
+    """Initialize a group hub with template trigger alert."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        version=2,
+        title="Emergency Alerts - Template Group",
+        data={
+            "hub_type": "group",
+            "group": "environment",
+            "hub_name": "test_hub_env",
+            "alerts": {
+                "template_alert": {
+                    "name": "Template Alert",
+                    "trigger_type": "template",
+                    "template": "{{ states('sensor.temperature') | float > 30 }}",
+                    "severity": "critical",
+                    "on_triggered": [
+                        {"service": "notify.notify", "data": {"message": "High temp!"}}
+                    ],
+                    "on_cleared": [],
+                    "on_escalated": [],
+                },
+            },
+        },
+        unique_id="test_template_alert_unique_id",
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    return entry
+
+
+@pytest.fixture
+async def init_group_hub_with_logical(hass: HomeAssistant):
+    """Initialize a group hub with logical trigger alert."""
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        version=2,
+        title="Emergency Alerts - Logical Group",
+        data={
+            "hub_type": "group",
+            "group": "security",
+            "hub_name": "test_hub_security",
+            "alerts": {
+                "logical_alert": {
+                    "name": "Logical Alert",
+                    "trigger_type": "logical",
+                    "logical_conditions": [
+                        {
+                            "entity_id": "binary_sensor.door",
+                            "state": "on",
+                        },
+                        {
+                            "entity_id": "binary_sensor.alarm",
+                            "state": "on",
+                        },
+                    ],
+                    "logical_operator": "and",
+                    "severity": "critical",
+                    "on_triggered": [],
+                    "on_cleared": [],
+                    "on_escalated": [],
+                },
+            },
+        },
+        unique_id="test_logical_alert_unique_id",
+    )
+    entry.add_to_hass(hass)
+    await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    return entry
+
+
+# Factory fixtures for common alert configurations
+@pytest.fixture
+def alert_config_factory():
+    """Factory fixture for creating alert configurations."""
+    def _create_alert_config(
+        name: str = "Test Alert",
+        trigger_type: str = "simple",
+        entity_id: str = "binary_sensor.test_sensor",
+        trigger_state: str = "on",
+        severity: str = "warning",
+        **kwargs
+    ) -> dict[str, Any]:
+        """Create an alert configuration dictionary."""
+        config = {
+            "name": name,
+            "trigger_type": trigger_type,
+            "severity": severity,
+        }
+        
+        if trigger_type == "simple":
+            config["entity_id"] = entity_id
+            config["trigger_state"] = trigger_state
+        elif trigger_type == "template":
+            config["template"] = kwargs.get("template", "{{ True }}")
+        elif trigger_type == "logical":
+            config["logical_conditions"] = kwargs.get("logical_conditions", [])
+            config["logical_operator"] = kwargs.get("logical_operator", "and")
+        
+        # Add optional fields
+        for key in ["on_triggered", "on_cleared", "on_escalated", "on_acknowledged", 
+                   "on_snoozed", "on_resolved", "snooze_duration"]:
+            if key in kwargs:
+                config[key] = kwargs[key]
+        
+        return config
+    
+    return _create_alert_config
+
+
+# Time manipulation fixtures (using freezegun if available)
+@pytest.fixture
+def freeze_time():
+    """Fixture for freezing time in tests."""
+    try:
+        from freezegun import freeze_time as ft
+        return ft
+    except ImportError:
+        try:
+            from time_machine import travel
+            # Return a context manager that works like freezegun
+            def freeze_time_machine(*args, **kwargs):
+                return travel(*args, **kwargs)
+            return freeze_time_machine
+        except ImportError:
+            # Fallback: return a no-op context manager
+            from contextlib import nullcontext
+            return nullcontext

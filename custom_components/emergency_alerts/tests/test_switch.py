@@ -45,24 +45,27 @@ def mock_config_entry():
 
 
 @pytest.fixture
-def mock_binary_sensor():
+def mock_binary_sensor(mock_config_entry):
     """Create a mock binary sensor entity."""
-    sensor = Mock()
-    sensor.entity_id = "binary_sensor.emergency_test_alert"
-    sensor._alert_id = "test_alert"
-    sensor._config_entry = Mock()
-    sensor._config_entry.entry_id = "test_entry_123"
-    sensor._acknowledged = False
-    sensor._snoozed = False
-    sensor._resolved = False
-    sensor._escalated = False
-    sensor._escalation_task = None
-    sensor._snooze_task = None
-    sensor._snooze_until = None
-    sensor.is_on = False
-    sensor.async_update_ha_state = AsyncMock()
-    sensor._execute_action = AsyncMock()
-    return sensor
+    # Create a simple object with real attributes instead of Mock
+    class MockBinarySensor:
+        def __init__(self, entry):
+            self.entity_id = "binary_sensor.emergency_test_hub_test_alert"
+            self._alert_id = "test_alert"
+            self._entry = entry
+            self._acknowledged = False
+            self._snoozed = False
+            self._resolved = False
+            self._escalated = False
+            self._escalation_task = None
+            self._snooze_task = None
+            self._snooze_until = None
+            self.is_on = False
+            self.async_write_ha_state = Mock()
+            self._update_status_sensor = Mock()
+            self._execute_action = AsyncMock()
+    
+    return MockBinarySensor(mock_config_entry)
 
 
 @pytest.mark.asyncio
@@ -123,7 +126,9 @@ async def test_acknowledge_switch_turn_on(hass: HomeAssistant, mock_config_entry
     switch.entity_id = "switch.emergency_test_alert_acknowledged"
 
     # Mock the binary sensor lookup (preserve existing keys)
-    hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
+    if DOMAIN not in hass.data:
+        hass.data[DOMAIN] = {}
+    hass.data[DOMAIN]["entities"] = [mock_binary_sensor]
 
     await switch.async_turn_on()
 
@@ -145,7 +150,9 @@ async def test_acknowledge_switch_turn_off(hass: HomeAssistant, mock_config_entr
     )
     switch.entity_id = "switch.emergency_test_alert_acknowledged"
 
-    hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
+    if DOMAIN not in hass.data:
+        hass.data[DOMAIN] = {}
+    hass.data[DOMAIN]["entities"] = [mock_binary_sensor]
     mock_binary_sensor._acknowledged = True
     mock_binary_sensor.is_on = True
     mock_binary_sensor._start_escalation_timer = AsyncMock()
@@ -186,7 +193,9 @@ async def test_snooze_switch_turn_on(hass: HomeAssistant, mock_config_entry, moc
     )
     switch.entity_id = "switch.emergency_test_alert_snoozed"
 
-    hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
+    if DOMAIN not in hass.data:
+        hass.data[DOMAIN] = {}
+    hass.data[DOMAIN]["entities"] = [mock_binary_sensor]
 
     with patch("asyncio.create_task") as mock_create_task:
         await switch.async_turn_on()
@@ -213,7 +222,9 @@ async def test_snooze_switch_turn_off(hass: HomeAssistant, mock_config_entry, mo
     )
     switch.entity_id = "switch.emergency_test_alert_snoozed"
 
-    hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
+    if DOMAIN not in hass.data:
+        hass.data[DOMAIN] = {}
+    hass.data[DOMAIN]["entities"] = [mock_binary_sensor]
 
     # Set up snoozed state
     mock_binary_sensor._snoozed = True
@@ -277,7 +288,9 @@ async def test_resolve_switch_turn_on(hass: HomeAssistant, mock_config_entry, mo
     )
     switch.entity_id = "switch.emergency_test_alert_resolved"
 
-    hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
+    if DOMAIN not in hass.data:
+        hass.data[DOMAIN] = {}
+    hass.data[DOMAIN]["entities"] = [mock_binary_sensor]
 
     await switch.async_turn_on()
 
@@ -295,7 +308,9 @@ async def test_resolve_switch_turn_off(hass: HomeAssistant, mock_config_entry, m
     )
     switch.entity_id = "switch.emergency_test_alert_resolved"
 
-    hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
+    if DOMAIN not in hass.data:
+        hass.data[DOMAIN] = {}
+    hass.data[DOMAIN]["entities"] = [mock_binary_sensor]
     mock_binary_sensor._resolved = True
 
     await switch.async_turn_off()
@@ -317,15 +332,25 @@ async def test_switch_mutual_exclusivity(hass: HomeAssistant, mock_config_entry,
     resolve_switch = EmergencyAlertResolveSwitch(hass, mock_config_entry, "test_alert", alert_data)
     resolve_switch.entity_id = "switch.emergency_test_alert_resolved"
 
-    hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
+    if DOMAIN not in hass.data:
+        hass.data[DOMAIN] = {}
+    hass.data[DOMAIN]["entities"] = [mock_binary_sensor]
+    
+    # Register switches with hass so dispatcher connections are set up
+    await ack_switch.async_added_to_hass()
+    await snooze_switch.async_added_to_hass()
+    await resolve_switch.async_added_to_hass()
+    await hass.async_block_till_done()
 
     # Turn on acknowledge
     await ack_switch.async_turn_on()
+    await hass.async_block_till_done()
     assert mock_binary_sensor._acknowledged is True
 
     # Turn on snooze - should turn off acknowledge
     with patch("asyncio.create_task"):
         await snooze_switch.async_turn_on()
+    await hass.async_block_till_done()
 
     # After enforcement, acknowledged should be False
     assert mock_binary_sensor._acknowledged is False
@@ -333,6 +358,7 @@ async def test_switch_mutual_exclusivity(hass: HomeAssistant, mock_config_entry,
 
     # Turn on resolve - should turn off snooze
     await resolve_switch.async_turn_on()
+    await hass.async_block_till_done()
 
     # After enforcement, snoozed should be False
     assert mock_binary_sensor._snoozed is False
@@ -362,7 +388,9 @@ async def test_switch_executes_configured_actions(hass: HomeAssistant, mock_conf
     switch = EmergencyAlertAcknowledgeSwitch(hass, mock_config_entry, "test_alert", alert_data)
     switch.entity_id = "switch.emergency_test_alert_acknowledged"
 
-    hass.data[DOMAIN] = {"entities": [mock_binary_sensor]}
+    if DOMAIN not in hass.data:
+        hass.data[DOMAIN] = {}
+    hass.data[DOMAIN]["entities"] = [mock_binary_sensor]
 
     await switch.async_turn_on()
 

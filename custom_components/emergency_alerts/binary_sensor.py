@@ -43,11 +43,19 @@ def _parse_actions(action_string):
     if isinstance(action_string, str):
         try:
             # Try parsing as JSON first
-            return json.loads(action_string)
+            result = json.loads(action_string)
+            # Ensure result is a list
+            if not isinstance(result, list):
+                return []
+            return result
         except json.JSONDecodeError:
             try:
                 # Try parsing as YAML
-                return yaml.safe_load(action_string) or []
+                result = yaml.safe_load(action_string)
+                # Ensure result is a list
+                if not isinstance(result, list):
+                    return []
+                return result
             except yaml.YAMLError:
                 _LOGGER.error(f"Failed to parse actions: {action_string}")
                 return []
@@ -66,11 +74,19 @@ def _parse_logical_conditions(conditions_string):
     if isinstance(conditions_string, str):
         try:
             # Try parsing as JSON first
-            return json.loads(conditions_string)
+            result = json.loads(conditions_string)
+            # Ensure result is a list
+            if not isinstance(result, list):
+                return []
+            return result
         except json.JSONDecodeError:
             try:
                 # Try parsing as YAML
-                return yaml.safe_load(conditions_string) or []
+                result = yaml.safe_load(conditions_string)
+                # Ensure result is a list
+                if not isinstance(result, list):
+                    return []
+                return result
             except yaml.YAMLError:
                 _LOGGER.error(
                     f"Failed to parse logical conditions: {conditions_string}")
@@ -108,13 +124,14 @@ async def async_setup_entry(
 
         if entities:
             async_add_entities(entities, update_before_add=True)
-
-        # Register entities for service access
-        if DOMAIN not in hass.data:
-            hass.data[DOMAIN] = {}
-        if "entities" not in hass.data[DOMAIN]:
-            hass.data[DOMAIN]["entities"] = []
-        hass.data[DOMAIN]["entities"].extend(entities)
+            
+            # Register entities for service access BEFORE async_add_entities completes
+            # This ensures switches can find them immediately
+            if DOMAIN not in hass.data:
+                hass.data[DOMAIN] = {}
+            if "entities" not in hass.data[DOMAIN]:
+                hass.data[DOMAIN]["entities"] = []
+            hass.data[DOMAIN]["entities"].extend(entities)
 
 
 class EmergencyBinarySensor(BinarySensorEntity):
@@ -180,6 +197,9 @@ class EmergencyBinarySensor(BinarySensorEntity):
         # Timers and async tasks
         self._escalation_task = None
         self._snooze_task = None
+        
+        # Register cleanup callback
+        self.async_on_remove(self._cleanup_timers)
         self._snooze_until = None
 
         # Store config entry for switch access
@@ -372,6 +392,7 @@ class EmergencyBinarySensor(BinarySensorEntity):
                 # self._acknowledged = False
                 # self._escalated = False
                 self.async_write_ha_state()
+                self._update_status_sensor()
                 self._call_actions(self._on_triggered)
 
                 # Only start escalation if not acknowledged or snoozed
@@ -388,6 +409,7 @@ class EmergencyBinarySensor(BinarySensorEntity):
                 # Already triggered, just update state
                 self._is_on = True
                 self.async_write_ha_state()
+                self._update_status_sensor()
                 async_dispatcher_send(self.hass, SUMMARY_UPDATE_SIGNAL)
         else:
             # Condition cleared
@@ -404,6 +426,7 @@ class EmergencyBinarySensor(BinarySensorEntity):
                 _LOGGER.debug(f"Alert {self._alert_id} condition cleared - reset resolved flag")
 
             self.async_write_ha_state()
+            self._update_status_sensor()
             self._cancel_escalation_timer()
             async_dispatcher_send(self.hass, SUMMARY_UPDATE_SIGNAL)
             # Notify switches
@@ -533,6 +556,16 @@ class EmergencyBinarySensor(BinarySensorEntity):
                         f"Sent global notification for {self._alert_name}")
                 except Exception as e:
                     _LOGGER.error(f"Error sending global notification: {e}")
+
+    @callback
+    def _cleanup_timers(self):
+        """Clean up all timers when entity is removed."""
+        if self._escalation_task:
+            self._escalation_task()
+            self._escalation_task = None
+        if self._snooze_task:
+            self._snooze_task.cancel()
+            self._snooze_task = None
 
     async def _start_escalation_timer(self):
         """Start escalation timer (called by switches when un-acknowledging)."""
