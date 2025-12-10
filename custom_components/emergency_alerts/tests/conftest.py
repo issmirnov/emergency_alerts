@@ -10,41 +10,60 @@ if "TZ" not in os.environ:
 
 pytest_plugins = "pytest_homeassistant_custom_component"
 
-# Patch Home Assistant's Config.set_time_zone method
+# Patch Home Assistant's Config.set_time_zone method (if available)
 # This is a workaround for pytest-homeassistant-custom-component hardcoding US/Pacific
-import homeassistant.core as ha_core
-from homeassistant.util import dt as dt_util
+# Note: Config is deprecated in newer HA versions, so we make this conditional
+try:
+    from homeassistant.core_config import Config as CoreConfig
+    _config_class = CoreConfig
+except ImportError:
+    # Fallback to deprecated location for older HA versions
+    try:
+        import homeassistant.core as ha_core
+        _config_class = ha_core.Config
+    except (ImportError, AttributeError):
+        _config_class = None
 
-# Store original method
-_original_set_time_zone = ha_core.Config.set_time_zone
+if _config_class is not None:
+    try:
+        from homeassistant.util import dt as dt_util
+        
+        # Only patch if the method exists
+        if hasattr(_config_class, 'set_time_zone'):
+            # Store original method
+            _original_set_time_zone = _config_class.set_time_zone
 
-def _patched_set_time_zone(self, time_zone_str: str) -> None:
-    """Patched version of set_time_zone that handles timezone aliases."""
-    # Map common timezone aliases
-    timezone_map = {
-        "US/Pacific": "America/Los_Angeles",
-        "US/Mountain": "America/Denver",
-        "US/Central": "America/Chicago",
-        "US/Eastern": "America/New_York",
-    }
-    
-    # Use mapped timezone if available
-    actual_timezone = timezone_map.get(time_zone_str, time_zone_str)
-    
-    # Try to get the timezone
-    time_zone = dt_util.get_time_zone(actual_timezone)
-    if time_zone is None:
-        # Fallback to UTC if timezone is still invalid
-        time_zone = dt_util.get_time_zone("UTC")
-    
-    if time_zone is None:
-        raise ValueError(f"Received invalid time zone {time_zone_str}")
-    
-    # Set the timezone using the original method's logic
-    self._time_zone = time_zone
+            def _patched_set_time_zone(self, time_zone_str: str) -> None:
+                """Patched version of set_time_zone that handles timezone aliases."""
+                # Map common timezone aliases
+                timezone_map = {
+                    "US/Pacific": "America/Los_Angeles",
+                    "US/Mountain": "America/Denver",
+                    "US/Central": "America/Chicago",
+                    "US/Eastern": "America/New_York",
+                }
+                
+                # Use mapped timezone if available
+                actual_timezone = timezone_map.get(time_zone_str, time_zone_str)
+                
+                # Try to get the timezone
+                time_zone = dt_util.get_time_zone(actual_timezone)
+                if time_zone is None:
+                    # Fallback to UTC if timezone is still invalid
+                    time_zone = dt_util.get_time_zone("UTC")
+                
+                if time_zone is None:
+                    raise ValueError(f"Received invalid time zone {time_zone_str}")
+                
+                # Set the timezone using the original method's logic
+                self._time_zone = time_zone
 
-# Apply the patch on Config class
-ha_core.Config.set_time_zone = _patched_set_time_zone
+            # Apply the patch on Config class
+            _config_class.set_time_zone = _patched_set_time_zone
+    except (AttributeError, ImportError):
+        # Config class or set_time_zone method doesn't exist in this HA version
+        # This is fine - newer HA versions handle timezone differently
+        pass
 
 from unittest.mock import AsyncMock, Mock, patch
 from typing import Any
