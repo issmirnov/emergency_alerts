@@ -87,6 +87,34 @@ Trigger State: "on"
 Severity: warning
 ```
 
+#### **Combined Triggers (AND / OR)**
+Two conditions with comparators:
+```yaml
+# Example: Window open AND raining
+Conditions:
+  - entity_id: binary_sensor.window_bedroom
+    comparator: "=="
+    value: "on"
+  - entity_id: sensor.weather_condition
+    comparator: "=="
+    value: "rain"
+Operator: and
+Severity: warning
+```
+
+```yaml
+# Example: Car is home AND charge below 30%
+Conditions:
+  - entity_id: device_tracker.car
+    comparator: "=="
+    value: "home"
+  - entity_id: sensor.car_battery
+    comparator: "<"
+    value: "30"
+Operator: and
+Severity: warning
+```
+
 #### **Template Triggers**
 Use Jinja2 templates for complex conditions:
 ```yaml
@@ -110,8 +138,8 @@ Severity: info
 ### **Alert Properties**
 - **Name**: Descriptive alert name (e.g., "Front Door Open", "High Temperature")
 - **Severity**: Critical, Warning, or Info
-- **Escalation Time**: Minutes before escalating if not acknowledged
-- **Actions**: Service calls for triggered, cleared, and escalated states
+- **Reminder Time**: Optional re-notify delay (re-runs on-trigger actions if still active)
+- **Actions**: Service calls for triggered and resolved states; optional reminder and per-state hooks (ack/snooze/resolve)
 
 ## 🎛️ Entities Created
 

@@ -126,3 +126,26 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Reload config entry."""
     await async_unload_entry(hass, entry)
     await async_setup_entry(hass, entry)
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Migrate old entry versions to the latest format."""
+    version = entry.version
+
+    if version >= 3:
+        return True
+
+    data = {**entry.data}
+    alerts = data.get("alerts", {})
+
+    # Ensure new reminder field exists for all alerts
+    for alert_id, alert_data in alerts.items():
+        if "remind_after_seconds" not in alert_data:
+            alert_data["remind_after_seconds"] = 0
+        # Preserve existing structure
+        alerts[alert_id] = alert_data
+
+    data["alerts"] = alerts
+
+    hass.config_entries.async_update_entry(entry, data=data, version=3)
+    return True

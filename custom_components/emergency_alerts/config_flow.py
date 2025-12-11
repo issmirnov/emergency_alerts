@@ -19,6 +19,8 @@ TRIGGER_TYPES = [
     selector.SelectOptionDict(
         value="simple", label="simple: Monitor one entity's state"),
     selector.SelectOptionDict(
+        value="combined", label="combined: Two conditions with AND/OR"),
+    selector.SelectOptionDict(
         value="template", label="template: Use Jinja2 for complex conditions"),
     selector.SelectOptionDict(
         value="logical", label="logical: Combine multiple entity conditions")
@@ -29,7 +31,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class EmergencyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    VERSION = 2
+    VERSION = 3
 
     async def async_step_user(self, user_input=None):
         """Handle the initial step where user chooses to create a group hub or global settings."""
@@ -514,6 +516,8 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
             trigger_type = user_input["trigger_type"]
             if trigger_type == "simple":
                 return await self.async_step_add_alert_trigger_simple()
+            elif trigger_type == "combined":
+                return await self.async_step_add_alert_trigger_combined()
             elif trigger_type == "template":
                 return await self.async_step_add_alert_trigger_template()
             elif trigger_type == "logical":
@@ -574,6 +578,92 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.TEXT
                     )
+                ),
+            })
+        )
+
+    async def async_step_add_alert_trigger_combined(self, user_input=None):
+        """Add a new alert to this group - Step 2: Combined Trigger Configuration."""
+        is_editing = hasattr(self, '_editing_alert_id')
+        current_alert = None
+        if is_editing:
+            alerts = self.config_entry.data.get("alerts", {})
+            current_alert = alerts.get(self._editing_alert_id, {})
+
+        default_conditions = current_alert.get("combined_conditions", []) if current_alert else []
+        defaults = {
+            "logical_operator": current_alert.get("combined_operator", "and") if current_alert else "and",
+            "entity_1": default_conditions[0].get("entity_id") if len(default_conditions) > 0 else "",
+            "comparator_1": default_conditions[0].get("comparator", "==") if len(default_conditions) > 0 else "==",
+            "value_1": default_conditions[0].get("value") if len(default_conditions) > 0 else "",
+            "entity_2": default_conditions[1].get("entity_id") if len(default_conditions) > 1 else "",
+            "comparator_2": default_conditions[1].get("comparator", "==") if len(default_conditions) > 1 else "==",
+            "value_2": default_conditions[1].get("value") if len(default_conditions) > 1 else "",
+        }
+
+        if user_input is not None:
+            conditions = []
+            for idx in [1, 2]:
+                entity_val = user_input.get(f"entity_{idx}")
+                value_val = user_input.get(f"value_{idx}")
+                comparator_val = user_input.get(f"comparator_{idx}", "==")
+                if entity_val and value_val is not None:
+                    conditions.append({
+                        "entity_id": entity_val,
+                        "comparator": comparator_val,
+                        "value": value_val,
+                    })
+
+            self._alert_data["combined_conditions"] = conditions
+            self._alert_data["combined_operator"] = user_input.get("logical_operator", "and")
+
+            return await self.async_step_add_alert_actions()
+
+        comparator_options = [
+            selector.SelectOptionDict(value="==", label="equals"),
+            selector.SelectOptionDict(value="!=", label="not equals"),
+            selector.SelectOptionDict(value="<", label="less than"),
+            selector.SelectOptionDict(value="<=", label="less than or equal"),
+            selector.SelectOptionDict(value=">", label="greater than"),
+            selector.SelectOptionDict(value=">=", label="greater than or equal"),
+        ]
+
+        return self.async_show_form(
+            step_id="add_alert_trigger_combined",
+            description="Set up to two conditions and choose AND/OR.",
+            data_schema=vol.Schema({
+                vol.Required("logical_operator", default=defaults["logical_operator"]): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            selector.SelectOptionDict(value="and", label="AND (all conditions)"),
+                            selector.SelectOptionDict(value="or", label="OR (any condition)"),
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional("entity_1", default=defaults["entity_1"]): selector.EntitySelector(
+                    selector.EntitySelectorConfig()
+                ),
+                vol.Optional("comparator_1", default=defaults["comparator_1"]): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=comparator_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional("value_1", default=defaults["value_1"]): selector.TextSelector(
+                    selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
+                ),
+                vol.Optional("entity_2", default=defaults["entity_2"]): selector.EntitySelector(
+                    selector.EntitySelectorConfig()
+                ),
+                vol.Optional("comparator_2", default=defaults["comparator_2"]): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=comparator_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional("value_2", default=defaults["value_2"]): selector.TextSelector(
+                    selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT)
                 ),
             })
         )
@@ -780,6 +870,9 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
         if trigger_type == "simple":
             title = "➕ Add New Alert - Step 2: Simple Trigger Configuration"
             description = "Configure which entity to monitor and what state should trigger the alert."
+        elif trigger_type == "combined":
+            title = "➕ Add New Alert - Step 2: Combined Trigger Configuration"
+            description = "Configure up to two conditions and choose AND/OR."
         elif trigger_type == "template":
             title = "➕ Add New Alert - Step 2: Template Trigger Configuration"
             description = "Create a Jinja2 template that returns True when the alert should trigger."
@@ -879,6 +972,14 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                         "service": resolve_value
                     }]
 
+            # Reminder (escalation) timing in seconds
+            remind_after = user_input.get("remind_after_seconds")
+            if remind_after is not None:
+                try:
+                    actions["remind_after_seconds"] = int(remind_after)
+                except (TypeError, ValueError):
+                    actions["remind_after_seconds"] = 0
+
             # Update alert data with actions
             self._alert_data.update(actions)
 
@@ -931,6 +1032,7 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
         current_acknowledged_script = ""
         current_snoozed_script = ""
         current_resolved_script = ""
+        current_remind_after = 0
 
         if current_alert:
             current_triggered_script = self._extract_value_from_actions(
@@ -945,6 +1047,7 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                 current_alert.get("on_snoozed", []))
             current_resolved_script = self._extract_value_from_actions(
                 current_alert.get("on_resolved", []))
+            current_remind_after = current_alert.get("remind_after_seconds", 0)
 
         return self.async_show_form(
             step_id="add_alert_actions",
@@ -1000,6 +1103,17 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                         options=action_options,
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         custom_value=True,
+                    )
+                ),
+                vol.Optional("remind_after_seconds", default=current_remind_after): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            selector.SelectOptionDict(value=0, label="No reminder"),
+                            selector.SelectOptionDict(value=300, label="5 minutes"),
+                            selector.SelectOptionDict(value=600, label="10 minutes"),
+                            selector.SelectOptionDict(value=1800, label="30 minutes"),
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
                     )
                 ),
             }),

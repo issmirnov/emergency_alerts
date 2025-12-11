@@ -4,20 +4,21 @@
 > **Purpose**: What works, what's left, current status
 
 ## Status Overview
-**Current Phase**: Bug Fix Complete - Ready for v2.0.3 Release (2025-10-31)
-**Overall Progress**: 100% complete for v2.0.3
-**Last Updated**: 2025-10-31
+**Current Phase**: v3 Combined Triggers & Reminder Model (2025-12-10)
+**Overall Progress**: Ready for v3.0.0 cut
+**Last Updated**: 2025-12-10
 
-**SUCCESS**: Critical button click bug fixed, tested, and verified working! 🎉
+**SUCCESS**: v3 combined triggers, reminder timer, and escalation cleanup shipped (backend + card) 🎉
 
 ## Completed ✓
 
 ### Core Functionality
 - Hub-based architecture (Global Settings + Alert Groups) - __init__.py:8-96
-- Three trigger types (simple, template, logical) - binary_sensor.py:330-390
+- Four trigger types (simple, combined, template, logical) - binary_sensor.py:330-410
+- Combined triggers with comparators (AND/OR) - config_flow.py (v3)
 - Visual condition builder for logical triggers - config_flow.py:339-400
 - Status sensors with full lifecycle tracking - binary_sensor.py:280-310
-- Action buttons (acknowledge, clear, escalate) - button.py:1-150
+- Action switches (acknowledge, snooze, resolve) with mutual exclusivity - switch.py
 - Device hierarchy with proper relationships - Implemented throughout
 - Automatic config entry reloading - config_flow.py:250-260
 - Service registration for automations - __init__.py:29-84
@@ -73,7 +74,7 @@
 #### Status Tracking System
 - **Completed**: Phase 3
 - **Files**: binary_sensor.py:280-310
-- **Description**: Companion status sensors showing: active, inactive, acknowledged, cleared, escalated
+- **Description**: Companion status sensors showing: active, inactive, acknowledged, snoozed, escalated, resolved
 - **Notes**: First-class entities for status, not just attributes
 
 #### E2E Testing Infrastructure
@@ -96,30 +97,14 @@
 
 ## Recently Completed 🎉
 
-### Lovelace Card Button Click Bug Fix (CRITICAL) ✅
-- **Started**: 2025-10-30
-- **Completed**: 2025-10-31
-- **Status**: 100% COMPLETE - Bug fixed and verified working
-- **Bug**: Button clicks (acknowledge/snooze/resolve) weren't updating alert states
-- **Root Cause**: _convertToSwitchId() not stripping "emergency_" prefix from entity IDs
-  - Binary sensors: `binary_sensor.emergency_critical_test_alert`
-  - Old generated: `switch.emergency_critical_test_alert_acknowledged` ❌
-  - Actual switches: `switch.critical_test_alert_acknowledged` ✅
-- **Fix Applied**: lovelace-emergency-alerts-card/src/services/alert-service.ts:37-46
-- **Solution Steps**:
-  1. ✅ Fixed _convertToSwitchId() method
-  2. ✅ Updated all 90 unit tests
-  3. ✅ Built card with npm run build
-  4. ✅ Created build-and-deploy.sh helper script
-  5. ✅ Solved browser caching with query parameter: `?v=2.0.3-bugfix`
-  6. ✅ Manually verified button clicks work correctly
-- **Files Modified**:
-  - lovelace-emergency-alerts-card/src/services/alert-service.ts (source fix)
-  - lovelace-emergency-alerts-card/src/__tests__/alert-service.test.ts (updated tests)
-  - lovelace-emergency-alerts-card/build-and-deploy.sh (new helper script)
-  - emergency-alerts-integration/config/configuration.yaml (added cache-busting param)
-- **Testing**: ✅ All unit tests passing (90/90), manual testing confirmed working
-- **Learnings**: Cache-busting query parameters are standard HA pattern, Playwright can't access shadow DOM
+### v3 Combined Trigger + Reminder (2025-12-10) ✅
+- **Status**: COMPLETE - backend and card updated, tests/lint/build pass
+- **Changes**:
+  - New combined trigger type (two conditions, comparators, AND/OR) to cover common cases without templates
+  - Per-alert reminder timer (`remind_after_seconds`) re-runs on-trigger actions; escalation flag cleared on ack/snooze/resolve/clear
+  - Frontend status gating on entity state to avoid stale escalations; card built
+  - Manifest bumped to 3.0.0; card package bumped to 3.0.0
+- **Testing**: `./run_tests.sh` (backend), frontend `npm run lint && npm test && npm run build`
 
 ### Device Identifier Standardization (CRITICAL BUG FIX) ✅
 - **Started**: 2025-10-31

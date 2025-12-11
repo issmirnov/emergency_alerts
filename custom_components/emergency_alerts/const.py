@@ -29,6 +29,16 @@ CONF_PROFILE_SERVICES = "profile_services"
 TRIGGER_TYPE_SIMPLE = "simple"
 TRIGGER_TYPE_TEMPLATE = "template"
 TRIGGER_TYPE_LOGICAL = "logical"
+TRIGGER_TYPE_COMBINED = "combined"
+
+# Comparators for combined triggers
+COMP_EQ = "=="
+COMP_NE = "!="
+COMP_LT = "<"
+COMP_LTE = "<="
+COMP_GT = ">"
+COMP_GTE = ">="
+COMPARATORS = [COMP_EQ, COMP_NE, COMP_LT, COMP_LTE, COMP_GT, COMP_GTE]
 
 # Severity levels
 SEVERITY_INFO = "info"

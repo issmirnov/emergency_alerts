@@ -24,6 +24,13 @@ from .const import (
     CONF_ON_ACKNOWLEDGED,
     CONF_ON_SNOOZED,
     CONF_ON_RESOLVED,
+    TRIGGER_TYPE_COMBINED,
+    COMP_EQ,
+    COMP_NE,
+    COMP_LT,
+    COMP_LTE,
+    COMP_GT,
+    COMP_GTE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -185,8 +192,11 @@ class EmergencyBinarySensor(BinarySensorEntity):
         self._logical_conditions = _parse_logical_conditions(
             alert_data.get("logical_conditions"))
         self._logical_operator = alert_data.get("logical_operator", "and")
+        self._combined_conditions = alert_data.get("combined_conditions", [])
+        self._combined_operator = alert_data.get("combined_operator", "and")
         self._action_service = alert_data.get("action_service")
         self._severity = alert_data.get("severity", "warning")
+        self._remind_after_seconds = alert_data.get("remind_after_seconds")
         self._on_triggered = _parse_actions(alert_data.get("on_triggered"))
         self._on_cleared = _parse_actions(alert_data.get("on_cleared"))
         self._on_escalated = _parse_actions(alert_data.get("on_escalated"))
@@ -231,6 +241,8 @@ class EmergencyBinarySensor(BinarySensorEntity):
 
     def _get_escalation_time(self):
         """Get escalation time from global options or use default"""
+        if self._remind_after_seconds is not None:
+            return self._remind_after_seconds
         global_options = self._get_global_options()
         return global_options.get("default_escalation_time", ESCALATION_MINUTES * 60)
 
@@ -359,6 +371,37 @@ class EmergencyBinarySensor(BinarySensorEntity):
 
         return attrs
 
+    def _compare_values(self, entity_state, comparator, expected_value):
+        """Compare entity state using provided comparator."""
+        # Attempt numeric comparison first if both are numeric-like
+        def _to_number(value):
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return None
+
+        left_num = _to_number(entity_state)
+        right_num = _to_number(expected_value)
+
+        if comparator in {COMP_LT, COMP_LTE, COMP_GT, COMP_GTE} and left_num is not None and right_num is not None:
+            if comparator == COMP_LT:
+                return left_num < right_num
+            if comparator == COMP_LTE:
+                return left_num <= right_num
+            if comparator == COMP_GT:
+                return left_num > right_num
+            if comparator == COMP_GTE:
+                return left_num >= right_num
+
+        # Fallback to string comparison
+        if comparator == COMP_EQ:
+            return str(entity_state) == str(expected_value)
+        if comparator == COMP_NE:
+            return str(entity_state) != str(expected_value)
+
+        # Default equality if comparator unknown
+        return str(entity_state) == str(expected_value)
+
     @callback
     def _evaluate_trigger(self):
         triggered = False
@@ -393,6 +436,28 @@ class EmergencyBinarySensor(BinarySensorEntity):
             if self._logical_operator == "or":
                 triggered = any(results) if results else False
             else:  # Default to AND
+                triggered = all(results) if results else False
+        elif self._trigger_type == TRIGGER_TYPE_COMBINED and self._combined_conditions:
+            results = []
+            for cond in self._combined_conditions:
+                if (
+                    isinstance(cond, dict)
+                    and "entity_id" in cond
+                    and "value" in cond
+                ):
+                    state = self.hass.states.get(cond["entity_id"])
+                    comparator = cond.get("comparator", COMP_EQ)
+                    results.append(
+                        state is not None
+                        and self._compare_values(state.state, comparator, cond["value"])
+                    )
+                else:
+                    _LOGGER.warning(f"Invalid combined condition format: {cond}")
+                    results.append(False)
+
+            if self._combined_operator == "or":
+                triggered = any(results) if results else False
+            else:
                 triggered = all(results) if results else False
         self._set_state(triggered)
 
@@ -447,6 +512,10 @@ class EmergencyBinarySensor(BinarySensorEntity):
             if self._resolved:
                 self._resolved = False
                 _LOGGER.debug(f"Alert {self._alert_id} condition cleared - reset resolved flag")
+
+            # Always clear escalation when condition clears
+            if self._escalated:
+                self._escalated = False
 
             self.async_write_ha_state()
             self._update_status_sensor()
@@ -592,6 +661,10 @@ class EmergencyBinarySensor(BinarySensorEntity):
 
     async def _start_escalation_timer(self):
         """Start escalation timer (called by switches when un-acknowledging)."""
+        remind_after = self._get_escalation_time()
+        if remind_after is None or remind_after <= 0:
+            return
+
         if self._escalation_task:
             self._escalation_task()
 
@@ -611,7 +684,7 @@ class EmergencyBinarySensor(BinarySensorEntity):
                 _LOGGER.info(f"Alert {self._alert_id} escalated due to timeout")
 
         self._escalation_task = async_call_later(
-            self.hass, self._get_escalation_time(), escalate
+            self.hass, remind_after, escalate
         )
 
     def _cancel_escalation_timer(self):
