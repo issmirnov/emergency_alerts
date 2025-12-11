@@ -237,6 +237,7 @@ class EmergencyAlertAcknowledgeSwitch(BaseEmergencyAlertSwitch):
         
         # Set acknowledged state after exclusions
         binary_sensor._acknowledged = True
+        binary_sensor._escalated = False
         self._attr_is_on = True
         
         # Update binary sensor state immediately (this ensures state is synced)
@@ -278,6 +279,7 @@ class EmergencyAlertAcknowledgeSwitch(BaseEmergencyAlertSwitch):
             return
 
         binary_sensor._acknowledged = False
+        binary_sensor._escalated = False
         self._attr_is_on = False
 
         # Restart escalation timer if alert is still active
@@ -320,6 +322,7 @@ class EmergencyAlertSnoozeSwitch(BaseEmergencyAlertSwitch):
         
         # Set snooze state after exclusions
         binary_sensor._snoozed = True
+        binary_sensor._escalated = False
         snooze_duration = self._alert_data.get("snooze_duration", DEFAULT_SNOOZE_DURATION)
         binary_sensor._snooze_until = datetime.now() + timedelta(seconds=snooze_duration)
         self._attr_is_on = True
@@ -390,6 +393,7 @@ class EmergencyAlertSnoozeSwitch(BaseEmergencyAlertSwitch):
 
         binary_sensor._snoozed = False
         binary_sensor._snooze_until = None
+        binary_sensor._escalated = False
         self._attr_is_on = False
 
         # Cancel snooze task
@@ -433,6 +437,7 @@ class EmergencyAlertResolveSwitch(BaseEmergencyAlertSwitch):
         
         # Set resolved state after exclusions
         binary_sensor._resolved = True
+        binary_sensor._escalated = False
         self._attr_is_on = True
         
         # Ensure binary sensor state is updated before continuing
@@ -474,6 +479,7 @@ class EmergencyAlertResolveSwitch(BaseEmergencyAlertSwitch):
             return
 
         binary_sensor._resolved = False
+        binary_sensor._escalated = False
         self._attr_is_on = False
 
         binary_sensor.async_write_ha_state()

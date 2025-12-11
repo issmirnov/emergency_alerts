@@ -6,29 +6,27 @@
 
 ## Current Focus
 
-**Phase: Device Identifier Fix Complete (2025-10-31)**
+**Phase: v3 Combined Triggers & Reminder Model (2025-12-10)**
 
-Successfully fixed device identifier mismatch causing "Unnamed device" issue with comprehensive testing and PR creation.
+Shipped combined trigger type (two conditions with comparators and AND/OR) plus per-alert reminder timer; cleaned escalation semantics and aligned frontend status gating.
 
-**COMPLETED WORK (2025-10-31)**:
-1. ✅ Identified device identifier mismatch between components
-2. ✅ Standardized all device identifiers to use `entry.entry_id`
-3. ✅ Fixed binary_sensor.py and sensor.py device info
-4. ✅ All 35 backend pytest tests passing
-5. ✅ Comprehensive local testing with Docker HA
-6. ✅ Verified device registry structure
-7. ✅ Created PR #6 with detailed documentation
-8. ✅ All CI/CD checks passed (Backend, HACS, Integration, Lint)
-9. ✅ Documented breaking change nature and migration path
-10. ✅ Identified additional via_device timing issue for follow-up
-
-**Status**: ✅ PR #6 ready for merge - Fixes unnamed device issue
-
-**Previous Phase Complete**: Lovelace Card Button Click Bug Fix (2025-10-30/31)
-
-**Previous Phase Complete**: E2E Testing Infrastructure (2025-10-30)
+**COMPLETED WORK (2025-12-10)**:
+1. ✅ Added combined trigger type and parsing in binary_sensor/config_flow
+2. ✅ Added per-alert reminder (`remind_after_seconds`) reusing on-trigger actions
+3. ✅ Cleared escalations on ack/snooze/resolve/condition clear
+4. ✅ Frontend gates status on entity state to avoid stale escalations
+5. ✅ Manifest bumped to 3.0.0; card package bumped to 3.0.0
+6. ✅ Backend tests via `./run_tests.sh` (venv) all pass
+7. ✅ Frontend lint/tests/build all pass
+8. ✅ Docs updated with combined trigger examples and reminder property
 
 ## Recent Changes
+
+### 2025-12-10: v3 Combined Trigger + Reminder Model
+- Added combined trigger type (two conditions with comparators and AND/OR) to simplify common cases without templates.
+- Introduced per-alert reminder timer (`remind_after_seconds`) that re-runs on-trigger actions; escalations now clear on ack/snooze/resolve/clear.
+- Frontend status badges now gate on entity state to avoid stale escalations.
+- Manifest bumped to 3.0.0; backend + frontend tests and lint pass.
 
 ### 2025-10-31: Device Identifier Standardization (CRITICAL BUG FIX)
 - **Changed**: Standardized device identifiers across all platforms to use `entry.entry_id`
