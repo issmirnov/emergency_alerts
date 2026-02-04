@@ -1,0 +1,42 @@
+# Sample alert configurations for testing
+
+simple_door_alert:
+  name: "Front Door Open"
+  trigger_type: "simple"
+  entity_id: "binary_sensor.front_door"
+  trigger_state: "on"
+  severity: "warning"
+  remind_after_seconds: 300
+
+template_temp_alert:
+  name: "High Temperature"
+  trigger_type: "template"
+  template: "{{ states('sensor.temperature')|float > 28 }}"
+  severity: "critical"
+  remind_after_seconds: 600
+
+logical_hvac_alert:
+  name: "HVAC Running with Windows Open"
+  trigger_type: "logical"
+  logical_operator: "and"
+  logical_conditions:
+    - entity_id: "climate.hvac"
+      state: "cooling"
+    - entity_id: "binary_sensor.window_living_room"
+      state: "on"
+  severity: "warning"
+  remind_after_seconds: 300
+
+security_multi_motion:
+  name: "Multiple Motion Sensors Triggered"
+  trigger_type: "logical"
+  logical_operator: "or"
+  logical_conditions:
+    - entity_id: "binary_sensor.motion_front"
+      state: "on"
+    - entity_id: "binary_sensor.motion_back"
+      state: "on"
+    - entity_id: "binary_sensor.motion_garage"
+      state: "on"
+  severity: "critical"
+  remind_after_seconds: 60

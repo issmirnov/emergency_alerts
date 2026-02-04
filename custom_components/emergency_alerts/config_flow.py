@@ -34,50 +34,11 @@ class EmergencyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 3
 
     async def async_step_user(self, user_input=None):
-        """Handle the initial step where user chooses to create a group hub or global settings."""
-        _LOGGER.debug(
-            "Entered async_step_user with user_input: %s", user_input)
-
-        errors = {}
-
-        if user_input is not None:
-            setup_type = user_input["setup_type"]
-
-            if setup_type == "global":
-                return await self.async_step_global_setup(user_input)
-            elif setup_type == "group":
-                return await self.async_step_group_setup()  # Pass None instead of user_input
-
-        # Check if global hub already exists
-        existing_entries = self.hass.config_entries.async_entries(DOMAIN)
-        global_hub_exists = any(entry.data.get(
-            "hub_type") == "global" for entry in existing_entries)
-
-        # Build options list - exclude global if already configured
-        options = []
-        if not global_hub_exists:
-            options.append({
-                "label": "Global Settings Hub - Manage notification settings and escalation (Add Once)",
-                "value": "global"
-            })
-
-        options.append({
-            "label": "Alert Group Hub - Create a group of related emergency alerts",
-            "value": "group"
-        })
-
-        return self.async_show_form(
-            step_id="user",
-            data_schema=vol.Schema({
-                vol.Required("setup_type"): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=options,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-            }),
-            errors=errors,
-        )
+        """Handle the initial step - directly create alert group hub."""
+        _LOGGER.debug("Entered async_step_user with user_input: %s", user_input)
+        
+        # Simplified: no more global hub choice, directly go to group setup
+        return await self.async_step_group_setup(user_input)
 
     async def async_step_global_setup(self, user_input=None):
         """Handle global settings setup."""
@@ -102,7 +63,7 @@ class EmergencyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
     async def async_step_group_setup(self, user_input=None):
-        """Handle group hub setup."""
+        """Handle group hub setup - now includes profiles and defaults."""
         if user_input is not None:
             group_name = user_input["group_name"]
 
@@ -124,7 +85,11 @@ class EmergencyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     "group": group_name,
                     "hub_name": hub_name,
                     "custom_name": "",
-                    "alerts": {}  # Will store individual alerts
+                    "alerts": {},  # Will store individual alerts
+                },
+                options={
+                    "notification_profiles": {},  # Moved from global hub
+                    "default_escalation_time": 300,  # 5 minutes default
                 }
             )
 
@@ -137,6 +102,9 @@ class EmergencyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     )
                 ),
             }),
+            description_placeholders={
+                "description": "Create a group to organize related alerts (e.g., Security, HVAC, Safety)"
+            }
         )
 
     @staticmethod
@@ -484,17 +452,25 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
         )
 
     async def async_step_group_options(self, user_input=None):
-        """Show menu-style options for managing alerts in this group."""
-        # Show menu-style options for managing alerts in this group
+        """Show menu-style options for managing alerts and profiles in this group."""
         current_alerts = self.config_entry.data.get("alerts", {})
         alert_count = len(current_alerts)
+        
+        # Profiles now stored in group options
+        profiles = self.config_entry.options.get("notification_profiles", {})
+        profile_count = len(profiles)
+
+        menu_opts = ["add_alert"]
+        if alert_count > 0:
+            menu_opts.extend(["edit_alert", "remove_alert"])
+        menu_opts.append("notification_profiles")  # Profile management at group level
 
         return self.async_show_menu(
             step_id="group_options",
-            menu_options=["add_alert"] +
-            (["edit_alert", "remove_alert"] if alert_count > 0 else []),
+            menu_options=menu_opts,
             description_placeholders={
                 "alert_count": str(alert_count),
+                "profile_count": str(profile_count),
                 "group_name": self.config_entry.data.get("group", "Unknown")
             }
         )
