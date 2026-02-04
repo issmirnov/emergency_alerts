@@ -65,15 +65,25 @@ async def test_config_flow():
     flow = EmergencyConfigFlow()
     flow.hass = hass
     
-    # Test creating alert group hub
-    result = await flow.async_step_user({
-        "setup_type": "group"
-    })
-    
+    # Test 1: Initial step should show group setup form
+    result = await flow.async_step_user(None)
     assert result["type"] == "form"
-    print("✓ Config flow initialization passed")
+    assert result["step_id"] == "group_setup"
+    print("✓ Config flow shows group setup form")
     
-    print("Config flow tests passed!")
+    # Test 2: Creating alert group hub with simplified flow
+    result = await flow.async_step_group_setup({
+        "group_name": "Security Alerts"
+    })
+    assert result["type"] == "create_entry"
+    assert result["title"] == "Emergency Alerts - Security Alerts"
+    assert result["data"]["hub_type"] == "group"
+    assert result["data"]["hub_name"] == "security_alerts"
+    assert "notification_profiles" in result.get("options", {})
+    assert result["options"]["default_escalation_time"] == 300
+    print("✓ Alert group created with profiles and defaults")
+    
+    print("All config flow tests passed!")
 
 
 async def test_state_machine():

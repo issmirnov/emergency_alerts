@@ -42,6 +42,41 @@ def create_mock_modules():
             super().__init_subclass__(**kwargs)
             if domain:
                 cls._domain = domain
+        
+        def async_show_form(self, *, step_id, data_schema=None, errors=None, description_placeholders=None, **kwargs):
+            """Mock show form method."""
+            return {
+                "type": "form",
+                "step_id": step_id,
+                "data_schema": data_schema,
+                "errors": errors or {},
+                "description_placeholders": description_placeholders or {}
+            }
+        
+        def async_show_menu(self, *, step_id, menu_options, description_placeholders=None):
+            """Mock show menu method."""
+            return {
+                "type": "menu",
+                "step_id": step_id,
+                "menu_options": menu_options,
+                "description_placeholders": description_placeholders or {}
+            }
+        
+        def async_create_entry(self, *, title, data, options=None):
+            """Mock create entry method."""
+            return {
+                "type": "create_entry",
+                "title": title,
+                "data": data,
+                "options": options or {}
+            }
+        
+        def async_abort(self, *, reason):
+            """Mock abort method."""
+            return {
+                "type": "abort",
+                "reason": reason
+            }
     
     config_entries_module.ConfigFlow = ConfigFlowBase
     config_entries_module.OptionsFlow = object  # Base class

@@ -11,7 +11,7 @@ from ..const import (
     TRIGGER_TYPE_SIMPLE,
     TRIGGER_TYPE_TEMPLATE,
     TRIGGER_TYPE_LOGICAL,
-    TRIGGER_TYPE_COMBINED,
+    # TRIGGER_TYPE_COMBINED removed in Phase 2
     COMP_EQ, COMP_NE, COMP_LT, COMP_LTE, COMP_GT, COMP_GTE,
 )
 
@@ -44,8 +44,7 @@ class TriggerEvaluator:
             return await self._evaluate_template(config)
         elif trigger_type == TRIGGER_TYPE_LOGICAL:
             return self._evaluate_logical(config)
-        elif trigger_type == TRIGGER_TYPE_COMBINED:
-            return self._evaluate_combined(config)
+        # TRIGGER_TYPE_COMBINED removed in Phase 2 - was redundant with logical
         else:
             _LOGGER.warning(f"Unknown trigger type: {trigger_type}")
             return False

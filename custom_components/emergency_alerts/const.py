@@ -29,7 +29,7 @@ CONF_PROFILE_SERVICES = "profile_services"
 TRIGGER_TYPE_SIMPLE = "simple"
 TRIGGER_TYPE_TEMPLATE = "template"
 TRIGGER_TYPE_LOGICAL = "logical"
-TRIGGER_TYPE_COMBINED = "combined"
+# TRIGGER_TYPE_COMBINED removed in Phase 2 - redundant with logical
 
 # Comparators for combined triggers
 COMP_EQ = "=="
