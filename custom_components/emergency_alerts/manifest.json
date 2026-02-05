@@ -1,14 +1,20 @@
 {
   "domain": "emergency_alerts",
   "name": "Emergency Alerts",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "documentation": "https://github.com/issmirnov/emergency_alerts",
   "issue_tracker": "https://github.com/issmirnov/emergency_alerts/issues",
   "requirements": [],
   "dependencies": [],
-  "codeowners": ["@issmirnov"],
+  "codeowners": [
+    "@issmirnov"
+  ],
   "config_flow": true,
   "integration_type": "hub",
   "iot_class": "calculated",
-  "platforms": ["binary_sensor", "sensor", "switch"]
-} 
+  "platforms": [
+    "binary_sensor",
+    "sensor",
+    "switch"
+  ]
+}
