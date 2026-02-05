@@ -2,22 +2,32 @@ version: '3.8'
 
 services:
   homeassistant:
+    container_name: ha-dev
     image: homeassistant/home-assistant:latest
-    container_name: emergency-alerts-ha
-    restart: unless-stopped
-    network_mode: host
     volumes:
-      # Home Assistant config
-      - ./config:/config
-      # Mount our custom integration
-      - ./custom_components/emergency_alerts:/config/custom_components/emergency_alerts
-      # Mount the Lovelace card
-      - ../lovelace-emergency-alerts-card/dist:/config/www:ro
+      # Mount custom_components into HA config
+      - ./custom_components:/config/custom_components
+      # Persistent HA config (survives container restarts)
+      - ./dev_tools/ha-config:/config
+      # Mount lovelace card
+      - ../lovelace-emergency-alerts-card:/config/www/lovelace-emergency-alerts-card
     environment:
-      - TZ=America/New_York
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8123"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 90s
+      - TZ=America/Los_Angeles
+    ports:
+      - "8123:8123"
+    restart: unless-stopped
+    privileged: true
+    network_mode: host
+
+  # Optional: VSCode server for editing inside container
+  vscode:
+    container_name: ha-dev-vscode
+    image: codercom/code-server:latest
+    volumes:
+      - .:/home/coder/project
+      - ./dev_tools/ha-config:/home/coder/ha-config
+    environment:
+      - PASSWORD=dev
+    ports:
+      - "8124:8080"
+    command: --auth password --disable-telemetry /home/coder/project

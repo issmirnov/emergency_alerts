@@ -1,0 +1,110 @@
+# Home Assistant Test Configuration
+
+# Basic config
+homeassistant:
+  name: HA Dev
+  latitude: 37.7749
+  longitude: -122.4194
+  elevation: 0
+  unit_system: metric
+  time_zone: America/Los_Angeles
+  
+# Enable the frontend
+frontend:
+  themes: !include_dir_merge_named themes
+
+# Enable configuration UI
+config:
+
+# Enable the lovelace UI
+lovelace:
+  mode: yaml
+  dashboards:
+    lovelace-emergency:
+      mode: yaml
+      filename: dashboards/emergency-alerts.yaml
+      title: Emergency Alerts
+      icon: mdi:alert
+      show_in_sidebar: true
+
+# Uncomment to enable HACS (install separately)
+# hacs:
+#   token: !secret github_token
+
+# Enable logging
+logger:
+  default: info
+  logs:
+    custom_components.emergency_alerts: debug
+
+# Recorder - use SQLite for dev
+recorder:
+  db_url: sqlite:////config/home-assistant_v2.db
+
+# System Health
+system_health:
+
+# Enable API
+api:
+
+# Enable auth (will create .storage with users)
+auth:
+
+# HTTP config
+http:
+  server_port: 8123
+  
+# Enable history
+history:
+
+# Enable sun
+sun:
+
+# Sample entities for testing
+input_boolean:
+  test_door:
+    name: Test Door
+    icon: mdi:door
+  
+  test_window:
+    name: Test Window
+    icon: mdi:window-open
+  
+  test_motion:
+    name: Test Motion
+    icon: mdi:motion-sensor
+
+input_number:
+  test_temperature:
+    name: Test Temperature
+    min: 0
+    max: 100
+    step: 0.1
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer
+  
+  test_humidity:
+    name: Test Humidity
+    min: 0
+    max: 100
+    step: 1
+    unit_of_measurement: "%"
+    icon: mdi:water-percent
+
+# Sample scripts for testing alerts
+script:
+  test_notification:
+    alias: "Test Notification"
+    sequence:
+      - service: persistent_notification.create
+        data:
+          title: "Emergency Alert Triggered"
+          message: "This is a test notification from {{ alert_name }}"
+  
+  test_escalation:
+    alias: "Test Escalation"
+    sequence:
+      - service: persistent_notification.create
+        data:
+          title: "!!! ESCALATED ALERT !!!"
+          message: "Alert {{ alert_name }} has escalated!"

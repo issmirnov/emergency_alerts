@@ -7,13 +7,31 @@ DOMAIN = "emergency_alerts"
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up Emergency Alerts from a config entry."""
+    import logging
+    _LOGGER = logging.getLogger(__name__)
+    
+    # DEBUG: Log entry data to diagnose translation issues
+    _LOGGER.warning(f"[DEBUG] Setting up entry: {entry.title}")
+    _LOGGER.warning(f"[DEBUG] Entry ID: {entry.entry_id}")
+    _LOGGER.warning(f"[DEBUG] Entry data: {entry.data}")
+    _LOGGER.warning(f"[DEBUG] Entry options: {entry.options}")
+    
     # Initialize the data structure for storing entities
     if DOMAIN not in hass.data:
         hass.data[DOMAIN] = {}
     if "entities" not in hass.data[DOMAIN]:
         hass.data[DOMAIN]["entities"] = []
 
+    # MIGRATION: Fix old entries missing 'group' field
     hub_type = entry.data.get("hub_type")
+    if hub_type == "group" and "group" not in entry.data:
+        _LOGGER.warning(f"[MIGRATION] Entry '{entry.title}' missing 'group' field. Adding it now.")
+        # Extract group name from title: "Emergency Alerts - Sun" -> "Sun"
+        group_name = entry.title.replace("Emergency Alerts - ", "").strip()
+        new_data = dict(entry.data)
+        new_data["group"] = group_name
+        hass.config_entries.async_update_entry(entry, data=new_data)
+        _LOGGER.warning(f"[MIGRATION] Added group='{group_name}' to entry '{entry.title}'")
 
     if hub_type == "global":
         # Store global options from the global settings hub
