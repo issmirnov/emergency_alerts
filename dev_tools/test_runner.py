@@ -105,6 +105,17 @@ async def main():
     print("=" * 60)
     print()
     
+    # PHASE 1: Import validation (catches missing imports before runtime)
+    print("[Phase 1: Import Validation]")
+    from test_import_validation import run_all_import_tests
+    import_validation_passed = run_all_import_tests()
+    
+    if not import_validation_passed:
+        print("\n✗ Import validation failed - fix imports before running integration tests")
+        return 1
+    
+    # PHASE 2: Integration tests
+    print("\n[Phase 2: Integration Tests]")
     tests = [
         ("Trigger Evaluation", test_trigger_evaluation),
         ("Config Flow", test_config_flow),
