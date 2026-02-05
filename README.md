@@ -1,287 +1,224 @@
-# Emergency Alerts Integration
+# Emergency Alerts Integration for Home Assistant
 
-[![Test Emergency Alerts Integration](https://github.com/issmirnov/emergency_alerts/actions/workflows/test.yml/badge.svg)](https://github.com/issmirnov/emergency_alerts/actions/workflows/test.yml)
-[![HACS Validation](https://github.com/issmirnov/emergency_alerts/actions/workflows/test.yml/badge.svg?event=schedule)](https://github.com/issmirnov/emergency_alerts/actions/workflows/test.yml)
-[![codecov](https://codecov.io/gh/issmirnov/emergency_alerts/branch/main/graph/badge.svg)](https://github.com/issmirnov/emergency-alerts-integration)
+A powerful Home Assistant integration for managing critical alerts with smart escalation, state management, and flexible trigger conditions.
 
-A comprehensive Home Assistant custom integration for managing emergency alerts with hub-based organization, group management, and intuitive status tracking.
+## Version 4.0.0 - Major Modernization Release
 
-## ⚠️ AI-Assisted Development Warning: This project has been largely developed with the assistance of AI tools (Claude and Cursor). I only have a basic understanding of what this code does and have been using this project as a way to experiment with AI-assisted development while creating a component I wanted for my dashboard. The code may contain inconsistencies, and best practices might only be partially followed due to the contextual limitations of AI. Use at your own risk and feel free to contribute improvements!
+**BREAKING CHANGE**: This version replaces 3 switches per alert with 1 unified select entity for simpler state management.
 
-## ✨ Features
+### What's New in v4.0.0
 
-### 🏗️ **Hub-Based Organization**
-- **Global Settings Hub**: Manage system-wide notification preferences and escalation settings
-- **Alert Group Hubs**: Organize alerts with custom group names (e.g., "Ivan's Security Alerts", "Kitchen Safety")
-- **Device Hierarchy**: Clean organization in Home Assistant's device registry
+- **Unified State Control**: Single select entity per alert instead of 3 separate switches
+- **67% Fewer Entities**: Cleaner entity list, better performance
+- **Modern HA 2026.2 Patterns**: Follows latest Home Assistant best practices
+- **Simplified Config Flow**: Removed Global Settings Hub requirement
+- **Better UX**: Single dropdown for state management instead of 3 toggles
+- **Full Local Development**: Docker-based HA environment for fast iteration
 
-### 🎯 **Alert Management**
-- **Multiple Trigger Types**: Simple entity monitoring, Jinja2 templates, and logical combinations
-- **Severity Levels**: Critical, warning, and info classifications
-- **Status Tracking**: Real-time status with dedicated status sensors
-- **Action Buttons**: Acknowledge, clear, and escalate alerts with button entities
+### Migration from v3.x
 
-### 🎨 **Modern User Interface**
-- **Menu-Style Management**: Beautiful button-based interface instead of dropdown menus
-- **Immediate Updates**: Changes take effect instantly with automatic config reloading
-- **Smart Forms**: Pre-filled edit forms with helpful descriptions and examples
-- **Progressive Disclosure**: Forms adapt based on your selections
+If you're upgrading from v3.x, you'll need to update automations:
 
-### 📊 **Comprehensive Monitoring**
-- **Status Sensors**: Track alert states (active, acknowledged, cleared, escalated)
-- **Group Summaries**: Overview of active alerts per group
-- **Device Organization**: Each alert gets its own device with related entities
+**Old (v3.x):**
+```yaml
+service: switch.turn_on
+target:
+  entity_id: switch.door_alert_acknowledged
+```
 
-## 🚀 Installation
+**New (v4.0.0):**
+```yaml
+service: select.select_option
+data:
+  entity_id: select.door_alert_state
+  option: acknowledged
+```
 
-### Via HACS (Recommended)
+**Available States:**
+- `active` - Alert is actively triggered
+- `acknowledged` - Alert acknowledged (prevents escalation)
+- `snoozed` - Alert temporarily silenced
+- `resolved` - Alert marked as resolved
 
-1. Open HACS in your Home Assistant instance
-2. Go to "Integrations"
-3. Click the "+" button and search for "Emergency Alerts"
-4. Install the integration
-5. Restart Home Assistant
-6. Add the integration via **Settings** → **Devices & Services**
+## Features
+
+### Smart Alert Triggers
+- **Simple**: Entity state matching (door == open)
+- **Template**: Jinja2 expressions for complex logic
+- **Logical**: Combine multiple conditions with AND/OR/NOT
+
+### Alert State Management
+- Unified state control via select entity
+- Automatic state synchronization
+- Snooze with configurable duration
+- Escalation prevention when acknowledged
+
+### Flexible Actions
+- Execute Home Assistant actions on trigger
+- Separate actions for acknowledge, snooze, resolve
+- Escalation actions for unacknowledged alerts
+
+### Notification Profiles
+- Reusable notification templates
+- Profile-based action execution
+- Group-level profile management
+
+## Installation
+
+### HACS (Recommended)
+
+1. Open HACS in Home Assistant
+2. Go to Integrations
+3. Click the 3 dots menu → Custom repositories
+4. Add: `https://github.com/issmirnov/emergency_alerts`
+5. Category: Integration
+6. Install "Emergency Alerts"
+7. Restart Home Assistant
 
 ### Manual Installation
 
-1. Copy the `custom_components/emergency_alerts` folder to your Home Assistant `custom_components` directory
+1. Copy `custom_components/emergency_alerts` to your HA config directory
 2. Restart Home Assistant
-3. Add the integration via **Settings** → **Devices & Services**
 
-## ⚙️ Setup
+## Quick Start
 
-### 1. Choose Hub Type
+1. **Settings** → **Devices & Services** → **Add Integration**
+2. Search for "Emergency Alerts"
+3. Follow the setup wizard to create an Alert Group
+4. Add alerts using the unified form
+5. Configure actions and notification profiles
 
-When adding the integration, you'll choose between:
+## Configuration
 
-#### **Global Settings Hub**
-- Configure system-wide notification settings
-- Set default escalation times
-- Manage global message templates
-- One per Home Assistant instance
+### Creating Alerts
 
-#### **Alert Group Hub**
-- Create custom-named groups for organizing alerts
-- Example group names: "Security Alerts", "Kitchen Safety", "Ivan's Monitors"
-- Multiple groups supported
+The integration uses a smart single-page form that adapts based on your trigger type:
 
-### 2. Manage Alerts
+**Simple Trigger:**
+- Select an entity
+- Choose the target state
+- Done!
 
-After setup, click the gear icon on any Alert Group Hub to access the management menu:
+**Template Trigger:**
+- Write a Jinja2 template
+- Returns true when alert should trigger
 
-- **➕ Add New Alert** - Create a new alert
-- **✏️ Edit Alert** - Modify existing alerts (appears when alerts exist)
-- **🗑️ Remove Alert** - Delete alerts (appears when alerts exist)
+**Logical Trigger:**
+- Combine multiple conditions
+- Use AND/OR/NOT operators
+- Build complex alert logic
 
-## 📋 Alert Configuration
+### State Management
 
-### **Trigger Types**
+Each alert provides a select entity with these states:
 
-#### **Simple Triggers**
-Monitor a single entity's state:
+- **active**: Alert is currently triggered
+- **acknowledged**: User acknowledged, escalation prevented
+- **snoozed**: Temporarily silenced (auto-expires)
+- **resolved**: Marked as complete
+
+Change state using:
 ```yaml
-# Example: Front door left open
-Entity ID: binary_sensor.front_door
-Trigger State: "on"
-Severity: warning
+service: select.select_option
+data:
+  entity_id: select.my_alert_state
+  option: acknowledged
 ```
 
-#### **Combined Triggers (AND / OR)**
-Two conditions with comparators:
+### Actions
+
+Configure actions for different events:
+
+- **on_trigger**: When alert activates
+- **on_acknowledged**: When alert is acknowledged
+- **on_snoozed**: When alert is snoozed
+- **on_resolved**: When alert is resolved
+- **on_escalation**: When alert escalates (unacknowledged)
+
+Example:
 ```yaml
-# Example: Window open AND raining
-Conditions:
-  - entity_id: binary_sensor.window_bedroom
-    comparator: "=="
-    value: "on"
-  - entity_id: sensor.weather_condition
-    comparator: "=="
-    value: "rain"
-Operator: and
-Severity: warning
+on_trigger:
+  - service: notify.mobile_app
+    data:
+      message: "Alert triggered!"
 ```
 
-```yaml
-# Example: Car is home AND charge below 30%
-Conditions:
-  - entity_id: device_tracker.car
-    comparator: "=="
-    value: "home"
-  - entity_id: sensor.car_battery
-    comparator: "<"
-    value: "30"
-Operator: and
-Severity: warning
-```
+## Development
 
-#### **Template Triggers**
-Use Jinja2 templates for complex conditions:
-```yaml
-# Example: High temperature with low humidity
-Template: "{{ states('sensor.temperature')|float > 30 and states('sensor.humidity')|float < 20 }}"
-Severity: critical
-```
+### Local Testing Environment
 
-#### **Logical Triggers**
-Combine multiple conditions:
-```yaml
-# Example: Multiple motion sensors triggered
-Conditions: [
-  {"entity_id": "binary_sensor.motion_kitchen", "state": "on"},
-  {"entity_id": "binary_sensor.motion_living_room", "state": "on"}
-]
-Operator: and
-Severity: info
-```
+Fast iteration with Docker-based HA instance:
 
-### **Alert Properties**
-- **Name**: Descriptive alert name (e.g., "Front Door Open", "High Temperature")
-- **Severity**: Critical, Warning, or Info
-- **Reminder Time**: Optional re-notify delay (re-runs on-trigger actions if still active)
-- **Actions**: Service calls for triggered and resolved states; optional reminder and per-state hooks (ack/snooze/resolve)
-
-## 🎛️ Entities Created
-
-For each alert in a group, the integration creates:
-
-### **Alert Device: "Emergency Alert: [Name]"**
-- `binary_sensor.emergency_[name]` - Alert state (on/off)
-- `sensor.emergency_[name]_status` - Current status (active, acknowledged, cleared, escalated, inactive)
-- `button.emergency_[name]_acknowledge` - Acknowledge the alert
-- `button.emergency_[name]_clear` - Manually clear the alert
-- `button.emergency_[name]_escalate` - Force escalation
-
-### **Hub Device: "Emergency Alerts - [Group Name]"**
-- `sensor.emergency_[group]_summary` - Group overview and active alert count
-
-## 🔄 Alert Lifecycle
-
-1. **Triggered** → Alert becomes active, status = "active"
-2. **User Action** → Use buttons to acknowledge, clear, or escalate
-3. **Status Updates** → Status sensor reflects current state
-4. **Automatic Clearing** → Alert clears when condition is no longer met
-5. **Escalation** → If not acknowledged within escalation time
-
-## 🎯 Example Use Cases
-
-### **Security Monitoring**
-```yaml
-Group: "Home Security"
-Alert: "Door Open While Armed"
-Trigger: Template - "{{ states('alarm_control_panel.home') == 'armed_away' and states('binary_sensor.front_door') == 'on' }}"
-Severity: Critical
-Actions: Notify mobile app, trigger siren
-```
-
-### **Safety Alerts**
-```yaml
-Group: "Safety Monitors"
-Alert: "Water Leak Detected"
-Trigger: Simple - binary_sensor.water_leak_basement = "on"
-Severity: Critical
-Actions: Send notifications, shut off water valve
-```
-
-### **Maintenance Reminders**
-```yaml
-Group: "Maintenance"
-Alert: "Fridge Door Open"
-Trigger: Simple - binary_sensor.fridge_door = "on" (with delay)
-Severity: Warning
-Actions: Notify family members
-```
-
-## 🔧 Services
-
-The integration provides several services for automation:
-
-- `emergency_alerts.acknowledge` - Acknowledge an active alert
-- `emergency_alerts.clear` - Manually clear an alert
-- `emergency_alerts.test` - Test an alert configuration
-
-## 🏠 Home Assistant Integration
-
-### **Device Organization**
-- Alerts appear as individual devices under their group hub
-- Clean hierarchy in the device registry
-- Proper device relationships for easy navigation
-
-### **Automation Friendly**
-- All entities work seamlessly in automations
-- Status sensors provide detailed state information
-- Button entities can be triggered from automations
-
-### **UI Consistency**
-- Follows Home Assistant design patterns
-- Integrates cleanly with the native interface
-- Professional look and feel
-
-## 🧪 Development & Testing
-
-### **Running Tests**
 ```bash
-# Run all tests
-./run_tests.sh
+# Start local HA instance (port 8123)
+./dev_tools/local-dev.sh start
 
-# Run validation only
-python validate_integration.py
+# View logs in real-time
+./dev_tools/local-dev.sh logs
 
-# Run specific test
-cd custom_components/emergency_alerts
-python -m pytest tests/test_binary_sensor.py -v
+# Restart after code changes (3 seconds)
+./dev_tools/local-dev.sh restart
+
+# Run unit tests
+./dev_tools/local-dev.sh test
+
+# Clean slate (delete all data)
+./dev_tools/local-dev.sh clean
 ```
 
-### **Test Coverage**
-The integration maintains high test coverage:
-- Overall: >90%
-- Critical paths: 100%
-- Config flow: >85%
+Benefits:
+- No HACS redownload cycle
+- Changes visible in seconds
+- Full debug logging
+- Test entities pre-configured
+- Real HA environment
 
-## 📊 HACS Compliance
+See `dev_tools/README_DEV.md` for details.
 
-This integration is designed to be fully HACS compliant:
+### Running Tests
 
-- ✅ Repository structure follows HACS requirements
-- ✅ Proper manifest.json with all required fields
-- ✅ HACS validation passes in CI/CD
-- ✅ GitHub topics configured for discoverability
+```bash
+python dev_tools/test_runner.py
+```
 
-## 📚 Documentation
+Tests cover:
+- Trigger evaluation (simple, template, logical)
+- Config flow validation
+- State machine transitions
+- Import validation
+- Translation placeholder validation
 
-- [**Architecture Guide**](ARCHITECTURE.md) - Technical implementation details
-- [**Testing Guide**](TESTING.md) - Comprehensive testing documentation
-- [**Change Log**](cursor.context.md) - Development history and feature evolution
+## Architecture
 
-## 🤝 Contributing
+### Core Components
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
+- **binary_sensor.py**: Alert trigger evaluation and state tracking
+- **select.py**: Unified state control entity
+- **sensor.py**: Status and metrics reporting
+- **config_flow.py**: Setup wizard and configuration UI
+- **core/**: Modular trigger evaluator and action executor
 
-### **Development Guidelines**
-- Follow Home Assistant integration best practices
-- Maintain high test coverage
-- Update documentation for new features
-- Use meaningful commit messages
+### State Machine
 
-## 📄 License
+The select entity manages alert states:
 
-MIT License - see [LICENSE](LICENSE) file for details.
+```
+active → acknowledged → active
+  ↓          ↓
+snoozed → resolved
+```
 
-## 🆘 Support
+State changes are mutually exclusive and synchronized with the binary sensor.
 
-- [**GitHub Issues**](https://github.com/issmirnov/emergency-alerts-integration/issues) - Bug reports and feature requests
-- [**GitHub Discussions**](https://github.com/issmirnov/emergency-alerts-integration/discussions) - General questions and community support
-- [**Home Assistant Community Forum**](https://community.home-assistant.io/) - Community discussions
+## Support
 
-## 🙏 Acknowledgments
+- **Issues**: https://github.com/issmirnov/emergency_alerts/issues
+- **Documentation**: See CHANGELOG.md for version history
 
-Special thanks to the Home Assistant community and core developers for providing the excellent framework and documentation that made this integration possible.
+## Changelog
 
----
+See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
-**Emergency Alerts Integration** - Making your smart home safer and more responsive, one alert at a time. 🚨✨
+## License
+
+MIT License - See LICENSE file for details

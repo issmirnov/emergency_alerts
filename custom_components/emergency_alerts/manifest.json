@@ -1,7 +1,7 @@
 {
   "domain": "emergency_alerts",
   "name": "Emergency Alerts",
-  "version": "3.0.3",
+  "version": "4.0.0",
   "documentation": "https://github.com/issmirnov/emergency_alerts",
   "issue_tracker": "https://github.com/issmirnov/emergency_alerts/issues",
   "requirements": [],
