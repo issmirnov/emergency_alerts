@@ -1,18 +1,63 @@
+# Python
 __pycache__/
-*.pyc
-*.pyo
-.env
-.venv
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
 venv/
-lint_venv/
-temp_venv/
-.idea/
+ENV/
+env/
+
+# IDE
 .vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
 .DS_Store
-!Dockerfile.test
+Thumbs.db
 
-# hass actual config
-config/*
+# Local development environment - HA runtime state
+dev_tools/ha-config/.storage/
+dev_tools/ha-config/.HA_VERSION
+dev_tools/ha-config/.ha_run.lock
+dev_tools/ha-config/home-assistant_v2.db*
+dev_tools/ha-config/home-assistant.log*
+dev_tools/ha-config/deps/
+dev_tools/ha-config/tts/
+dev_tools/ha-config/.cloud/
+dev_tools/ha-config/blueprints/
 
-# Screenshots from testing
+# Docker HA instance state (created by docker-compose)
+config/
 .screenshots/
+
+# Temporary development files
+dev_tools/auto_setup_ha.py
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Slate memory bank (optional - keep if you want to track it)
+# .Slate/

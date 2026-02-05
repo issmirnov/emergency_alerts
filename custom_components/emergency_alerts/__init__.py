@@ -41,8 +41,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         # The binary_sensor platform will skip entity creation for global hubs
         await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
     elif hub_type == "group":
-        # Group hub - forward to binary_sensor, sensor, and switch platforms
-        await hass.config_entries.async_forward_entry_setups(entry, ["binary_sensor", "sensor", "switch"])
+        # Group hub - forward to binary_sensor, sensor, and select platforms
+        await hass.config_entries.async_forward_entry_setups(entry, ["binary_sensor", "sensor", "select"])
 
     # Register services only once (when first entry is added)
     if "services_registered" not in hass.data[DOMAIN]:
@@ -121,7 +121,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     if hub_type == "global":
         platforms = ["sensor"]
     else:
-        platforms = ["binary_sensor", "sensor", "switch"]
+        platforms = ["binary_sensor", "sensor", "select"]
 
     unload_ok = True
     for platform in platforms:
