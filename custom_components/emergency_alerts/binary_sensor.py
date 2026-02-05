@@ -24,7 +24,7 @@ from .const import (
     CONF_ON_ACKNOWLEDGED,
     CONF_ON_SNOOZED,
     CONF_ON_RESOLVED,
-    TRIGGER_TYPE_COMBINED,
+    # TRIGGER_TYPE_COMBINED removed in Phase 2
     COMP_EQ,
     COMP_NE,
     COMP_LT,
@@ -437,28 +437,7 @@ class EmergencyBinarySensor(BinarySensorEntity):
                 triggered = any(results) if results else False
             else:  # Default to AND
                 triggered = all(results) if results else False
-        elif self._trigger_type == TRIGGER_TYPE_COMBINED and self._combined_conditions:
-            results = []
-            for cond in self._combined_conditions:
-                if (
-                    isinstance(cond, dict)
-                    and "entity_id" in cond
-                    and "value" in cond
-                ):
-                    state = self.hass.states.get(cond["entity_id"])
-                    comparator = cond.get("comparator", COMP_EQ)
-                    results.append(
-                        state is not None
-                        and self._compare_values(state.state, comparator, cond["value"])
-                    )
-                else:
-                    _LOGGER.warning(f"Invalid combined condition format: {cond}")
-                    results.append(False)
-
-            if self._combined_operator == "or":
-                triggered = any(results) if results else False
-            else:
-                triggered = all(results) if results else False
+        # TRIGGER_TYPE_COMBINED removed in Phase 2 - redundant with logical trigger
         self._set_state(triggered)
 
     @callback
