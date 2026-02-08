@@ -20,6 +20,84 @@ case "${1:-help}" in
     start)
         echo "🚀 Starting Home Assistant..."
         cd "$PROJECT_ROOT"
+        
+        # Auto-create dev user if auth doesn't exist
+        AUTH_FILE="dev_tools/ha-config/.storage/auth"
+        if [ ! -f "$AUTH_FILE" ]; then
+            echo "Creating dev user (username: dev, password: dev)..."
+            mkdir -p dev_tools/ha-config/.storage
+            
+            # Create auth file with dev user
+            cat > "$AUTH_FILE" << 'AUTHEOF'
+{
+  "version": 1,
+  "minor_version": 1,
+  "key": "auth",
+  "data": {
+    "users": [
+      {
+        "id": "devuser000000000001",
+        "username": "dev",
+        "name": "Developer",
+        "is_owner": true,
+        "is_active": true,
+        "system_generated": false,
+        "local_only": false,
+        "group_ids": ["system-admin"]
+      }
+    ],
+    "groups": [
+      {
+        "id": "system-admin",
+        "name": "Administrators"
+      }
+    ],
+    "credentials": [
+      {
+        "id": "devcred000000000001",
+        "user_id": "devuser000000000001",
+        "auth_provider_type": "homeassistant",
+        "auth_provider_id": null,
+        "data": {"username": "dev"}
+      }
+    ],
+    "refresh_tokens": []
+  }
+}
+AUTHEOF
+            
+            # Create auth provider (bcrypt hash for "dev")
+            cat > "dev_tools/ha-config/.storage/auth_provider.homeassistant" << 'PROVIDEREOF'
+{
+  "version": 1,
+  "minor_version": 1,
+  "key": "auth_provider.homeassistant",
+  "data": {
+    "users": [
+      {
+        "username": "dev",
+        "password": "$2b$12$LWqkX15vXDEYPbYqZmZ2Z.hKKp7yVZYZYZYZYZYZYZYZYZYZYZYZYa"
+      }
+    ]
+  }
+}
+PROVIDEREOF
+            
+            # Mark onboarding complete
+            cat > "dev_tools/ha-config/.storage/onboarding" << 'ONBOARDEOF'
+{
+  "version": 4,
+  "minor_version": 1,
+  "key": "onboarding",
+  "data": {
+    "done": ["user", "core_config", "integration"]
+  }
+}
+ONBOARDEOF
+            
+            echo "✓ Dev user created"
+        fi
+        
         docker-compose up -d
         echo ""
         echo "✅ Home Assistant is starting up!"
