@@ -19,6 +19,20 @@ ensure_frontend_repo() {
     fi
 }
 
+wipe_config_state() {
+    local config_dir="$1"
+    if ! find "$config_dir" -mindepth 1 -maxdepth 1 \
+        ! -name "configuration.yaml" \
+        ! -name "dashboards" \
+        -exec rm -rf {} +; then
+        echo "⚠️  Permission issues detected. Retrying with sudo..."
+        sudo find "$config_dir" -mindepth 1 -maxdepth 1 \
+            ! -name "configuration.yaml" \
+            ! -name "dashboards" \
+            -exec rm -rf {} +
+    fi
+}
+
 echo "🏠 Home Assistant Local Development Environment"
 echo "================================================"
 echo ""
@@ -159,10 +173,7 @@ ONBOARDEOF
             cd "$PROJECT_ROOT"
             docker-compose down -v
             CONFIG_DIR="$PROJECT_ROOT/dev_tools/ha-config"
-            find "$CONFIG_DIR" -mindepth 1 -maxdepth 1 \
-                ! -name "configuration.yaml" \
-                ! -name "dashboards" \
-                -exec rm -rf {} +
+            wipe_config_state "$CONFIG_DIR"
             echo "✅ Cleaned up. Run 'start' to create fresh instance."
         else
             echo "❌ Cancelled"
@@ -176,10 +187,7 @@ ONBOARDEOF
             cd "$PROJECT_ROOT"
             docker-compose down -v
             CONFIG_DIR="$PROJECT_ROOT/dev_tools/ha-config"
-            find "$CONFIG_DIR" -mindepth 1 -maxdepth 1 \
-                ! -name "configuration.yaml" \
-                ! -name "dashboards" \
-                -exec rm -rf {} +
+            wipe_config_state "$CONFIG_DIR"
             echo "✅ Full wipe complete. Run 'start' to create fresh instance."
         else
             echo "❌ Cancelled"
