@@ -372,6 +372,9 @@ This project is intentionally developed with heavy AI assistance (Claude/Cursor)
 - Validate all user inputs
 - No external dependencies
 
+### Current Gotchas (Keep In Mind)
+- Strings/translations can drift: `strings.json` and `translations/en.json` must be kept in sync. A placeholder in translations not provided by the UI (e.g., `{group_name}`) causes HA frontend runtime errors.
+
 ### User Communication
 - Be transparent about AI-assisted development
 - Encourage community contributions

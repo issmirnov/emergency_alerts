@@ -51,12 +51,12 @@
                 }
             },
             "group_options": {
-                "title": "Manage {group_name} Alerts",
+                "title": "Manage Alerts",
                 "description": "Choose an action to manage alerts in this group. Currently {alert_count} alert(s) configured.",
                 "menu_options": {
-                    "add_alert": "➕ Add New Alert",
-                    "edit_alert": "✏️ Edit Alert",
-                    "remove_alert": "🗑️ Remove Alert"
+                    "add_alert": "Add New Alert",
+                    "edit_alert": "Edit Alert",
+                    "remove_alert": "Remove Alert"
                 }
             },
             "add_alert": {

@@ -27,6 +27,7 @@ This project uses a Memory Bank system to maintain context across sessions. All 
 2. Verify understanding of current context
 3. Check activeContext.md for immediate priorities
 4. Review progress.md to understand what's complete and what's pending
+5. **Double-check `strings.json` and `translations/en.json` are in sync** when touching config flow UI strings
 
 ### When User Says "update memory bank":
 1. **Review ALL memory bank files** (mandatory - don't skip any)
