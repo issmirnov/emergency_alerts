@@ -46,6 +46,7 @@ dev_tools/ha-config/deps/
 dev_tools/ha-config/tts/
 dev_tools/ha-config/.cloud/
 dev_tools/ha-config/blueprints/
+dev_tools/ha-frontend/
 
 # Docker HA instance state (created by docker-compose)
 config/

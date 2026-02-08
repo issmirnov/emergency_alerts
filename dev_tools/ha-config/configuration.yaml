@@ -21,6 +21,8 @@ homeassistant:
 
 # Enable the default frontend
 frontend:
+  # Use HA frontend development repo for cache-busting during local testing
+  development_repo: /config/frontend
 
 # Enable configuration UI
 config:

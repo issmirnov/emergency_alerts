@@ -5,6 +5,19 @@ set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+FRONTEND_REPO_DIR="$PROJECT_ROOT/dev_tools/ha-frontend"
+
+ensure_frontend_repo() {
+    if [ ! -d "$FRONTEND_REPO_DIR/.git" ]; then
+        echo "📦 Cloning Home Assistant frontend repo for dev cache-busting..."
+        git clone https://github.com/home-assistant/frontend.git "$FRONTEND_REPO_DIR"
+    fi
+
+    if [ ! -d "$FRONTEND_REPO_DIR/dist" ] && [ ! -d "$FRONTEND_REPO_DIR/hass_frontend" ]; then
+        echo "⚠️  Frontend repo found, but build artifacts are missing."
+        echo "   Run: cd dev_tools/ha-frontend && script/setup && script/build_frontend"
+    fi
+}
 
 echo "🏠 Home Assistant Local Development Environment"
 echo "================================================"
@@ -20,6 +33,8 @@ case "${1:-help}" in
     start)
         echo "🚀 Starting Home Assistant..."
         cd "$PROJECT_ROOT"
+
+        ensure_frontend_repo
         
         # Auto-create dev user if auth doesn't exist
         AUTH_FILE="dev_tools/ha-config/.storage/auth"
@@ -143,9 +158,29 @@ ONBOARDEOF
         if [ "$confirm" = "yes" ]; then
             cd "$PROJECT_ROOT"
             docker-compose down -v
-            rm -rf dev_tools/ha-config/.storage
-            rm -rf dev_tools/ha-config/home-assistant_v2.db*
+            CONFIG_DIR="$PROJECT_ROOT/dev_tools/ha-config"
+            find "$CONFIG_DIR" -mindepth 1 -maxdepth 1 \
+                ! -name "configuration.yaml" \
+                ! -name "dashboards" \
+                -exec rm -rf {} +
             echo "✅ Cleaned up. Run 'start' to create fresh instance."
+        else
+            echo "❌ Cancelled"
+        fi
+        ;;
+
+    nuke)
+        echo "💣 Full wipe (docker volumes + HA config state)..."
+        read -p "Are you sure? (yes/no): " confirm
+        if [ "$confirm" = "yes" ]; then
+            cd "$PROJECT_ROOT"
+            docker-compose down -v
+            CONFIG_DIR="$PROJECT_ROOT/dev_tools/ha-config"
+            find "$CONFIG_DIR" -mindepth 1 -maxdepth 1 \
+                ! -name "configuration.yaml" \
+                ! -name "dashboards" \
+                -exec rm -rf {} +
+            echo "✅ Full wipe complete. Run 'start' to create fresh instance."
         else
             echo "❌ Cancelled"
         fi
@@ -180,6 +215,7 @@ ONBOARDEOF
         echo "  logs             Follow HA logs"
         echo "  shell            Open shell in HA container"
         echo "  clean            Delete all data and start fresh"
+        echo "  nuke             Full wipe of volumes + HA config state"
         echo "  install-lovelace Install lovelace card"
         echo "  test             Run local unit tests"
         echo "  help             Show this help"
