@@ -302,10 +302,10 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                 _LOGGER.error("Error updating alert: %s", err)
                 return self.async_abort(reason="update_failed")
 
-        # Show form pre-filled with current values
+        # Show form pre-filled with current values (reuse add_alert step for same UX)
         return self.async_show_form(
-            step_id="edit_alert_form",
-            data_schema=self._build_alert_schema(defaults=current_alert),
+            step_id="add_alert",  # Reuse add_alert translations
+            data_schema=self._build_alert_schema(defaults=defaults),
         )
 
     async def async_step_remove_alert(self, user_input=None):
