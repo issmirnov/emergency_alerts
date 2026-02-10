@@ -275,19 +275,11 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
         alert_id = self._editing_alert_id
         current_alert = alerts.get(alert_id, {})
 
-        # Extract script entity_id from action array for form defaults
+        # Extract values but remove script field (user can re-select if needed)
         defaults = dict(current_alert)
-        if "on_triggered_script" in defaults and isinstance(defaults["on_triggered_script"], list):
-            # Extract entity_id from action: [{'service': 'script.turn_on', 'data': {'entity_id': 'script.X'}}]
-            try:
-                extracted_script = defaults["on_triggered_script"][0]["data"]["entity_id"]
-                defaults["on_triggered_script"] = extracted_script
-                _LOGGER.info(f"Extracted script for editing: {extracted_script}")
-            except (KeyError, IndexError) as e:
-                _LOGGER.warning(f"Could not extract script entity_id: {e}")
-                defaults["on_triggered_script"] = ""
-        else:
-            defaults["on_triggered_script"] = ""
+        # Remove script from defaults to avoid validation issues
+        # User will need to re-select it if they want to keep/change it
+        defaults.pop("on_triggered_script", None)
 
         if user_input is not None:
             try:
