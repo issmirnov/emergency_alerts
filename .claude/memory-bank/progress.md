@@ -4,11 +4,11 @@
 > **Purpose**: What works, what's left, current status
 
 ## Status Overview
-**Current Phase**: v3 Combined Triggers & Reminder Model (2025-12-10)
-**Overall Progress**: Ready for v3.0.0 cut
-**Last Updated**: 2025-12-10
+**Current Phase**: v4.1.0 Released and Production Ready
+**Overall Progress**: Stable, tested, and ready for users
+**Last Updated**: 2026-02-10
 
-**SUCCESS**: v3 combined triggers, reminder timer, and escalation cleanup shipped (backend + card) 🎉
+**SUCCESS**: v4.1.0 delivered - comprehensive testing, modern UX, full HA 2026.2 compatibility! 🎉
 
 ## Completed ✓
 
@@ -97,6 +97,66 @@
 
 ## Recently Completed 🎉
 
+### v4.1.0 Major Polish Release (2026-02-10) ✅
+- **Status**: COMPLETE - Merged to main, CI/CD green, production-ready
+- **Release Date**: 2026-02-10
+- **PR**: #9 (major features), #10 (version bump)
+- **Major Improvements**:
+
+  **Testing Infrastructure:**
+  - Added hassfest validation to CI workflow
+  - Created `validate_translations.py` for automatic string sync validation
+  - Fixed 40+ translation mismatches between strings.json and translations/en.json
+  - Added pytest fixture for automatic translation error detection
+  - Created E2E test for config flow with console error monitoring
+  - Comprehensive testing documentation in `docs/TESTING.md`
+  - Updated to HA 2026.2 in docker-compose.yml
+
+  **Config Flow Modernization (82% Code Reduction):**
+  - Redesigned from multi-step wizard to single-page unified form (Adaptive Lighting pattern)
+  - Reduced code: 1,371 → 245 lines (82% reduction)
+  - All alert options visible on one scrollable page
+  - Modern selectors (EntitySelector, TemplateSelector)
+  - Fixed HA 2026.2 compatibility issues (OptionsFlow, async_show_menu)
+  - Added user-friendly labels to all fields
+  - Added template testing guidance to descriptions
+
+  **Full CRUD Operations:**
+  - Implemented edit alert functionality with pre-filled forms
+  - Implemented remove alert functionality
+  - Fixed field defaults preservation when editing
+  - Fixed script entity_id extraction from action array
+  - Added instant entity updates after adding/editing alerts (config entry reload)
+
+  **Script Storage Refactor:**
+  - Changed from action array → entity_id string
+  - Simpler data model: `{"script": "script.notify_phone"}`
+  - Added migration logic for old array format
+  - Benefits: easier to edit, clearer semantics, less error-prone
+
+  **UX Polish:**
+  - User-friendly labels on all config flow fields
+  - Template testing guidance in descriptions
+  - Fixed malformed template examples
+  - Improved help text clarity
+  - Reused add_alert step_id for edit (code deduplication)
+
+  **Card V4 Update:**
+  - Updated Lovelace card to use select entities (v4 architecture)
+  - Changed from switch.toggle → select.select_option
+  - All 90 tests passing
+  - Implemented cache-busting with `?v=4.0.0` parameter
+
+  **Automated Development Environment:**
+  - Updated `local-dev.sh` with automated test setup
+  - Trusted network auth bypass for localhost
+  - Auto-creates sun integration + 2 test alerts on startup
+  - Registers dashboard and card resources automatically
+  - Notification test script pre-configured
+
+- **Testing**: All passing (hassfest, translation validation, pytest, E2E)
+- **CI/CD**: 5 consecutive successful runs on main branch
+
 ### v3 Combined Trigger + Reminder (2025-12-10) ✅
 - **Status**: COMPLETE - backend and card updated, tests/lint/build pass
 - **Changes**:
@@ -105,6 +165,58 @@
   - Frontend status gating on entity state to avoid stale escalations; card built
   - Manifest bumped to 3.0.0; card package bumped to 3.0.0
 - **Testing**: `./run_tests.sh` (backend), frontend `npm run lint && npm test && npm run build`
+
+### v4.1.0 Lessons Learned 📚
+
+**EntitySelector Best Practices:**
+- NEVER provide default values for EntitySelector fields (causes "Entity not found" errors)
+- Let EntitySelector remain empty by default - users select from autocomplete
+- Applies to: trigger_entity, script, notification_targets, etc.
+- This was a critical discovery that prevented validation errors
+
+**Script Storage Pattern:**
+- Store scripts as entity_id string, not action array
+- Benefits: simpler data model, easier to edit, clearer semantics
+- Migration logic required for backward compatibility
+- Pattern: `{"script": "script.notify_phone"}` vs `{"script": [{"service": "script.turn_on", ...}]}`
+
+**Single-Page Forms > Multi-Step Wizards:**
+- Adaptive Lighting pattern proved superior for alert configuration
+- All options visible at once improves discoverability
+- No navigation confusion or lost context
+- 82% code reduction demonstrates architectural improvement
+
+**Translation Validation is Critical:**
+- Automated sync checking prevents runtime errors
+- strings.json ↔ translations/en.json must stay in perfect sync
+- CI pipeline enforcement catches issues early
+- Prevents production translation failures
+
+**Testing Pipeline Design:**
+- Multi-layered approach provides comprehensive coverage
+- Hassfest: structure validation
+- Translation validation: runtime error prevention
+- Pytest: business logic verification
+- E2E: critical user flows
+- Each layer catches different issue types
+
+**HA 2026.2 Compatibility:**
+- OptionsFlow config_entry is now read-only (remove custom __init__)
+- async_show_menu doesn't support description_placeholders (use async_show_form)
+- Always test against specific HA versions (not :latest)
+- Breaking changes in minor HA versions are common
+
+**Cache-Busting Strategy:**
+- Service Worker caching is extremely aggressive
+- Version parameters required: `?v=4.1.0`
+- Incognito mode best for development testing
+- Hard refresh alone is insufficient
+
+**Config Entry Reloading:**
+- Instant entity updates dramatically improve UX
+- Call `hass.config_entries.async_reload(entry.entry_id)` after modifications
+- Eliminates "wait and see" user confusion
+- Critical for professional integration feel
 
 ### Device Identifier Standardization (CRITICAL BUG FIX) ✅
 - **Started**: 2025-10-31
@@ -157,11 +269,10 @@
 ## Planned 📋
 
 ### Near Term
-- [ ] Create claude.md with hooks configuration - **Priority: High**
-- [ ] Review test coverage and add edge case tests - **Priority: Medium**
-- [ ] Decide on switch.py fate (remove or implement) - **Priority: Low**
-- [ ] Clean up remaining legacy code paths - **Priority: Medium**
-- [ ] Submit to Home Assistant Brands repository - **Priority: Medium** (See HACS Brands section below)
+- [ ] Monitor user feedback on GitHub - **Priority: High**
+- [ ] Consider additional alert patterns/blueprints - **Priority: Medium**
+- [ ] Submit to Home Assistant Brands repository - **Priority: Low** (See HACS Brands section below)
+- [ ] Deprecate and remove switch.py in v5.0.0 - **Priority: Low** (switch → select migration complete)
 
 ### Medium Term
 - [ ] Add area integration (tie alerts to HA areas) - **Priority: Medium**
@@ -190,147 +301,184 @@
 - None currently identified
 
 ### Minor 🟢
-- Switch platform unused/minimal implementation - **Impact**: Dead code in repository - **Status**: Evaluating removal
-- Global settings hub underutilized - **Impact**: Feature not fully leveraged - **Status**: Future enhancement
+- Switch platform deprecated - **Impact**: Will be removed in v5.0.0 - **Status**: Select platform is the replacement
 - Limited to English language - **Impact**: Non-English users need translations - **Status**: Infrastructure ready, awaiting community contributions
 
 ## What Works Well
 
 ### Integration (Backend)
 - **Hub architecture**: Clean organization, proper device hierarchy, scales well
-- **Config flow**: Multi-step approach with progressive disclosure is intuitive
-- **Visual condition builder**: Eliminates user errors, accessible to non-technical users
-- **Status tracking**: Companion sensors provide rich state information
+- **Config flow**: Single-page unified form is intuitive and discoverable (v4.1.0)
+- **Modern selectors**: EntitySelector and TemplateSelector provide excellent UX
+- **Full CRUD operations**: Create, edit, and remove alerts seamlessly (v4.1.0)
+- **Instant updates**: Config entry reloading makes changes visible immediately
+- **Status tracking**: Select entity provides clean state management (v4.0)
 - **Device relationships**: via_device properly implemented, UI looks professional
-- **Test coverage**: >90% coverage provides confidence in changes
-- **Documentation**: Comprehensive docs in README, ARCHITECTURE, memory bank
-- **v2.0 Switch System**: State machine with mutual exclusivity working perfectly
+- **Test coverage**: >90% coverage + comprehensive validation pipeline
+- **Documentation**: Comprehensive docs in README, TESTING.md, memory bank
+- **Script storage**: Simple entity_id string model is clean and maintainable (v4.1.0)
 
 ### User Experience
 - **Zero YAML required**: Complete UI-driven configuration
+- **Single-page form**: All options visible at once - no wizard navigation (v4.1.0)
+- **User-friendly labels**: Clear field names guide users through setup (v4.1.0)
+- **Helpful descriptions**: Every field has examples and testing guidance (v4.1.0)
 - **Immediate feedback**: Config reloading makes changes visible instantly
+- **Full editing**: Pre-filled forms make alert updates painless (v4.1.0)
 - **Clear error messages**: Helpful guidance when things go wrong
-- **Comprehensive help text**: Every form field has description with examples
 
 ### Technical Quality
 - **Zero external dependencies**: Pure Home Assistant integration, no supply chain risk
 - **Defensive coding**: Extensive error handling, graceful degradation
 - **Clean separation**: Platforms handle their responsibilities, no cross-contamination
 - **Event-driven**: Efficient state evaluation using HA's event system
+- **HA 2026.2 compatible**: Full compatibility with latest Home Assistant (v4.1.0)
 
 ### Development Tools
-- **E2E Testing Infrastructure**: Comprehensive Playwright setup with LLM debugging (2025-10-30)
-- **Build Scripts**: build-and-deploy.sh helper for card development (2025-10-30)
+- **Comprehensive Testing Pipeline**: Hassfest + translation validation + pytest + E2E (v4.1.0)
+- **Translation Validation**: Automatic sync checking prevents runtime errors (v4.1.0)
+- **Automated Dev Environment**: One-command setup with test data (v4.1.0)
+- **E2E Testing Infrastructure**: Playwright with console error monitoring (v4.1.0)
 - **Memory Bank**: Persistent context across AI sessions working excellently
 
 ## What Needs Improvement
 
-### Lovelace Card (Frontend) - ALL FIXED ✅
-- **Button click bug**: ✅ FIXED - Buttons now update alert states correctly
-- **Entity ID conversion**: ✅ FIXED - _convertToSwitchId() strips "emergency_" prefix
-- **Browser caching**: ✅ SOLVED - Query parameter approach (`?v=2.0.3-bugfix`)
-- **Testing approach**: Manual testing working well, Playwright limited by shadow DOM (accepted limitation)
-
-### Code Quality
-- **Legacy code paths**: Still some backward compatibility code that could be cleaned up
-- **Test edge cases**: Some logical condition edge cases could use more coverage
-- **Dispatcher usage**: Some redundancy, could be consolidated
-
-### Features
-- **Global settings integration**: Exists but not fully utilized by alert groups
+### Features (Future Enhancements)
 - **Blueprint library**: Only one blueprint, could offer more common patterns
-- **Escalation policies**: Basic implementation, could be more sophisticated
 - **Internationalization**: Infrastructure exists but only English implemented
-
-### User Experience
-- **Onboarding**: Could use better tutorial/walkthrough for new users
-- **Migration path**: Pre-hub installations need clear migration guide
 - **Alert history**: Relies on HA history, dedicated view could be better
+
+### User Experience (Minor Polish)
+- **Onboarding**: Could use better tutorial/walkthrough for new users
 - **Documentation discoverability**: Good docs exist, but finding them could be easier
+
+### Code Quality (Low Priority)
+- **Switch platform removal**: Deprecated in v4.0, scheduled for removal in v5.0.0
+- **Test edge cases**: Some logical condition edge cases could use more coverage
 
 ## Milestones
 
-### v1.0 - Feature Complete MVP
-- **Target**: Q1 2025
+### v4.0 - Architecture Simplification
+- **Released**: 2026-02-04
 - **Status**: Complete ✓
-- **Requirements**:
-  - [x] Hub-based architecture
-  - [x] Three trigger types
-  - [x] Visual condition builder
-  - [x] Status tracking
-  - [x] Edit functionality
-  - [x] Multi-step forms
-  - [x] Device hierarchy
-  - [x] Test coverage >90%
-  - [x] HACS compliance
+- **Achievements**:
+  - [x] Switch → Select entity transition
+  - [x] 67% fewer entities per alert
+  - [x] HA 2026.2 compatibility
+  - [x] Cleaner state management
 
-### v1.1 - Public Release
-- **Target**: Q2 2025
-- **Status**: In Progress
-- **Requirements**:
-  - [x] Memory bank setup
-  - [x] Documentation complete
-  - [ ] HACS submission
-  - [ ] User feedback collection plan
-  - [ ] Known bugs addressed
-  - [ ] Migration guide for legacy users
+### v4.1.0 - Polish & Testing
+- **Released**: 2026-02-10
+- **Status**: Complete ✓
+- **Achievements**:
+  - [x] Comprehensive testing pipeline (hassfest + translation validation + pytest + E2E)
+  - [x] Single-page config flow (82% code reduction)
+  - [x] Full CRUD operations (create, edit, remove)
+  - [x] Modern selectors (EntitySelector, TemplateSelector)
+  - [x] User-friendly labels and descriptions
+  - [x] Script storage refactor (array → string)
+  - [x] Instant entity updates
+  - [x] Automated development environment
+  - [x] HA 2026.2 compatibility verified
+  - [x] Production-ready release
 
-### v1.2 - Polish & Expansion
-- **Target**: Q3 2025
+### v4.2+ - Future Enhancements
+- **Target**: Based on user feedback
 - **Status**: Planned
-- **Requirements**:
-  - [ ] Area integration
-  - [ ] Expanded blueprints
-  - [ ] Global settings enhancements
-  - [ ] Additional language support
+- **Potential Features**:
+  - [ ] Additional blueprints/patterns
+  - [ ] Internationalization (translations)
+  - [ ] Alert history view
+  - [ ] Onboarding tutorial
   - [ ] User-requested features
 
 ## Metrics
 
-### Test Coverage
-- **Tests Passing**: All (latest run)
+### Test Coverage (v4.1.0)
+- **Tests Passing**: All workflows green ✓
 - **Code Coverage**: >90% overall
 - **Critical Path Coverage**: 100% (alert evaluation, state transitions)
-- **Test Files**: 7 test modules
+- **Test Files**: 7 test modules + E2E suite
+- **CI Runs**: 5 consecutive successful runs on main
 
-### Code Quality
-- **HACS Validation**: Passing ✓
+### Code Quality (v4.1.0)
+- **Hassfest Validation**: Passing ✓ (automated in CI)
+- **Translation Validation**: Passing ✓ (automated in CI)
+- **Pytest**: All tests passing ✓
+- **E2E Tests**: Config flow verified ✓
 - **Linting**: Clean (Ruff)
-- **CI Status**: Passing ✓
 - **No Critical Issues**: Clean
+
+### Code Metrics (v4.1.0)
+- **Config Flow**: 245 lines (82% reduction from 1,371)
+- **LOC Reduction**: Massive simplification while adding features
+- **Maintainability**: Significantly improved with single-page form
 
 ### Performance
 - **State Evaluation**: <10ms per alert (event-driven)
 - **Config Flow**: <200ms form response
-- **Entity Creation**: <500ms on reload
+- **Entity Creation**: Instant with config entry reload
 - **Memory Footprint**: Minimal (stateless entities)
 
-### User Feedback
-- **Status**: Pre-public release, limited feedback
-- **AI Development Note**: Acknowledged in README
-- **Community Engagement**: Prepared for GitHub issues/discussions
-- **Documentation**: Comprehensive, ready for users
+### Production Status (v4.1.0)
+- **Release Date**: 2026-02-10
+- **Version**: 4.1.0
+- **Status**: Production-ready, stable, fully tested
+- **HA Compatibility**: 2026.2+
+- **Breaking Changes**: None (fully backward compatible)
+- **Documentation**: Comprehensive and up-to-date
 
 ## Changelog
 
-See cursor.context.md for detailed development history including:
-- Phase 1: Initial implementation (simple alerts)
-- Phase 2: Global settings introduction
-- Phase 3: Hub architecture refactor (major pivot)
-- Phase 4: UI modernization (menu-style, multi-step, visual builder)
-- Phase 5: Polish & stability (defensive coding, cleanup, memory bank)
+### v4.1.0 (2026-02-10) - Major Polish Release
+**Status**: Released, production-ready
+**Summary**: Comprehensive testing pipeline, modern UX, HA 2026.2 compatibility
 
-### Recent Notable Changes
-- 2025-10-30: **CRITICAL**: Fixed Lovelace card button click bug (entity ID conversion)
-- 2025-10-30: Created build-and-deploy.sh helper script for card development
-- 2025-10-30: E2E testing infrastructure (~1900 lines, 16 files)
-- 2025-10-29: Memory bank initialization
-- 2025-10-29: v2.0 notification profiles system
-- 2025-10-29: v2.0 switch-based state machine (major redesign)
-- 2025-01-22: Visual condition builder
-- Recent: Defensive coding improvements
-- Recent: Legacy code cleanup
-- Recent: Documentation updates
+**Testing Infrastructure:**
+- Added hassfest validation to CI workflow
+- Created `validate_translations.py` for automatic string sync validation
+- Fixed 40+ translation mismatches
+- Added pytest fixture for automatic translation error detection
+- Created E2E test for config flow with console error monitoring
+- Comprehensive testing documentation
+
+**Config Flow Modernization:**
+- Redesigned to single-page unified form (82% code reduction: 1,371 → 245 lines)
+- Added user-friendly labels to all fields
+- Added template testing guidance to descriptions
+- Modern selectors (EntitySelector, TemplateSelector)
+- Fixed HA 2026.2 compatibility issues
+
+**Full CRUD Operations:**
+- Implemented edit alert with pre-filled forms
+- Implemented remove alert functionality
+- Added instant entity updates (config entry reload)
+- Fixed field defaults preservation
+
+**Script Storage Refactor:**
+- Changed from action array → entity_id string
+- Added migration logic for old format
+- Simpler, cleaner data model
+
+**Development Tools:**
+- Automated dev environment setup
+- Trusted network auth bypass
+- Auto-creates test alerts
+- Pre-configured testing scripts
+
+### v4.0.0 (2026-02-04) - Architecture Simplification
+**Breaking Change**: Switch → Select entity transition
+- Replaced 3 switches per alert with 1 select entity
+- 67% fewer entities, cleaner UI
+- Better follows HA 2026.2 patterns
+
+### v3.0.0 (2025-12-10) - Combined Triggers & Reminder
+- New combined trigger type (two conditions, AND/OR)
+- Per-alert reminder timer
+- Escalation cleanup on state changes
+
+### Previous History
+See git history for older versions (v1.x, v2.x)
 
 ## HACS Distribution Status
 
