@@ -164,12 +164,12 @@ card_exists = any(
 
 if not card_exists:
     res_data["data"]["items"].append({
-        "id": f"emergency_alerts_card_{len(res_data['data']['items'])}",
+        "id": "emergency_alerts_card_v4",
         "type": "module",
-        "url": "/local/lovelace-emergency-alerts-card/emergency-alerts-card.js"
+        "url": "/local/lovelace-emergency-alerts-card/emergency-alerts-card.js?v=4.0.0"
     })
     resources_file.write_text(json.dumps(res_data, indent=2))
-    print("✅ Emergency Alerts card resource registered")
+    print("✅ Emergency Alerts card resource registered (v4.0.0)")
 SETUP_EOF
 }
 
