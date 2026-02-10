@@ -90,127 +90,11 @@
           "severity": "Critical: Urgent issues requiring immediate attention; Warning: Important but not critical; Info: General notifications"
         }
       },
-      "add_alert_trigger_config": {
-        "title": "➕ Add New Alert - Step 2: Trigger Configuration",
-        "description": "Configure the specific trigger conditions for your {trigger_type} alert.",
-        "data": {
-          "entity_id": "Entity to Monitor",
-          "trigger_state": "State that triggers the alert",
-          "template": "Jinja2 Template",
-          "logical_conditions": "JSON Conditions Array"
-        },
-        "data_description": {
-          "entity_id": "The Home Assistant entity to watch (e.g., binary_sensor.front_door, sensor.temperature)",
-          "trigger_state": "What state should trigger the alert? Examples: • 'on' for binary sensors; • 'unavailable' for offline devices; • '30' for numeric thresholds; • 'home' for device trackers",
-          "template": "Jinja2 template returning True/False. Example: {{ states('sensor.temperature')|float > 25 and states('sensor.humidity')|float < 30 }}. Use Home Assistant state functions and Jinja2 syntax",
-          "logical_conditions": "JSON format: [{\"entity_id\": \"binary_sensor.door\", \"state\": \"on\"}, {\"entity_id\": \"sensor.temp\", \"state\": \"30\"}]. Use 'and' or 'or' operator to combine conditions"
-        }
-      },
-      "add_alert_trigger_simple": {
-        "title": "➕ Add New Alert - Step 2: Simple Trigger Configuration",
-        "description": "Configure which entity to monitor and what state should trigger the alert.",
-        "data": {
-          "entity_id": "Entity to Monitor",
-          "trigger_state": "State that triggers the alert"
-        },
-        "data_description": {
-          "entity_id": "The Home Assistant entity to watch (e.g., binary_sensor.front_door, sensor.temperature)",
-          "trigger_state": "What state should trigger the alert? Examples: • 'on' for binary sensors; • 'unavailable' for offline devices; • '30' for numeric thresholds; • 'home' for device trackers"
-        }
-      },
-      "add_alert_trigger_template": {
-        "title": "➕ Add New Alert - Step 2: Template Trigger Configuration",
-        "description": "Select an entity to monitor and create a Jinja2 template that returns True when the alert should trigger.",
-        "data": {
-          "entity_id": "Entity to Monitor",
-          "template": "Jinja2 Template"
-        },
-        "data_description": {
-          "entity_id": "The Home Assistant entity to watch (e.g., binary_sensor.front_door, sensor.temperature)",
-          "template": "Jinja2 template returning True/False. Example: {{ states('sensor.temperature')|float > 25 and states('sensor.humidity')|float < 30 }}. Use Home Assistant state functions and Jinja2 syntax"
-        }
-      },
-      "add_alert_trigger_logical": {
-        "title": "➕ Add New Alert - Step 2: Logical Trigger Configuration",
-        "description": "Combine multiple entity conditions using AND/OR logic. Add up to 10 conditions below.",
-        "data": {
-          "logical_operator": "Logical Operator",
-          "condition_0_entity": "Condition 1: Entity",
-          "condition_0_state": "Condition 1: State",
-          "condition_1_entity": "Condition 2: Entity",
-          "condition_1_state": "Condition 2: State",
-          "condition_2_entity": "Condition 3: Entity",
-          "condition_2_state": "Condition 3: State",
-          "condition_3_entity": "Condition 4: Entity",
-          "condition_3_state": "Condition 4: State",
-          "condition_4_entity": "Condition 5: Entity",
-          "condition_4_state": "Condition 5: State"
-        },
-        "data_description": {
-          "logical_operator": "Choose how to combine the conditions: • AND - All conditions must be true; • OR - Any condition can be true",
-          "condition_0_entity": "First entity to monitor (e.g., binary_sensor.front_door)",
-          "condition_0_state": "State that triggers this condition (e.g., 'on', 'open', '30')",
-          "condition_1_entity": "Second entity to monitor (optional)",
-          "condition_1_state": "State that triggers this condition (optional)",
-          "condition_2_entity": "Third entity to monitor (optional)",
-          "condition_2_state": "State that triggers this condition (optional)",
-          "condition_3_entity": "Fourth entity to monitor (optional)",
-          "condition_3_state": "State that triggers this condition (optional)",
-          "condition_4_entity": "Fifth entity to monitor (optional)",
-          "condition_4_state": "State that triggers this condition (optional)"
-        }
-      },
-      "add_alert_actions": {
-        "title": "➕ Add New Alert - Step 3: Action Configuration",
-        "description": "Choose which scripts to run when the alert is triggered, cleared, or escalated. Create scripts in Settings > Automations & Scenes > Scripts for advanced actions like notifications.",
-        "data": {
-          "on_triggered_script": "Script to run when alert triggers (optional)",
-          "on_cleared_script": "Script to run when alert clears (optional)",
-          "on_escalated_script": "Script to run when alert escalates (optional)"
-        },
-        "data_description": {
-          "on_triggered_script": "Select a script to run when the alert condition is met. Create scripts in Settings > Automations & Scenes > Scripts for notifications, automations, etc.",
-          "on_cleared_script": "Select a script to run when the alert condition is no longer met (e.g., cleanup actions)",
-          "on_escalated_script": "Select a script to run if the alert is not acknowledged within the escalation time (e.g., emergency notifications)"
-        }
-      },
       "edit_alert": {
         "title": "✏️ Select Alert to Edit",
         "description": "Choose which alert you want to edit or delete. You'll see all the current settings and can modify them or remove the alert entirely.",
         "data": {
           "alert_id": "Alert to Edit"
-        }
-      },
-      "edit_alert_form": {
-        "title": "✏️ Edit Alert",
-        "description": "Modify the alert settings below, or choose to delete this alert entirely. All changes will take effect immediately.",
-        "data": {
-          "action": "Action",
-          "name": "Alert Name",
-          "trigger_type": "How should this alert be triggered?",
-          "entity_id": "Entity to monitor (for simple triggers)",
-          "trigger_state": "State that triggers the alert (e.g., 'on', 'off', 'unavailable')",
-          "template": "Jinja2 template that should return True when alert should trigger",
-          "logical_conditions": "JSON array of conditions for logical triggers",
-          "severity": "How urgent is this alert?",
-          "escalation_minutes": "Minutes before escalating if not acknowledged",
-          "on_triggered_script": "Script to run when alert triggers (optional)",
-          "on_cleared_script": "Script to run when alert clears (optional)",
-          "on_escalated_script": "Script to run when alert escalates (optional)"
-        },
-        "data_description": {
-          "action": "Choose whether to save your changes or delete this alert entirely",
-          "name": "A descriptive name for this alert (e.g., 'Front Door Open', 'High Temperature')",
-          "trigger_type": "Simple: Monitor one entity's state; Template: Use Jinja2 for complex conditions; Logical: Combine multiple entity conditions",
-          "entity_id": "The Home Assistant entity to watch (e.g., binary_sensor.front_door, sensor.temperature)",
-          "trigger_state": "What state should trigger the alert? Examples: • 'on' for binary sensors; • 'unavailable' for offline devices; • '30' for numeric thresholds",
-          "template": "Jinja2 template returning True/False. Example: {{ states('sensor.temperature')|float > 25 and states('sensor.humidity')|float < 30 }}",
-          "logical_conditions": "JSON format: [{\"entity_id\": \"binary_sensor.door\", \"state\": \"on\"}, {\"entity_id\": \"sensor.temp\", \"state\": \"30\"}]. Use 'and' or 'or' operator",
-          "severity": "Critical: Urgent issues requiring immediate attention; Warning: Important but not critical; Info: General notifications",
-          "escalation_minutes": "If not acknowledged within this time, escalation actions will run (leave empty to disable)",
-          "on_triggered_script": "Select a script to run when the alert condition is met. Create scripts in Settings > Automations & Scenes > Scripts for notifications, automations, etc.",
-          "on_cleared_script": "Select a script to run when the alert condition is no longer met (e.g., cleanup actions)",
-          "on_escalated_script": "Select a script to run if the alert is not acknowledged within the escalation time (e.g., emergency notifications)"
         }
       },
       "remove_alert": {
@@ -219,10 +103,6 @@
         "data": {
           "alert_id": "Alert to Remove"
         }
-      },
-      "list_alerts": {
-        "title": "📋 List All Alerts",
-        "description": "View all alerts configured in this group"
       }
     },
     "abort": {
