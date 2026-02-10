@@ -2,18 +2,24 @@
 
 A powerful Home Assistant integration for managing critical alerts with smart escalation, state management, and flexible trigger conditions.
 
-## Version 4.0.0 - Major Modernization Release
+## Version 4.1.0 - Simplified Architecture & Modern UX
 
-**BREAKING CHANGE**: This version replaces 3 switches per alert with 1 unified select entity for simpler state management.
+**Major improvements** in testing, config flow UX, and Home Assistant 2026.2+ compatibility.
+
+### What's New in v4.1.0
+
+- **Single-Page Config Flow**: 82% code reduction, all options on one screen (inspired by Adaptive Lighting)
+- **Comprehensive Testing**: Hassfest validation, translation sync checks, E2E tests
+- **HA 2026.2 Compatible**: Updated for latest Home Assistant patterns
+- **Automated Dev Environment**: `./dev_tools/local-dev.sh start` sets up everything
+- **Translation Validation**: Automatic checks prevent runtime translation errors
+- **Modern Selectors**: EntitySelector, TemplateSelector for better UX
 
 ### What's New in v4.0.0
 
 - **Unified State Control**: Single select entity per alert instead of 3 separate switches
 - **67% Fewer Entities**: Cleaner entity list, better performance
-- **Modern HA 2026.2 Patterns**: Follows latest Home Assistant best practices
-- **Simplified Config Flow**: Removed Global Settings Hub requirement
 - **Better UX**: Single dropdown for state management instead of 3 toggles
-- **Full Local Development**: Docker-based HA environment for fast iteration
 
 ### Migration from v3.x
 
