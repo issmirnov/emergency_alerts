@@ -1,15 +1,15 @@
 {
   "domain": "emergency_alerts",
   "name": "Emergency Alerts",
-  "version": "4.1.0",
-  "documentation": "https://github.com/issmirnov/emergency_alerts",
-  "issue_tracker": "https://github.com/issmirnov/emergency_alerts/issues",
-  "requirements": [],
-  "dependencies": [],
   "codeowners": [
     "@issmirnov"
   ],
   "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/issmirnov/emergency_alerts",
   "integration_type": "hub",
-  "iot_class": "calculated"
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/issmirnov/emergency_alerts/issues",
+  "requirements": [],
+  "version": "4.1.0"
 }
