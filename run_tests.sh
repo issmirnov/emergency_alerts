@@ -22,8 +22,8 @@ print_status() {
 # Function to run backend tests
 run_backend_tests() {
     print_status "📦 Running Backend Tests..." "$YELLOW"
-    
-    cd custom_components/emergency_alerts
+
+    # Don't cd - run from project root to avoid select.py stdlib conflict
     
     # Check if test requirements are installed
     if ! python -c "import pytest" 2>/dev/null; then
@@ -35,18 +35,20 @@ run_backend_tests() {
         fi
     fi
     
-    # Run pytest with coverage
+    # Run pytest from project root (avoids select.py stdlib conflict)
     print_status "Running backend unit tests..." "$YELLOW"
-    python -m pytest tests/ -v --cov=. --cov-report=term-missing --cov-report=html:htmlcov
-    
+    cd ../..
+    python -m pytest custom_components/emergency_alerts/tests/ -v \
+        --cov=custom_components/emergency_alerts \
+        --cov-report=term-missing \
+        --cov-report=html:htmlcov
+
     if [ $? -eq 0 ]; then
         print_status "✅ Backend tests passed!" "$GREEN"
     else
         print_status "❌ Backend tests failed!" "$RED"
         exit 1
     fi
-    
-    cd ../..
 }
 
 # Function to run linting
