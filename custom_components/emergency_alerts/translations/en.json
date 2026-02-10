@@ -77,17 +77,25 @@
         }
       },
       "add_alert": {
-        "title": "➕ Add New Alert - Step 1: Basic Information",
-        "description": "First, let's set up the basic information for your new emergency alert.",
+        "title": "➕ Add New Alert",
+        "description": "Configure your emergency alert with all options on one page.",
         "data": {
           "name": "Alert Name",
-          "trigger_type": "How should this alert be triggered?",
-          "severity": "How urgent is this alert?"
+          "trigger_type": "Trigger Type",
+          "severity": "Severity Level",
+          "entity_id": "Entity to Monitor",
+          "trigger_state": "Trigger State",
+          "template": "Jinja2 Template",
+          "on_triggered_script": "Script to Run When Triggered (optional)"
         },
         "data_description": {
           "name": "A descriptive name for this alert (e.g., 'Front Door Open', 'High Temperature')",
-          "trigger_type": "Simple: Monitor one entity's state; Template: Use Jinja2 for complex conditions; Logical: Combine multiple entity conditions",
-          "severity": "Critical: Urgent issues requiring immediate attention; Warning: Important but not critical; Info: General notifications"
+          "trigger_type": "Simple: Monitor one entity's state. Template: Use Jinja2 for complex conditions.",
+          "severity": "Critical: Urgent issues. Warning: Important but not critical. Info: General notifications.",
+          "entity_id": "The Home Assistant entity to monitor (e.g., binary_sensor.front_door, sensor.temperature)",
+          "trigger_state": "State that triggers the alert. Examples: 'on' for binary sensors, 'unavailable' for offline devices, '30' for numeric thresholds",
+          "template": "Jinja2 template that returns True when alert should trigger. Example: {{ states('sensor.temperature')|float > 25 }}",
+          "on_triggered_script": "Optional script to run when this alert triggers. Create scripts in Settings > Automations & Scenes > Scripts."
         }
       },
       "edit_alert": {
