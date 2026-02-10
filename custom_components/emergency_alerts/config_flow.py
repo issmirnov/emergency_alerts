@@ -275,6 +275,15 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
         alert_id = self._editing_alert_id
         current_alert = alerts.get(alert_id, {})
 
+        # Extract script entity_id from action array for form defaults
+        defaults = dict(current_alert)
+        if "on_triggered_script" in defaults and isinstance(defaults["on_triggered_script"], list):
+            # Extract entity_id from action: [{'service': 'script.turn_on', 'data': {'entity_id': 'script.X'}}]
+            try:
+                defaults["on_triggered_script"] = defaults["on_triggered_script"][0]["data"]["entity_id"]
+            except (KeyError, IndexError):
+                defaults["on_triggered_script"] = ""
+
         if user_input is not None:
             try:
                 # Update alert data
