@@ -455,3 +455,34 @@ def freeze_time():
             # Fallback: return a no-op context manager
             from contextlib import nullcontext
             return nullcontext
+
+
+# Translation error detection fixture
+@pytest.fixture(autouse=True)
+def check_translation_errors(hass: HomeAssistant, caplog):
+    """Auto-check for translation errors in all tests.
+
+    This fixture automatically fails any test if translation formatting errors
+    are detected in the logs. This catches missing keys in strings.json or
+    translations/en.json files.
+    """
+    yield
+
+    # Check for translation errors in logs after test completes
+    translation_errors = [
+        record for record in caplog.records
+        if "Failed to format translation" in record.message
+        or "translation key" in record.message.lower()
+        or "missing translation" in record.message.lower()
+    ]
+
+    if translation_errors:
+        error_messages = "\n".join([
+            f"  - {record.levelname}: {record.message}"
+            for record in translation_errors
+        ])
+        pytest.fail(
+            f"Translation errors detected during test:\n{error_messages}\n\n"
+            f"Fix: Ensure strings.json and translations/en.json are in sync.\n"
+            f"Run: python validate_translations.py"
+        )
