@@ -23,20 +23,16 @@ http:
     - ::1
     - 172.16.0.0/12
 
-# Template sensors for testing
-template:
-  - sensor:
-      - name: "Test Temperature"
-        unique_id: "test_temperature_sensor_001"
-        state: "16"
-        unit_of_measurement: "°C"
-        device_class: "temperature"
-
-      - name: "Test Temperature High"
-        unique_id: "test_temperature_high_001"
-        state: "25"
-        unit_of_measurement: "°C"
-        device_class: "temperature"
+# Input number for dynamic temperature testing
+input_number:
+  test_temperature:
+    name: "Test Temperature"
+    initial: 16
+    min: -20
+    max: 50
+    step: 1
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer
 
 # Logger
 logger:
@@ -55,7 +51,13 @@ lovelace:
       filename: dashboards/emergency-alerts.yaml
       show_in_sidebar: true
 
-# Notification service for testing
-notify:
-  - name: test_notification
-    platform: notify
+# Test script for alert notifications
+script:
+  alert_notification_test:
+    alias: "Alert Triggered - Send Notification"
+    sequence:
+      - service: persistent_notification.create
+        data:
+          title: "🚨 Emergency Alert Triggered"
+          message: "Alert was triggered at {{ now().strftime('%H:%M:%S') }}"
+          notification_id: "emergency_alert_{{ now().timestamp() }}"
