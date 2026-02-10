@@ -76,15 +76,6 @@
           "remove_alert": "Remove Alert"
         }
       },
-      "selector": {
-        "action": {
-          "options": {
-            "add_alert": "➕ Add New Alert",
-            "edit_alert": "✏️ Edit Alert",
-            "remove_alert": "🗑️ Remove Alert"
-          }
-        }
-      },
       "add_alert": {
         "title": "➕ Add New Alert - Step 1: Basic Information",
         "description": "First, let's set up the basic information for your new emergency alert.",
