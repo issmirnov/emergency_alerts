@@ -275,6 +275,13 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
         # Use current values as defaults
         defaults = dict(current_alert)
 
+        # Migrate old script array format to string
+        if "on_triggered_script" in defaults and isinstance(defaults["on_triggered_script"], list):
+            try:
+                defaults["on_triggered_script"] = defaults["on_triggered_script"][0]["data"]["entity_id"]
+            except (KeyError, IndexError, TypeError):
+                defaults["on_triggered_script"] = ""
+
         if user_input is not None:
             try:
                 # Update alert data
