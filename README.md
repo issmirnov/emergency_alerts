@@ -248,6 +248,67 @@ The form then shows trigger-specific fields based on your choice:
 - Preview feature to test templates
 - Built-in validation
 
+#### Using Template Triggers for Numeric Comparisons
+
+Template triggers support full Jinja2 syntax, making them perfect for numeric comparisons and complex logic:
+
+**Temperature Monitoring:**
+```jinja2
+{{ states('sensor.living_room_temperature') | float(20) < 18 }}
+```
+Triggers when temperature drops below 18°C. The `float(20)` provides a safe default if the sensor is unavailable.
+
+**Humidity Alerts:**
+```jinja2
+{{ states('sensor.bathroom_humidity') | float(0) > 80 }}
+```
+Triggers when humidity exceeds 80%.
+
+**Range Checks:**
+```jinja2
+{{ 15 <= (states('sensor.freezer_temp') | float(-18)) <= -10 }}
+```
+Triggers if freezer temperature is out of safe range (-15°C to -10°C).
+
+**Pressure Monitoring:**
+```jinja2
+{{ states('sensor.tire_pressure') | float(32) < 28 }}
+```
+Triggers when tire pressure drops below 28 PSI.
+
+**Battery Levels:**
+```jinja2
+{{ states('sensor.phone_battery') | int(100) < 20 }}
+```
+Triggers when phone battery is below 20%.
+
+**Best Practices:**
+- ✅ **Always use default values**: `| float(default)` or `| int(default)` handles sensors that are unavailable or returning 'unknown'
+- ✅ **Choose sensible defaults**: Use typical/safe values (e.g., `float(20)` for room temperature)
+- ❌ **Avoid no defaults**: `| float` without a default can cause errors during sensor initialization
+
+**Supported Operators:**
+- `<` (less than)
+- `>` (greater than)
+- `<=` (less than or equal)
+- `>=` (greater than or equal)
+- `==` (equals)
+- `!=` (not equals)
+
+**Complex Example - Multi-Sensor Logic:**
+```jinja2
+{{ (states('sensor.outdoor_temp') | float(20) > 30) and
+   (states('sensor.indoor_temp') | float(22) > 26) }}
+```
+Triggers when it's hot outside (>30°C) AND inside is also hot (>26°C).
+
+**Testing Your Templates:**
+Use Home Assistant's Developer Tools → Template to test your templates before creating alerts:
+1. Go to Developer Tools → Template
+2. Paste your template
+3. Verify it returns `True` or `False` as expected
+4. Test with different sensor values
+
 **Logical Trigger:**
 - Visual condition builder (no code)
 - Add up to 10 entity/state pairs
