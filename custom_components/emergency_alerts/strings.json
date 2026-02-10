@@ -100,9 +100,31 @@
       },
       "edit_alert": {
         "title": "✏️ Select Alert to Edit",
-        "description": "Choose which alert you want to edit or delete. You'll see all the current settings and can modify them or remove the alert entirely.",
+        "description": "Choose which alert you want to edit.",
         "data": {
           "alert_id": "Alert to Edit"
+        }
+      },
+      "edit_alert_form": {
+        "title": "✏️ Edit Alert",
+        "description": "Modify any settings below and save your changes.",
+        "data": {
+          "name": "Alert Name",
+          "trigger_type": "Trigger Type",
+          "severity": "Severity Level",
+          "entity_id": "Entity to Monitor",
+          "trigger_state": "Trigger State",
+          "template": "Jinja2 Template",
+          "on_triggered_script": "Script to Run When Triggered (optional)"
+        },
+        "data_description": {
+          "name": "A descriptive name for this alert",
+          "trigger_type": "Simple: Monitor one entity's state. Template: Use Jinja2 for complex conditions.",
+          "severity": "Critical: Urgent issues. Warning: Important but not critical. Info: General notifications.",
+          "entity_id": "The Home Assistant entity to monitor",
+          "trigger_state": "State that triggers the alert (e.g., 'on', 'unavailable', '30')",
+          "template": "Jinja2 template that returns True when alert should trigger. Test in Developer Tools > Template.",
+          "on_triggered_script": "Optional script to run when this alert triggers"
         }
       },
       "remove_alert": {
