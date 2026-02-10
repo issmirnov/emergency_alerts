@@ -233,8 +233,73 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
         return alert_data
 
     async def async_step_edit_alert(self, user_input=None):
-        """Edit alert - not yet implemented."""
-        return self.async_abort(reason="not_implemented")
+        """Edit existing alert."""
+        alerts = self.config_entry.data.get(CONF_ALERTS, {})
+
+        if not alerts:
+            return self.async_abort(reason="no_alerts_to_edit")
+
+        # Step 1: Select which alert to edit
+        if user_input is not None and "alert_id" in user_input:
+            alert_id = user_input["alert_id"]
+            alert_data = alerts.get(alert_id)
+
+            if not alert_data:
+                return self.async_abort(reason="alert_not_found")
+
+            # Store for next step
+            self._editing_alert_id = alert_id
+            return await self.async_step_edit_alert_form()
+
+        # Show alert selection
+        alert_options = [
+            {"value": alert_id, "label": alert_data.get("name", alert_id)}
+            for alert_id, alert_data in alerts.items()
+        ]
+
+        return self.async_show_form(
+            step_id="edit_alert",
+            data_schema=vol.Schema({
+                vol.Required("alert_id"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=alert_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+            }),
+        )
+
+    async def async_step_edit_alert_form(self, user_input=None):
+        """Show edit form with current values."""
+        alerts = dict(self.config_entry.data.get(CONF_ALERTS, {}))
+        alert_id = self._editing_alert_id
+        current_alert = alerts.get(alert_id, {})
+
+        if user_input is not None:
+            try:
+                # Update alert data
+                alerts[alert_id] = self._build_alert_data(user_input)
+                new_data = dict(self.config_entry.data)
+                new_data[CONF_ALERTS] = alerts
+
+                self.hass.config_entries.async_update_entry(
+                    self.config_entry, data=new_data
+                )
+
+                # Reload to update entities
+                await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+
+                return self.async_create_entry(title="", data={})
+
+            except Exception as err:
+                _LOGGER.error("Error updating alert: %s", err)
+                return self.async_abort(reason="update_failed")
+
+        # Show form pre-filled with current values
+        return self.async_show_form(
+            step_id="edit_alert_form",
+            data_schema=self._build_alert_schema(defaults=current_alert),
+        )
 
     async def async_step_remove_alert(self, user_input=None):
         """Remove alert - not yet implemented."""
