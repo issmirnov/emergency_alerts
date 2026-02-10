@@ -1,15 +1,5 @@
-# Home Assistant Development Configuration
-# See https://www.home-assistant.io/docs/configuration/
-
+# Trusted network auth bypass for local development
 homeassistant:
-  name: Dev Environment
-  latitude: 37.7749
-  longitude: -122.4194
-  elevation: 0
-  unit_system: metric
-  time_zone: America/Los_Angeles
-  
-  # Bypass authentication for localhost (development only)
   auth_providers:
     - type: homeassistant
     - type: trusted_networks
@@ -17,35 +7,38 @@ homeassistant:
         - 127.0.0.1
         - ::1
         - 172.0.0.0/8
+        - 192.168.0.0/16
+        - 10.0.0.0/8
       allow_bypass_login: true
 
-# Enable the default frontend
-frontend:
-  # Use HA frontend development repo for cache-busting during local testing
-  development_repo: /config/frontend
+logger:
+  default: info
+  logs:
+    custom_components.emergency_alerts: debug
+    homeassistant.components.config: debug
+    homeassistant.config_entries: debug
 
-# Enable configuration UI
-config:
+# Load Lovelace dashboards and resources
+lovelace:
+  mode: storage
+  dashboards:
+    emergency-alerts:
+      mode: yaml
+      title: Emergency Alerts
+      icon: mdi:alert
+      filename: dashboards/emergency-alerts.yaml
+      show_in_sidebar: true
+  resources:
+    - url: /local/lovelace-emergency-alerts-card/emergency-alerts-card.js
+      type: module
 
-# Uncomment to enable debug logging  
-# logger:
-#   default: info
-#   logs:
-#     custom_components.emergency_alerts: debug
-
-# Example test entities for Emergency Alerts
-input_boolean:
-  test_door:
-    name: Test Door
-    initial: off
-    icon: mdi:door
-
-  test_window:
-    name: Test Window
-    initial: off
-    icon: mdi:window-open
-
-  test_motion:
-    name: Test Motion
-    initial: off
-    icon: mdi:motion-sensor
+# Test script for alert notifications
+script:
+  alert_notification_test:
+    alias: "Alert Triggered - Send Notification"
+    sequence:
+      - service: persistent_notification.create
+        data:
+          title: "🚨 Emergency Alert Triggered"
+          message: "Alert was triggered!"
+          notification_id: "emergency_alert_{{ now().timestamp() }}"

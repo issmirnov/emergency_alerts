@@ -5,6 +5,10 @@ views:
     cards:
       - type: custom:emergency-alerts-card
         title: Emergency Alerts
+        show_acknowledged: true
+        show_cleared: true
+        group_by: "severity"
+        sort_by: "first_triggered"
         
       - type: entities
         title: Test Controls
@@ -18,15 +22,12 @@ views:
       - type: markdown
         content: |
           ## Quick Start
-          
-          1. Go to Settings > Devices & Services
-          2. Click "+ Add Integration"
-          3. Search for "Emergency Alerts"
-          4. Create an Alert Group
-          5. Add test alerts using the entities above
-          
-          ## Test Scenarios
-          
-          - Toggle `test_door` to trigger door alerts
-          - Adjust `test_temperature` for threshold alerts
-          - Use templates like `{{ states('input_number.test_temperature')|float > 25 }}`
+
+          Pre-configured with sun_up and sun_down alerts!
+
+          ## Current Alerts
+
+          - **Sun Up**: Triggers when sun is above horizon
+          - **Sun Down**: Triggers when sun is below horizon
+
+          Both alerts will send notifications when triggered!
