@@ -1,7 +1,7 @@
 services:
   homeassistant:
     container_name: ha-dev
-    image: homeassistant/home-assistant:latest
+    image: homeassistant/home-assistant:2026.2
     volumes:
       # Mount custom_components into HA config
       - ./custom_components:/config/custom_components
