@@ -94,7 +94,7 @@
           "severity": "Critical: Urgent issues. Warning: Important but not critical. Info: General notifications.",
           "entity_id": "The Home Assistant entity to monitor (e.g., binary_sensor.front_door, sensor.temperature)",
           "trigger_state": "State that triggers the alert. Examples: 'on' for binary sensors, 'unavailable' for offline devices, '30' for numeric thresholds",
-          "template": "Jinja2 template that returns True when alert should trigger. Example: {{ states('sensor.temperature')|float > 25 }}",
+          "template": "Jinja2 template that returns True when alert should trigger. Example: {{ states('sensor.temperature')|float > 25 }} returns True when sensor.temperature > 25. Template can use any HA state or function. Test templates in Developer Tools > Template before using here.",
           "on_triggered_script": "Optional script to run when this alert triggers. Create scripts in Settings > Automations & Scenes > Scripts."
         }
       },
