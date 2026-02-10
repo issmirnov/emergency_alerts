@@ -60,18 +60,18 @@ async def test_form_logical_trigger(hass: HomeAssistant):
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
 
-    # Test form submission
+    # V4: Goes directly to group setup
+    assert result["step_id"] == "group_setup"
+
+    # Submit group name
     result2 = await hass.config_entries.flow.async_configure(
         result["flow_id"],
-        {
-            "setup_type": "group",
-        },
+        {"group_name": "Test Group"},
     )
     await hass.async_block_till_done()
 
-    # Should show the group setup form
-    assert result2["type"] == "form"
-    assert result2["step_id"] == "group_setup"
+    # Should create entry
+    assert result2["type"] == "create_entry"
 
 
 async def test_form_with_actions(hass: HomeAssistant):
@@ -81,18 +81,18 @@ async def test_form_with_actions(hass: HomeAssistant):
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
 
-    # Test form submission
+    # V4: Goes directly to group setup
+    assert result["step_id"] == "group_setup"
+
+    # Submit group name
     result2 = await hass.config_entries.flow.async_configure(
         result["flow_id"],
-        {
-            "setup_type": "group",
-        },
+        {"group_name": "Test Group"},
     )
     await hass.async_block_till_done()
 
-    # Should show the group setup form
-    assert result2["type"] == "form"
-    assert result2["step_id"] == "group_setup"
+    # Should create entry
+    assert result2["type"] == "create_entry"
 
 
 async def test_config_flow_defaults(hass: HomeAssistant):
