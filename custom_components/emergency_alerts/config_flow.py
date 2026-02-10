@@ -223,12 +223,9 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
             if user_input.get("entity_id"):
                 alert_data["entity_id"] = user_input["entity_id"]
 
-        # Add optional action scripts
+        # Store script entity_id as string (binary sensor will build action)
         if user_input.get("on_triggered_script"):
-            alert_data["on_triggered_script"] = [{
-                "service": "script.turn_on",
-                "data": {"entity_id": user_input["on_triggered_script"]}
-            }]
+            alert_data["on_triggered_script"] = user_input["on_triggered_script"]
 
         return alert_data
 
@@ -275,11 +272,8 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
         alert_id = self._editing_alert_id
         current_alert = alerts.get(alert_id, {})
 
-        # Extract values but remove script field (user can re-select if needed)
+        # Use current values as defaults
         defaults = dict(current_alert)
-        # Remove script from defaults to avoid validation issues
-        # User will need to re-select it if they want to keep/change it
-        defaults.pop("on_triggered_script", None)
 
         if user_input is not None:
             try:
