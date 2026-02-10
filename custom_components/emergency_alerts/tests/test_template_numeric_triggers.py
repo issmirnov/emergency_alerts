@@ -33,7 +33,9 @@ def mock_numeric_config_entry():
     )
 
 
-async def test_template_less_than_trigger(hass: HomeAssistant, mock_numeric_config_entry):
+async def test_template_less_than_trigger(
+    hass: HomeAssistant, mock_numeric_config_entry
+):
     """Test template trigger with < operator."""
     alert_data = mock_numeric_config_entry.data["alerts"]["temp_below_20"]
     sensor = EmergencyBinarySensor(
@@ -67,8 +69,8 @@ async def test_template_less_than_trigger(hass: HomeAssistant, mock_numeric_conf
         sensor._evaluate_trigger()
         assert sensor.is_on is False
 
-        await hass.async_block_till_done()
-        sensor._cleanup_timers()
+    await hass.async_block_till_done()
+    sensor._cleanup_timers()
 
 
 async def test_template_greater_than_trigger(hass: HomeAssistant):
@@ -122,8 +124,8 @@ async def test_template_greater_than_trigger(hass: HomeAssistant):
         sensor._evaluate_trigger()
         assert sensor.is_on is False
 
-        await hass.async_block_till_done()
-        sensor._cleanup_timers()
+    await hass.async_block_till_done()
+    sensor._cleanup_timers()
 
 
 async def test_template_equals_trigger(hass: HomeAssistant):
@@ -177,12 +179,12 @@ async def test_template_equals_trigger(hass: HomeAssistant):
         sensor._evaluate_trigger()
         assert sensor.is_on is False
 
-        await hass.async_block_till_done()
-        sensor._cleanup_timers()
+    await hass.async_block_till_done()
+    sensor._cleanup_timers()
 
 
 async def test_template_with_default_value(hass: HomeAssistant):
-    """Test template trigger with float default value to handle unknown states."""
+    """Test template with float default value for unknown states."""
     config_entry = MockConfigEntry(
         domain=DOMAIN,
         version=2,
@@ -282,7 +284,7 @@ async def test_template_error_handling(hass: HomeAssistant):
 
 
 async def test_template_multiple_comparisons(hass: HomeAssistant):
-    """Test template with multiple numeric comparisons (range check)."""
+    """Test template with numeric range checks."""
     config_entry = MockConfigEntry(
         domain=DOMAIN,
         version=2,
@@ -294,7 +296,10 @@ async def test_template_multiple_comparisons(hass: HomeAssistant):
                 "temp_in_range": {
                     "name": "Temperature In Range",
                     "trigger_type": "template",
-                    "template": "{{ 15 <= (states('sensor.test_temperature') | float(0)) <= 25 }}",
+                    "template": (
+                        "{{ 15 <= (states('sensor.test_temperature') "
+                        "| float(0)) <= 25 }}"
+                    ),
                     "severity": "info",
                 }
             },
@@ -332,8 +337,8 @@ async def test_template_multiple_comparisons(hass: HomeAssistant):
         sensor._evaluate_trigger()
         assert sensor.is_on is False
 
-        await hass.async_block_till_done()
-        sensor._cleanup_timers()
+    await hass.async_block_till_done()
+    sensor._cleanup_timers()
 
 
 async def test_template_result_types(hass: HomeAssistant):
