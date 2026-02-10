@@ -7,9 +7,11 @@
 
 ### Core Technologies
 - **Language**: Python 3.9+
-- **Runtime**: Home Assistant Core 2023.x+
+- **Runtime**: Home Assistant Core 2026.2+ (always use latest stable for testing)
 - **Framework**: Home Assistant Integration Platform
 - **Database**: Home Assistant's internal state machine (no external DB)
+
+**IMPORTANT**: Always use the latest stable Home Assistant version for development and testing. Update docker-compose.yml with specific version tag (e.g., `homeassistant/home-assistant:2026.2`) rather than `:latest`.
 
 ### Major Dependencies
 | Package | Version | Purpose |
@@ -22,11 +24,13 @@
 **Note**: Integration has ZERO external runtime dependencies - pure Home Assistant integration.
 
 ### Development Tools
-- **Testing**: pytest with Home Assistant test fixtures
+- **Testing**: Hybrid approach - pytest + hassfest + minimal E2E
+- **Translation Validation**: `validate_translations.py` ensures strings.json ↔ translations/en.json sync
 - **Linter**: Ruff (Home Assistant standard)
-- **CI/CD**: GitHub Actions
-- **Validation**: `validate_integration.py` (custom validation script)
-- **HACS**: Validation via HACS GitHub Action
+- **CI/CD**: GitHub Actions (hassfest, pytest, HACS, translation validation)
+- **Validation**: `validate_integration.py` + hassfest
+- **E2E Tests**: Playwright tests in `e2e-tests/` directory
+- **Local HA**: Docker Compose with HA 2026.2+ for manual testing
 
 ## Development Setup
 
@@ -120,23 +124,36 @@ docker run --rm -v $(pwd):/app emergency-alerts-lint isort custom_components/eme
 - **Access**: http://localhost:8123 (port 8123 exposed)
 - **Persistent Config**: `config/` directory persists between restarts
 
-#### Docker Compose for E2E Testing
+#### Local Development with Docker Compose
+Use the `dev_tools/local-dev.sh` script for local HA testing:
+
 ```bash
-# Start Home Assistant with integration
-docker-compose up -d
+# Start HA with latest version (2026.2+)
+./dev_tools/local-dev.sh start
 
-# View logs
-docker-compose logs -f homeassistant
+# Restart to pick up code changes
+./dev_tools/local-dev.sh restart
 
-# Stop environment
-docker-compose down
+# View logs (check for translation errors)
+./dev_tools/local-dev.sh logs
+
+# Wipe all data for fresh start
+./dev_tools/local-dev.sh nuke
+
+# Stop HA
+./dev_tools/local-dev.sh stop
 ```
 
-Configuration includes:
+**Access:**
+- Web UI: http://localhost:8123 (auto-created user: dev/dev)
+- VSCode: http://localhost:8124 (password: dev)
+
+**Configuration:**
 - Volume mounts for integration and card
-- Port 8123 for web access
-- Port 9222 for Chrome DevTools Protocol (E2E debugging)
-- Persistent config directory
+- Uses `network_mode: host` for direct localhost access
+- Persistent config in `dev_tools/ha-config/`
+- Auto-creates dev user on first start
+- **IMPORTANT**: Always specify exact HA version in docker-compose.yml (never use `:latest`)
 
 ## Technical Constraints
 

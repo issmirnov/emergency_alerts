@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   homeassistant:
     container_name: ha-dev
@@ -9,6 +7,8 @@ services:
       - ./custom_components:/config/custom_components
       # Persistent HA config (survives container restarts)
       - ./dev_tools/ha-config:/config
+      # HA frontend development repo for cache-busting
+      - ./dev_tools/ha-frontend:/config/frontend
       # Mount lovelace card
       - ../lovelace-emergency-alerts-card:/config/www/lovelace-emergency-alerts-card
     environment:

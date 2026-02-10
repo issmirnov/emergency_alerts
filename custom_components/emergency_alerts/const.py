@@ -2,6 +2,12 @@
 
 DOMAIN = "emergency_alerts"
 
+# Hub configuration keys
+CONF_HUB_TYPE = "hub_type"
+CONF_HUB_NAME = "hub_name"
+CONF_CUSTOM_NAME = "custom_name"
+CONF_ALERTS = "alerts"
+
 # Configuration keys
 CONF_TRIGGER_TYPE = "trigger_type"
 CONF_ENTITY_ID = "entity_id"
