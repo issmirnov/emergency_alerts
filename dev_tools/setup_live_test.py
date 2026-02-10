@@ -23,15 +23,23 @@ for entry in config['data']['entries']:
             'temp_below_20': {
                 'name': 'Temperature Below 20',
                 'trigger_type': 'template',
-                'template': "{{ states('input_number.test_temperature') | float < 20 }}",
+                'template': "{{ states('input_number.test_temperature') | float(20) < 20 }}",
                 'severity': 'warning',
-                'on_triggered_script': 'script.alert_notification_test'
+                'on_triggered': [
+                    {
+                        'service': 'script.turn_on',
+                        'data': {
+                            'entity_id': 'script.alert_notification_test'
+                        }
+                    }
+                ]
             }
         }
         print("✅ Configured alert: 'Temperature Below 20'")
-        print("   Template: {{ states('input_number.test_temperature') | float < 20 }}")
+        print("   Template: {{ states('input_number.test_temperature') | float(20) < 20 }}")
         print("   Triggers when: input_number.test_temperature < 20")
-        print("   Action: script.alert_notification_test (creates persistent notification)")
+        print("   Action: Calls script.alert_notification_test (creates persistent notification)")
+        print("   Note: Uses float(20) default to handle unknown states gracefully")
         break
 
 # Write config
