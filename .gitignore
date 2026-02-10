@@ -63,3 +63,5 @@ htmlcov/
 # Slate memory bank (optional - keep if you want to track it)
 # .Slate/
 .worktrees/
+**/__pycache__/
+*.pyc
