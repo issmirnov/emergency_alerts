@@ -11,10 +11,5 @@
   ],
   "config_flow": true,
   "integration_type": "hub",
-  "iot_class": "calculated",
-  "platforms": [
-    "binary_sensor",
-    "sensor",
-    "select"
-  ]
+  "iot_class": "calculated"
 }
