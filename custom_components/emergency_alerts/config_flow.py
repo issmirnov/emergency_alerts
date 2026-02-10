@@ -29,42 +29,8 @@ class EmergencyAlertsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 2
 
     async def async_step_user(self, user_input=None):
-        """Handle the initial step."""
-        if user_input is not None:
-            setup_type = user_input.get("setup_type")
-            if setup_type == "global":
-                return await self.async_step_global_setup()
-            return await self.async_step_group_setup()
-
-        return self.async_show_form(
-            step_id="user",
-            data_schema=vol.Schema({
-                vol.Required("setup_type", default="group"): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=[
-                            {"value": "global", "label": "Global Settings Hub"},
-                            {"value": "group", "label": "Alert Group Hub"},
-                        ],
-                        mode=selector.SelectSelectorMode.LIST,
-                    )
-                ),
-            }),
-        )
-
-    async def async_step_global_setup(self, user_input=None):
-        """Create global settings hub."""
-        for entry in self._async_current_entries():
-            if entry.data.get(CONF_HUB_TYPE) == "global":
-                return self.async_abort(reason="global_already_configured")
-
-        if user_input is not None:
-            return self.async_create_entry(
-                title="Emergency Alerts - Global Settings",
-                data={CONF_HUB_TYPE: "global", CONF_NAME: "Global Settings"},
-                options={"default_escalation_time": 300},
-            )
-
-        return self.async_show_form(step_id="global_setup", data_schema=vol.Schema({}))
+        """Handle the initial step - directly to group setup."""
+        return await self.async_step_group_setup(user_input)
 
     async def async_step_group_setup(self, user_input=None):
         """Create alert group hub."""
