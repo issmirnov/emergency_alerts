@@ -302,5 +302,45 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
         )
 
     async def async_step_remove_alert(self, user_input=None):
-        """Remove alert - not yet implemented."""
-        return self.async_abort(reason="not_implemented")
+        """Remove an alert."""
+        alerts = self.config_entry.data.get(CONF_ALERTS, {})
+
+        if not alerts:
+            return self.async_abort(reason="no_alerts_to_remove")
+
+        if user_input is not None:
+            alert_id = user_input["alert_id"]
+
+            # Remove alert
+            new_alerts = dict(alerts)
+            del new_alerts[alert_id]
+
+            new_data = dict(self.config_entry.data)
+            new_data[CONF_ALERTS] = new_alerts
+
+            self.hass.config_entries.async_update_entry(
+                self.config_entry, data=new_data
+            )
+
+            # Reload to remove entities
+            await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+
+            return self.async_create_entry(title="", data={})
+
+        # Show alert selection
+        alert_options = [
+            {"value": alert_id, "label": alert_data.get("name", alert_id)}
+            for alert_id, alert_data in alerts.items()
+        ]
+
+        return self.async_show_form(
+            step_id="remove_alert",
+            data_schema=vol.Schema({
+                vol.Required("alert_id"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=alert_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+            }),
+        )
