@@ -150,6 +150,10 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                     self.hass.config_entries.async_update_entry(
                         self.config_entry, data=new_data
                     )
+
+                    # Reload entry to create new entities instantly
+                    await self.hass.config_entries.async_reload(self.config_entry.entry_id)
+
                     return self.async_create_entry(title="", data={})
 
             except Exception as err:
