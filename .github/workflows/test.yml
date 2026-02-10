@@ -41,8 +41,7 @@ jobs:
         pip install homeassistant
 
     - name: Run Hassfest
-      run: |
-        python -m script.hassfest --integration-path custom_components/emergency_alerts
+      uses: home-assistant/actions/hassfest@master
 
   backend-tests:
     name: Backend Tests

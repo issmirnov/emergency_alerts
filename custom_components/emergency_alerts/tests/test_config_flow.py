@@ -3,7 +3,7 @@
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 
-from custom_components.emergency_alerts.config_flow import EmergencyConfigFlow
+from custom_components.emergency_alerts.config_flow import EmergencyAlertsConfigFlow
 from custom_components.emergency_alerts.const import DOMAIN
 
 
@@ -95,7 +95,7 @@ async def test_form_with_actions(hass: HomeAssistant):
 
 async def test_config_flow_defaults(hass: HomeAssistant):
     """Test that config flow provides sensible defaults."""
-    flow = EmergencyConfigFlow()
+    flow = EmergencyAlertsConfigFlow()
     flow.hass = hass
 
     result = await flow.async_step_user()
