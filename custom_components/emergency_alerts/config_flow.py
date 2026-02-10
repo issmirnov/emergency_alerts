@@ -188,12 +188,12 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
-            vol.Optional("entity_id"): selector.EntitySelector(),
+            vol.Optional("entity_id", default=defaults.get("entity_id", "")): selector.EntitySelector(),
             vol.Optional(
                 "trigger_state", default=defaults.get("trigger_state", "on")
             ): str,
-            vol.Optional("template"): selector.TemplateSelector(),
-            vol.Optional("on_triggered_script"): selector.EntitySelector(
+            vol.Optional("template", default=defaults.get("template", "")): selector.TemplateSelector(),
+            vol.Optional("on_triggered_script", default=defaults.get("on_triggered_script", "")): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="script")
             ),
         })
