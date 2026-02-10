@@ -1,4 +1,9 @@
-# Trusted network auth bypass for local development
+# Home Assistant Configuration for Testing Emergency Alerts Integration
+
+# Basic configuration
+default_config:
+
+# Allow requests from localhost without auth
 homeassistant:
   auth_providers:
     - type: homeassistant
@@ -6,19 +11,40 @@ homeassistant:
       trusted_networks:
         - 127.0.0.1
         - ::1
-        - 172.0.0.0/8
-        - 192.168.0.0/16
-        - 10.0.0.0/8
+        - 172.16.0.0/12
       allow_bypass_login: true
 
+# HTTP Configuration
+http:
+  server_port: 8123
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 127.0.0.1
+    - ::1
+    - 172.16.0.0/12
+
+# Template sensors for testing
+template:
+  - sensor:
+      - name: "Test Temperature"
+        unique_id: "test_temperature_sensor_001"
+        state: "16"
+        unit_of_measurement: "°C"
+        device_class: "temperature"
+
+      - name: "Test Temperature High"
+        unique_id: "test_temperature_high_001"
+        state: "25"
+        unit_of_measurement: "°C"
+        device_class: "temperature"
+
+# Logger
 logger:
   default: info
   logs:
     custom_components.emergency_alerts: debug
-    homeassistant.components.config: debug
-    homeassistant.config_entries: debug
 
-# Load Lovelace dashboards and resources
+# Lovelace dashboards
 lovelace:
   mode: storage
   dashboards:
@@ -28,17 +54,8 @@ lovelace:
       icon: mdi:alert
       filename: dashboards/emergency-alerts.yaml
       show_in_sidebar: true
-  resources:
-    - url: /local/lovelace-emergency-alerts-card/emergency-alerts-card.js
-      type: module
 
-# Test script for alert notifications
-script:
-  alert_notification_test:
-    alias: "Alert Triggered - Send Notification"
-    sequence:
-      - service: persistent_notification.create
-        data:
-          title: "🚨 Emergency Alert Triggered"
-          message: "Alert was triggered!"
-          notification_id: "emergency_alert_{{ now().timestamp() }}"
+# Notification service for testing
+notify:
+  - name: test_notification
+    platform: notify
