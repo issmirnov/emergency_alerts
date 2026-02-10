@@ -12,84 +12,84 @@ from custom_components.emergency_alerts.tests.helpers.state_helpers import (
 async def test_binary_sensor_status_sensor_sync(hass: HomeAssistant, init_group_hub):
     """Test that binary sensor and status sensor stay in sync."""
     await hass.async_block_till_done()
-    
+
     binary_sensor_id = "binary_sensor.emergency_test_alert"
     status_entity_id = "sensor.emergency_test_alert_status"
     monitored_entity = "binary_sensor.test_sensor"
-    
+
     # Trigger alert
     set_entity_state(hass, monitored_entity, "on")
     await hass.async_block_till_done()
-    
+
     # Check sync
     binary_state = hass.states.get(binary_sensor_id)
     status_state = hass.states.get(status_entity_id)
-    
+
     assert binary_state.attributes.get("status") == status_state.state
-    
-    # Acknowledge via switch
+
+    # Acknowledge via service
     await hass.services.async_call(
-        "switch",
-        "turn_on",
-        {"entity_id": "switch.test_alert_acknowledged"},
+        "emergency_alerts",
+        "acknowledge",
+        {"entity_id": binary_sensor_id},
         blocking=True,
     )
     await hass.async_block_till_done()
-    
+
     # Check sync again
     binary_state = hass.states.get(binary_sensor_id)
     status_state = hass.states.get(status_entity_id)
-    
+
     assert binary_state.attributes.get("status") == status_state.state
     assert status_state.state == "acknowledged"
 
 
 @pytest.mark.integration
-async def test_switch_binary_sensor_sync(hass: HomeAssistant, init_group_hub):
-    """Test that switches and binary sensor stay in sync."""
+async def test_select_binary_sensor_sync(hass: HomeAssistant, init_group_hub):
+    """Test that select entity and binary sensor stay in sync."""
     await hass.async_block_till_done()
-    
+
     binary_sensor_id = "binary_sensor.emergency_test_alert"
-    acknowledge_switch_id = "switch.test_alert_acknowledged"
+    select_entity_id = "select.test_alert_state"
     monitored_entity = "binary_sensor.test_sensor"
-    
+
     # Trigger alert
     set_entity_state(hass, monitored_entity, "on")
     await hass.async_block_till_done()
-    
-    # Turn on acknowledge switch
+
+    # Set to acknowledged via select
     await hass.services.async_call(
-        "switch",
-        "turn_on",
-        {"entity_id": acknowledge_switch_id},
+        "select",
+        "select_option",
+        {"entity_id": select_entity_id, "option": "acknowledged"},
         blocking=True,
     )
     await hass.async_block_till_done()
-    
+
     # Check sync
     binary_state = hass.states.get(binary_sensor_id)
-    switch_state = hass.states.get(acknowledge_switch_id)
-    
-    # Check that acknowledged attribute matches switch state
+    select_state = hass.states.get(select_entity_id)
+
+    # Check that acknowledged attribute matches select state
     assert binary_state.attributes.get("acknowledged") is True
-    assert switch_state.state == "on"
-    
-    # Turn off switch
+    assert select_state.state == "acknowledged"
+
+    # Set to active (clears acknowledgment)
     await hass.services.async_call(
-        "switch",
-        "turn_off",
-        {"entity_id": acknowledge_switch_id},
+        "select",
+        "select_option",
+        {"entity_id": select_entity_id, "option": "active"},
         blocking=True,
     )
     await hass.async_block_till_done()
-    
+
     # Check sync again
     binary_state = hass.states.get(binary_sensor_id)
-    switch_state = hass.states.get(acknowledge_switch_id)
-    
-    # After turning off, acknowledged should be False and switch should be off
+    select_state = hass.states.get(select_entity_id)
+
+    # After setting to active, acknowledged should be False
     assert binary_state.attributes.get("acknowledged") is False
-    assert switch_state.state == "off"
+    assert select_state.state == "active"
 
 
 @pytest.mark.integration
@@ -125,44 +125,41 @@ async def test_summary_sensor_sync(hass: HomeAssistant, init_group_hub):
 async def test_concurrent_updates(hass: HomeAssistant, init_group_hub):
     """Test that concurrent updates from multiple sources maintain consistency."""
     await hass.async_block_till_done()
-    
+
     binary_sensor_id = "binary_sensor.emergency_test_alert"
-    acknowledge_switch_id = "switch.test_alert_acknowledged"
-    snooze_switch_id = "switch.test_alert_snoozed"
+    select_entity_id = "select.test_alert_state"
     monitored_entity = "binary_sensor.test_sensor"
-    
+
     # Trigger alert
     set_entity_state(hass, monitored_entity, "on")
     await hass.async_block_till_done()
-    
-    # Turn on acknowledge
+
+    # Set to acknowledged
     await hass.services.async_call(
-        "switch",
-        "turn_on",
-        {"entity_id": acknowledge_switch_id},
+        "select",
+        "select_option",
+        {"entity_id": select_entity_id, "option": "acknowledged"},
         blocking=True,
     )
     await hass.async_block_till_done()
-    
-    # Turn on snooze (should turn off acknowledge)
+
+    # Set to snoozed (should clear acknowledge due to mutual exclusivity)
     await hass.services.async_call(
-        "switch",
-        "turn_on",
-        {"entity_id": snooze_switch_id},
+        "select",
+        "select_option",
+        {"entity_id": select_entity_id, "option": "snoozed"},
         blocking=True,
     )
     await hass.async_block_till_done()
-    
+
     # Check consistency
     binary_state = hass.states.get(binary_sensor_id)
-    ack_switch_state = hass.states.get(acknowledge_switch_id)
-    snooze_switch_state = hass.states.get(snooze_switch_id)
-    
+    select_state = hass.states.get(select_entity_id)
+
     # Acknowledge should be off, snooze should be on
     assert binary_state.attributes.get("acknowledged") is False
     assert binary_state.attributes.get("snoozed") is True
-    assert ack_switch_state.state == "off"
-    assert snooze_switch_state.state == "on"
-    
+    assert select_state.state == "snoozed"
+
     # Status should reflect snoozed
     assert binary_state.attributes.get("status") == "snoozed"

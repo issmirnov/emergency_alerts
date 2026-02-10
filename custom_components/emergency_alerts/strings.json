@@ -95,8 +95,8 @@
         },
         "data_description": {
           "name": "A descriptive name for this alert (e.g., 'Front Door Open', 'High Temperature')",
-          "trigger_type": "**Simple**: Monitor one entity's state<br/>**Template**: Use Jinja2 for complex conditions<br/>**Logical**: Combine multiple entity conditions",
-          "severity": "**Critical**: Urgent issues requiring immediate attention<br/>**Warning**: Important but not critical<br/>**Info**: General notifications"
+          "trigger_type": "Simple: Monitor one entity's state; Template: Use Jinja2 for complex conditions; Logical: Combine multiple entity conditions",
+          "severity": "Critical: Urgent issues requiring immediate attention; Warning: Important but not critical; Info: General notifications"
         }
       },
       "add_alert_trigger_config": {
@@ -110,9 +110,9 @@
         },
         "data_description": {
           "entity_id": "The Home Assistant entity to watch (e.g., binary_sensor.front_door, sensor.temperature)",
-          "trigger_state": "What state should trigger the alert? Examples:<br/>• `on` for binary sensors<br/>• `unavailable` for offline devices<br/>• `30` for numeric thresholds<br/>• `home` for device trackers",
-          "template": "Jinja2 template returning True/False. Example:<br/>`{{ states('sensor.temperature')|float > 25 and states('sensor.humidity')|float < 30 }}`<br/>Use Home Assistant state functions and Jinja2 syntax",
-          "logical_conditions": "JSON format: `[{\"entity_id\": \"binary_sensor.door\", \"state\": \"on\"}, {\"entity_id\": \"sensor.temp\", \"state\": \"30\"}]`<br/>Use 'and' or 'or' operator to combine conditions"
+          "trigger_state": "What state should trigger the alert? Examples: • 'on' for binary sensors; • 'unavailable' for offline devices; • '30' for numeric thresholds; • 'home' for device trackers",
+          "template": "Jinja2 template returning True/False. Example: {{ states('sensor.temperature')|float > 25 and states('sensor.humidity')|float < 30 }}. Use Home Assistant state functions and Jinja2 syntax",
+          "logical_conditions": "JSON format: [{\"entity_id\": \"binary_sensor.door\", \"state\": \"on\"}, {\"entity_id\": \"sensor.temp\", \"state\": \"30\"}]. Use 'and' or 'or' operator to combine conditions"
         }
       },
       "add_alert_trigger_simple": {
@@ -124,7 +124,7 @@
         },
         "data_description": {
           "entity_id": "The Home Assistant entity to watch (e.g., binary_sensor.front_door, sensor.temperature)",
-          "trigger_state": "What state should trigger the alert? Examples:<br/>• `on` for binary sensors<br/>• `unavailable` for offline devices<br/>• `30` for numeric thresholds<br/>• `home` for device trackers"
+          "trigger_state": "What state should trigger the alert? Examples: • 'on' for binary sensors; • 'unavailable' for offline devices; • '30' for numeric thresholds; • 'home' for device trackers"
         }
       },
       "add_alert_trigger_template": {
@@ -136,7 +136,7 @@
         },
         "data_description": {
           "entity_id": "The Home Assistant entity to watch (e.g., binary_sensor.front_door, sensor.temperature)",
-          "template": "Jinja2 template returning True/False. Example:<br/>`{{ states('sensor.temperature')|float > 25 and states('sensor.humidity')|float < 30 }}`<br/>Use Home Assistant state functions and Jinja2 syntax"
+          "template": "Jinja2 template returning True/False. Example: {{ states('sensor.temperature')|float > 25 and states('sensor.humidity')|float < 30 }}. Use Home Assistant state functions and Jinja2 syntax"
         }
       },
       "add_alert_trigger_logical": {
@@ -156,7 +156,7 @@
           "condition_4_state": "Condition 5: State"
         },
         "data_description": {
-          "logical_operator": "Choose how to combine the conditions:<br/>• <strong>AND</strong> - All conditions must be true<br/>• <strong>OR</strong> - Any condition can be true",
+          "logical_operator": "Choose how to combine the conditions: • AND - All conditions must be true; • OR - Any condition can be true",
           "condition_0_entity": "First entity to monitor (e.g., binary_sensor.front_door)",
           "condition_0_state": "State that triggers this condition (e.g., 'on', 'open', '30')",
           "condition_1_entity": "Second entity to monitor (optional)",
@@ -210,12 +210,12 @@
         "data_description": {
           "action": "Choose whether to save your changes or delete this alert entirely",
           "name": "A descriptive name for this alert (e.g., 'Front Door Open', 'High Temperature')",
-          "trigger_type": "**Simple**: Monitor one entity's state<br/>**Template**: Use Jinja2 for complex conditions<br/>**Logical**: Combine multiple entity conditions",
+          "trigger_type": "Simple: Monitor one entity's state; Template: Use Jinja2 for complex conditions; Logical: Combine multiple entity conditions",
           "entity_id": "The Home Assistant entity to watch (e.g., binary_sensor.front_door, sensor.temperature)",
-          "trigger_state": "What state should trigger the alert? Examples:<br/>• `on` for binary sensors<br/>• `unavailable` for offline devices<br/>• `30` for numeric thresholds",
-          "template": "Jinja2 template returning True/False. Example:<br/>`{{ states('sensor.temperature')|float > 25 and states('sensor.humidity')|float < 30 }}`",
-          "logical_conditions": "JSON format: `[{\"entity_id\": \"binary_sensor.door\", \"state\": \"on\"}, {\"entity_id\": \"sensor.temp\", \"state\": \"30\"}]`<br/>Use 'and' or 'or' operator",
-          "severity": "**Critical**: Urgent issues requiring immediate attention<br/>**Warning**: Important but not critical<br/>**Info**: General notifications",
+          "trigger_state": "What state should trigger the alert? Examples: • 'on' for binary sensors; • 'unavailable' for offline devices; • '30' for numeric thresholds",
+          "template": "Jinja2 template returning True/False. Example: {{ states('sensor.temperature')|float > 25 and states('sensor.humidity')|float < 30 }}",
+          "logical_conditions": "JSON format: [{\"entity_id\": \"binary_sensor.door\", \"state\": \"on\"}, {\"entity_id\": \"sensor.temp\", \"state\": \"30\"}]. Use 'and' or 'or' operator",
+          "severity": "Critical: Urgent issues requiring immediate attention; Warning: Important but not critical; Info: General notifications",
           "escalation_minutes": "If not acknowledged within this time, escalation actions will run (leave empty to disable)",
           "on_triggered_script": "Select a script to run when the alert condition is met. Create scripts in Settings > Automations & Scenes > Scripts for notifications, automations, etc.",
           "on_cleared_script": "Select a script to run when the alert condition is no longer met (e.g., cleanup actions)",

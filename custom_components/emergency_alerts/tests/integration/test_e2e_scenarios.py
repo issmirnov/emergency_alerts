@@ -15,35 +15,34 @@ from custom_components.emergency_alerts.tests.helpers.state_helpers import (
 async def test_complete_alert_lifecycle(hass: HomeAssistant, init_group_hub):
     """Test complete alert lifecycle: trigger → acknowledge → clear."""
     await hass.async_block_till_done()
-    
+
     binary_sensor_id = "binary_sensor.emergency_test_alert"
-    acknowledge_switch_id = "switch.test_alert_acknowledged"
     monitored_entity = "binary_sensor.test_sensor"
-    
+
     # Step 1: Trigger alert
     set_entity_state(hass, monitored_entity, "on")
     await hass.async_block_till_done()
-    
+
     assert_binary_sensor_is_on(hass, binary_sensor_id)
     state = hass.states.get(binary_sensor_id)
     assert state.attributes.get("status") == "active"
-    
-    # Step 2: Acknowledge alert
+
+    # Step 2: Acknowledge alert using service
     await hass.services.async_call(
-        "switch",
-        "turn_on",
-        {"entity_id": acknowledge_switch_id},
+        "emergency_alerts",
+        "acknowledge",
+        {"entity_id": binary_sensor_id},
         blocking=True,
     )
     await hass.async_block_till_done()
-    
+
     state = hass.states.get(binary_sensor_id)
     assert state.attributes.get("status") == "acknowledged"
-    
+
     # Step 3: Clear alert (by clearing the trigger condition)
     set_entity_state(hass, monitored_entity, "off")
     await hass.async_block_till_done()
-    
+
     assert_binary_sensor_is_off(hass, binary_sensor_id)
     state = hass.states.get(binary_sensor_id)
     assert state.attributes.get("status") == "inactive"
@@ -99,35 +98,35 @@ async def test_multiple_alerts_interaction(hass: HomeAssistant, init_group_hub):
 async def test_alert_with_resolved_state(hass: HomeAssistant, init_group_hub):
     """Test alert behavior when resolved."""
     await hass.async_block_till_done()
-    
+
     binary_sensor_id = "binary_sensor.emergency_test_alert"
-    resolve_switch_id = "switch.test_alert_resolved"
+    select_entity_id = "select.test_alert_state"
     monitored_entity = "binary_sensor.test_sensor"
-    
+
     # Trigger alert
     set_entity_state(hass, monitored_entity, "on")
     await hass.async_block_till_done()
-    
+
     assert_binary_sensor_is_on(hass, binary_sensor_id)
-    
-    # Resolve it
+
+    # Resolve it using select entity
     await hass.services.async_call(
-        "switch",
-        "turn_on",
-        {"entity_id": resolve_switch_id},
+        "select",
+        "select_option",
+        {"entity_id": select_entity_id, "option": "resolved"},
         blocking=True,
     )
     await hass.async_block_till_done()
-    
+
     # Binary sensor should be off (resolved alerts don't show as active)
     state = hass.states.get(binary_sensor_id)
     assert state.state == "off"
     assert state.attributes.get("status") == "resolved"
-    
+
     # Even if trigger condition is still met, it should stay resolved
     set_entity_state(hass, monitored_entity, "on")
     await hass.async_block_till_done()
-    
+
     state = hass.states.get(binary_sensor_id)
     assert state.state == "off"  # Still off because resolved
     assert state.attributes.get("status") == "resolved"
