@@ -24,6 +24,9 @@ CONF_ON_ACKNOWLEDGED = "on_acknowledged"
 CONF_ON_SNOOZED = "on_snoozed"
 CONF_ON_RESOLVED = "on_resolved"
 CONF_SNOOZE_DURATION = "snooze_duration"
+# Debounce: alert fires only if the trigger has been true for this many seconds
+# (0 = no debounce, fire immediately when trigger is true)
+CONF_FOR_SECONDS = "for_seconds"
 
 # Notification profiles
 CONF_NOTIFICATION_PROFILES = "notification_profiles"
