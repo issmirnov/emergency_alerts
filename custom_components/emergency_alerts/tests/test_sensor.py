@@ -42,9 +42,9 @@ def test_global_summary_sensor_counts_active_alerts(hass: HomeAssistant, mock_en
     assert sensor.extra_state_attributes["alert_count"] == 3
 
 
-def test_hub_sensor_counts_alerts_in_entry(hass: HomeAssistant):
-    """Test that hub sensor counts alerts in its config entry."""
-    # Create a mock config entry
+def test_hub_sensor_native_value_is_active_count(hass: HomeAssistant):
+    """Hub sensor state = active count (defaults 0); configured count lives in attrs."""
+    # Create a mock config entry with 3 alerts configured, none firing yet
     mock_entry = MagicMock()
     mock_entry.data = {
         "hub_type": "group",
@@ -59,10 +59,15 @@ def test_hub_sensor_counts_alerts_in_entry(hass: HomeAssistant):
 
     sensor = EmergencyHubSensor(hass, mock_entry, "security", "Security Alerts")
 
-    assert sensor.native_value == 3
-    assert sensor.extra_state_attributes["group"] == "security"
-    assert sensor.extra_state_attributes["alert_count"] == 3
-    assert set(sensor.extra_state_attributes["alerts"]) == {"alert1", "alert2", "alert3"}
+    # State = count of FIRING alerts (initialized empty list before subscribe)
+    assert sensor.native_value == 0
+    # Configured count is in attributes (with legacy `alert_count` alias)
+    attrs = sensor.extra_state_attributes
+    assert attrs["group"] == "security"
+    assert attrs["configured_count"] == 3
+    assert attrs["alert_count"] == 3  # legacy alias
+    assert set(attrs["alerts"]) == {"alert1", "alert2", "alert3"}
+    assert attrs["active_alerts"] == []
 
 
 def test_hub_sensor_empty_hub(hass: HomeAssistant):
