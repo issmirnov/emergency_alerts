@@ -48,6 +48,13 @@ def _resolve_on_triggered(alert_data):
     stored in alert_data but never consumed by binary_sensor, so the script
     field in the UI did nothing.
 
+    The synthesized action emits ``entity_id`` inside ``data`` (not
+    ``target``) because both ``_call_actions`` and ``_execute_action``
+    forward only ``action.get("data", {})`` into ``hass.services.async_call``
+    — ``target`` would be silently dropped, leaving the script call with no
+    entity to operate on. HA accepts ``entity_id`` inside ``data`` for the
+    ``script.turn_on`` service (legacy format).
+
     Output is a list of action dicts that _parse_actions can normalize.
     """
     explicit = alert_data.get("on_triggered")
@@ -58,7 +65,7 @@ def _resolve_on_triggered(alert_data):
         return [
             {
                 "service": "script.turn_on",
-                "target": {"entity_id": script_entity},
+                "data": {"entity_id": script_entity},
             }
         ]
     return None
@@ -233,10 +240,13 @@ class EmergencyBinarySensor(BinarySensorEntity):
         self._attr_unique_id = f"emergency_{hub_name}_{alert_id}"
         # Force a clean entity_id on first registration. Without this, HA
         # would slugify-combine device.name + entity._attr_name and produce
-        # binary_sensor.emergency_alert_<name>_emergency_<name>. Existing
-        # alerts already in the entity_registry keep their stored entity_id;
+        # binary_sensor.emergency_alert_<name>_emergency_<name>. Setting
+        # entity_id directly is the documented way to hint a specific
+        # object_id (HA's entity_platform reads this into
+        # internal_integration_suggested_object_id during async_added_to_hass).
+        # Existing alerts in the entity_registry keep their stored entity_id;
         # this only affects new alerts.
-        self._attr_suggested_object_id = f"emergency_{alert_id}"
+        self.entity_id = f"binary_sensor.emergency_{alert_id}"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"alert_{entry.entry_id}_{alert_id}")},
             "name": f"Emergency Alert: {name}",
