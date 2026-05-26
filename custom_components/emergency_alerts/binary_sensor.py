@@ -234,6 +234,14 @@ class EmergencyBinarySensor(BinarySensorEntity):
         self._action_service = alert_data.get("action_service")
         self._severity = alert_data.get("severity", "warning")
         self._remind_after_seconds = alert_data.get("remind_after_seconds")
+        # Debounce: alert fires only after the trigger has been true for this
+        # many seconds continuously. 0 (default) = fire immediately. Useful for
+        # "window open >5min", "garage open too long", "leak sensor on >10s
+        # to debounce false positives", etc. Applies to all trigger types.
+        try:
+            self._for_seconds = int(alert_data.get("for_seconds") or 0)
+        except (TypeError, ValueError):
+            self._for_seconds = 0
         self._on_triggered = _parse_actions(
             _resolve_on_triggered(alert_data)
         )
@@ -279,6 +287,10 @@ class EmergencyBinarySensor(BinarySensorEntity):
         self._escalation_task = None
         self._snooze_task = None
         self._snooze_until = None
+        # for_seconds delay timer — armed when the trigger first goes True
+        # and held for self._for_seconds before the alert actually fires.
+        # Cancelled if the trigger clears before the delay elapses.
+        self._pending_trigger_unsub = None
 
         # Store config entry for switch access
         self._config_entry = entry
@@ -474,107 +486,172 @@ class EmergencyBinarySensor(BinarySensorEntity):
 
     @callback
     def _evaluate_trigger(self):
-        triggered = False
+        """Compute the current trigger truth value and route to _set_state."""
+        self._set_state(self._compute_triggered())
+
+    @callback
+    def _compute_triggered(self) -> bool:
+        """Pure computation: is the configured trigger condition currently true?
+
+        Split out from _evaluate_trigger so that delay callbacks can re-check
+        truth without recursing through the side-effecting state machine.
+        """
         if (
             self._trigger_type == "simple"
             and self._entity_id
             and self._trigger_state is not None
         ):
             state = self.hass.states.get(self._entity_id)
-            triggered = state and state.state == self._trigger_state
-        elif self._trigger_type == "template" and self._template:
+            return bool(state and state.state == self._trigger_state)
+        if self._trigger_type == "template" and self._template:
             tpl = Template(self._template, self.hass)
             try:
                 rendered = tpl.async_render()
-                triggered = rendered in (True, "True", "true", 1, "1")
+                return rendered in (True, "True", "true", 1, "1")
             except Exception as e:
                 _LOGGER.error(f"Template evaluation error: {e}")
-                triggered = False
-        elif self._trigger_type == "logical" and self._logical_conditions:
-            # Each condition is a dict: {"entity_id": "...", "state": "..."}
+                return False
+        if self._trigger_type == "logical" and self._logical_conditions:
             results = []
             for cond in self._logical_conditions:
                 if isinstance(cond, dict) and "entity_id" in cond and "state" in cond:
                     state = self.hass.states.get(cond["entity_id"])
-                    results.append(state and state.state == cond["state"])
+                    results.append(bool(state and state.state == cond["state"]))
                 else:
                     _LOGGER.warning(
                         f"Invalid logical condition format: {cond}")
                     results.append(False)
-
-            # Apply the logical operator
             if self._logical_operator == "or":
-                triggered = any(results) if results else False
-            else:  # Default to AND
-                triggered = all(results) if results else False
-        # TRIGGER_TYPE_COMBINED removed in Phase 2 - redundant with logical trigger
-        self._set_state(triggered)
+                return any(results) if results else False
+            return all(results) if results else False
+        return False
 
     @callback
-    def _set_state(self, triggered):
-        """Set alert state based on trigger evaluation."""
+    def _cancel_pending_trigger(self):
+        """Cancel the for_seconds delay timer if armed."""
+        if self._pending_trigger_unsub:
+            self._pending_trigger_unsub()
+            self._pending_trigger_unsub = None
+
+    @callback
+    def _on_for_seconds_elapsed(self, _now):
+        """Called when the for_seconds delay has elapsed.
+
+        Re-check the trigger from scratch. If it's still true, fire the alert
+        for real (bypassing the delay this time). If the condition cleared
+        during the delay (and we somehow missed cancelling), don't fire.
+        """
+        self._pending_trigger_unsub = None
+        if self._compute_triggered():
+            self._set_state(True, skip_delay=True)
+        # If False, do nothing — the cleared-state side already ran when the
+        # underlying entity changed.
+
+    @callback
+    def _set_state(self, triggered, skip_delay: bool = False):
+        """Set alert state based on trigger evaluation.
+
+        For ``for_seconds > 0``, the first ``triggered=True`` arms a delay
+        timer; subsequent ``triggered=True`` events that arrive while the
+        timer is still pending are NO-OPs (we don't want to either re-arm
+        the timer or fire early). The timer's callback re-enters here with
+        ``skip_delay=True`` once the dwell elapses, which routes to the
+        actual fire path.
+
+        ``triggered=False`` always cancels any pending dwell and runs the
+        cleared-side cleanup.
+        """
         if triggered:
-            # Condition is met
-            if self._resolved:
-                # Don't trigger if marked as resolved
-                _LOGGER.debug(f"Alert {self._alert_id} condition met but resolved - not triggering")
-                return
-
-            if not self._already_triggered:
-                # First trigger
-                self._is_on = True
-                self._first_triggered = datetime.now().isoformat()
-                self._already_triggered = True
-                # Don't reset these - switches control them
-                # self._acknowledged = False
-                # self._escalated = False
-                self.async_write_ha_state()
-                self._update_status_sensor()
-                self._call_actions(self._on_triggered)
-
-                # Only start escalation if not acknowledged or snoozed
-                if not self._acknowledged and not self._snoozed:
-                    self.hass.async_create_task(self._start_escalation_timer())
-
-                async_dispatcher_send(self.hass, SUMMARY_UPDATE_SIGNAL)
-                # Notify switches
-                async_dispatcher_send(
-                    self.hass,
-                    f"{SIGNAL_ALERT_UPDATE}_{self._entry.entry_id}_{self._alert_id}",
-                )
-            else:
-                # Already triggered, just update state
-                self._is_on = True
-                self.async_write_ha_state()
-                self._update_status_sensor()
-                async_dispatcher_send(self.hass, SUMMARY_UPDATE_SIGNAL)
-        else:
-            # Condition cleared
+            # If we're already firing, keep refreshing state (e.g., attribute
+            # updates on the monitored entity).
             if self._already_triggered:
-                self._last_cleared = datetime.now().isoformat()
-                self._call_actions(self._on_cleared)
+                self._apply_triggered_state()
+                return
+            # If a dwell timer is already armed, do nothing — wait for it
+            # to elapse. Earlier this fell through to fire immediately,
+            # which defeated the debounce on every state-change event.
+            if self._pending_trigger_unsub is not None:
+                return
+            # Fresh trigger event. If debounce is configured and we weren't
+            # asked to skip it, arm the timer and exit.
+            if self._for_seconds > 0 and not skip_delay:
+                _LOGGER.debug(
+                    f"Alert {self._alert_id} trigger met; holding for "
+                    f"{self._for_seconds}s before firing"
+                )
+                self._pending_trigger_unsub = async_call_later(
+                    self.hass, self._for_seconds, self._on_for_seconds_elapsed
+                )
+                return
+            # No debounce configured, OR the dwell already elapsed (skip_delay)
+            # — fire the alert now.
+            self._apply_triggered_state()
+        else:
+            # Trigger cleared — if a delay was pending, cancel it (alert never
+            # transitions to active; cleared-side cleanup runs as normal).
+            self._cancel_pending_trigger()
+            self._apply_cleared_state()
 
-            self._is_on = False
-            self._already_triggered = False
+    @callback
+    def _apply_triggered_state(self):
+        """The 'triggered' branch: mark active, run on_triggered actions, arm escalation."""
+        if self._resolved:
+            _LOGGER.debug(
+                f"Alert {self._alert_id} condition met but resolved — not triggering"
+            )
+            return
 
-            # Reset resolved when condition actually clears
-            if self._resolved:
-                self._resolved = False
-                _LOGGER.debug(f"Alert {self._alert_id} condition cleared - reset resolved flag")
-
-            # Always clear escalation when condition clears
-            if self._escalated:
-                self._escalated = False
-
+        if not self._already_triggered:
+            # First trigger
+            self._is_on = True
+            self._first_triggered = datetime.now().isoformat()
+            self._already_triggered = True
             self.async_write_ha_state()
             self._update_status_sensor()
-            self._cancel_escalation_timer()
+            self._call_actions(self._on_triggered)
+
+            if not self._acknowledged and not self._snoozed:
+                self.hass.async_create_task(self._start_escalation_timer())
+
             async_dispatcher_send(self.hass, SUMMARY_UPDATE_SIGNAL)
-            # Notify switches
             async_dispatcher_send(
                 self.hass,
                 f"{SIGNAL_ALERT_UPDATE}_{self._entry.entry_id}_{self._alert_id}",
             )
+        else:
+            # Already triggered, just refresh state
+            self._is_on = True
+            self.async_write_ha_state()
+            self._update_status_sensor()
+            async_dispatcher_send(self.hass, SUMMARY_UPDATE_SIGNAL)
+
+    @callback
+    def _apply_cleared_state(self):
+        """The 'cleared' branch: run on_cleared, drop is_on, reset flags."""
+        if self._already_triggered:
+            self._last_cleared = datetime.now().isoformat()
+            self._call_actions(self._on_cleared)
+
+        self._is_on = False
+        self._already_triggered = False
+
+        if self._resolved:
+            self._resolved = False
+            _LOGGER.debug(
+                f"Alert {self._alert_id} condition cleared — reset resolved flag"
+            )
+
+        if self._escalated:
+            self._escalated = False
+
+        self.async_write_ha_state()
+        self._update_status_sensor()
+        self._cancel_escalation_timer()
+        async_dispatcher_send(self.hass, SUMMARY_UPDATE_SIGNAL)
+        async_dispatcher_send(
+            self.hass,
+            f"{SIGNAL_ALERT_UPDATE}_{self._entry.entry_id}_{self._alert_id}",
+        )
 
     def _resolve_profile(self, profile_ref):
         """Resolve a profile reference to its action list.
@@ -707,6 +784,9 @@ class EmergencyBinarySensor(BinarySensorEntity):
         if self._snooze_task:
             self._snooze_task.cancel()
             self._snooze_task = None
+        if self._pending_trigger_unsub:
+            self._pending_trigger_unsub()
+            self._pending_trigger_unsub = None
 
     async def _start_escalation_timer(self):
         """Start escalation timer (called by switches when un-acknowledging)."""

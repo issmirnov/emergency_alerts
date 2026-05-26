@@ -206,6 +206,14 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                 "trigger_state", default=defaults.get("trigger_state", "on")
             ): str,
             vol.Optional("template", default=defaults.get("template", "")): selector.TemplateSelector(),
+            # Debounce / sustain duration: alert only fires after the trigger
+            # condition has been true for this many seconds continuously. 0 =
+            # no debounce (fire immediately). Useful for "window open >5min",
+            # "garage open too long", "leak sensor on >10s to avoid false
+            # positives", etc. Applies to all trigger types.
+            vol.Optional(
+                "for_seconds", default=defaults.get("for_seconds", 0)
+            ): vol.All(vol.Coerce(int), vol.Range(min=0, max=86400)),
             vol.Optional("on_triggered_script", default=defaults.get("on_triggered_script", "")): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="script")
             ),
@@ -239,6 +247,18 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
         # Store script entity_id as string (binary sensor will build action)
         if user_input.get("on_triggered_script"):
             alert_data["on_triggered_script"] = user_input["on_triggered_script"]
+
+        # Persist the debounce duration only if non-zero (keeps the stored
+        # config tidy and matches how older alerts will load — int(...) treats
+        # missing key as 0 in binary_sensor.py).
+        for_seconds = user_input.get("for_seconds")
+        if for_seconds:
+            try:
+                for_seconds = int(for_seconds)
+            except (TypeError, ValueError):
+                for_seconds = 0
+            if for_seconds > 0:
+                alert_data["for_seconds"] = for_seconds
 
         return alert_data
 

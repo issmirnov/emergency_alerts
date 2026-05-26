@@ -4,79 +4,45 @@
     "step": {
       "user": {
         "title": "Emergency Alerts Setup",
-        "description": "Choose what type of Emergency Alerts hub to create.",
+        "description": "Choose the type of Emergency Alerts hub to create:",
         "data": {
           "setup_type": "Setup Type"
         },
         "data_description": {
-          "setup_type": "Choose between creating a Global Settings hub for managing notifications, or an Alert Group hub for organizing alerts by category"
+          "setup_type": "Choose 'Global Settings' to manage notification settings, or 'Alert Group' to create a group of related alerts"
         }
       },
       "global_setup": {
-        "title": "Global Settings Hub",
-        "description": "Create a hub for managing global notification settings and escalation times that apply to all emergency alerts."
+        "title": "Create Global Settings Hub",
+        "description": "This will create a hub for managing global notification settings that apply to all Emergency Alerts."
       },
       "group_setup": {
-        "title": "Alert Group Hub",
-        "description": "Create a hub for organizing emergency alerts by category. You can add multiple alerts to this group and manage them together.",
+        "title": "Create Alert Group Hub",
+        "description": "Create a named group to organize related emergency alerts.",
         "data": {
-          "group": "Alert Group Category",
-          "custom_name": "Custom Name (Optional)"
+          "group_name": "Group Name"
         },
         "data_description": {
-          "group": "Select the category for this alert group (e.g., security, safety, power)",
-          "custom_name": "Optional custom identifier for this group (e.g., 'Ivan', 'Main Floor', 'Workshop')"
-        }
-      },
-      "add_alert": {
-        "title": "Add Alert to Group",
-        "description": "Configure a new emergency alert within this group.",
-        "data": {
-          "name": "Alert Name",
-          "trigger_type": "Trigger Type",
-          "entity_id": "Entity to Monitor",
-          "trigger_state": "Trigger State",
-          "template": "Template Condition",
-          "logical_conditions": "Logical Conditions (JSON/YAML)",
-          "severity": "Alert Severity",
-          "on_triggered": "Actions When Triggered (JSON/YAML)",
-          "on_cleared": "Actions When Cleared (JSON/YAML)",
-          "on_escalated": "Actions When Escalated (JSON/YAML)"
-        },
-        "data_description": {
-          "name": "A unique name for this emergency alert within the group",
-          "trigger_type": "How this alert should be triggered - Simple monitors one entity, Template uses Jinja2 expressions, Logical combines multiple conditions",
-          "entity_id": "The Home Assistant entity to monitor (required for Simple triggers)",
-          "trigger_state": "The state value that triggers this alert (e.g., 'on', 'open', 'high', or numeric values)",
-          "template": "Jinja2 template that returns true/false (e.g., {{ states('sensor.temperature')|float > 30 }})",
-          "logical_conditions": "JSON or YAML list of conditions to combine with AND logic",
-          "severity": "Severity level affects how the alert is displayed and prioritized",
-          "on_triggered": "List of services to call when alert is triggered (JSON: [{\"service\": \"notify.notify\", \"data\": {\"message\": \"Alert!\"}}])",
-          "on_cleared": "List of services to call when alert condition clears",
-          "on_escalated": "List of services to call if alert is not acknowledged within the escalation time"
-        }
-      },
-      "remove_alert": {
-        "title": "Remove Alert from Group",
-        "description": "Select an alert to remove from this group.",
-        "data": {
-          "alert_id": "Alert to Remove"
+          "group_name": "Enter a name for this alert group (e.g., 'Security', 'Safety', 'Ivan's Alerts')"
         }
       }
     },
     "error": {
       "cannot_connect": "Failed to connect",
       "invalid_auth": "Invalid authentication",
-      "unknown": "Unexpected error"
+      "unknown": "Unexpected error",
+      "global_already_configured": "Global Settings hub already exists. You can only have one global settings hub.",
+      "group_already_configured": "A group with this name already exists. Please choose a different name.",
+      "no_alerts_to_remove": "No alerts found in this group to remove."
     },
     "abort": {
       "already_configured": "Alert with this name already exists",
       "single_instance_allowed": "Only a single configuration of this integration is allowed.",
-      "global_already_configured": "Global settings hub already exists. You can configure it through the integration options.",
-      "group_already_configured": "A hub for this group already exists with this name.",
-      "no_alerts_to_remove": "No alerts available to remove from this group.",
-      "alerts_listed": "All alerts in this group are displayed above.",
-      "invalid_hub_type": "Invalid hub type specified."
+      "global_already_configured": "Global Settings hub already configured",
+      "group_already_configured": "Group with this name already exists",
+      "no_alerts_to_remove": "No alerts to remove",
+      "alerts_listed": "Alerts listed successfully",
+      "invalid_hub_type": "Invalid hub type"
     }
   },
   "options": {
@@ -87,7 +53,7 @@
       },
       "global_options": {
         "title": "Global Emergency Alerts Settings",
-        "description": "Configure global settings that apply to all emergency alerts.",
+        "description": "Configure global settings that apply to all Emergency Alerts.",
         "data": {
           "default_escalation_time": "Default Escalation Time (seconds)",
           "enable_global_notifications": "Enable Global Notifications",
@@ -102,11 +68,102 @@
         }
       },
       "group_options": {
-        "title": "Manage Alerts in Group",
-        "description": "Add, remove, or view alerts in this group hub.",
-        "data": {
-          "action": "Action"
+        "title": "Manage Alerts",
+        "description": "Choose an action to manage alerts in this group. Currently {alert_count} alert(s) configured.",
+        "menu_options": {
+          "add_alert": "Add New Alert",
+          "edit_alert": "Edit Alert",
+          "remove_alert": "Remove Alert"
         }
+      },
+      "add_alert": {
+        "title": "➕ Add New Alert",
+        "description": "Configure your emergency alert with all options on one page.",
+        "data": {
+          "name": "Alert Name",
+          "trigger_type": "Trigger Type",
+          "severity": "Severity Level",
+          "entity_id": "Entity to Monitor",
+          "trigger_state": "Trigger State",
+          "template": "Jinja2 Template",
+          "for_seconds": "Sustain Duration (seconds)",
+          "on_triggered_script": "Script to Run When Triggered (optional)"
+        },
+        "data_description": {
+          "name": "A descriptive name for this alert (e.g., 'Front Door Open', 'High Temperature')",
+          "trigger_type": "Simple: Monitor one entity's state. Template: Use Jinja2 for complex conditions.",
+          "severity": "Critical: Urgent issues. Warning: Important but not critical. Info: General notifications.",
+          "entity_id": "The Home Assistant entity to monitor (e.g., binary_sensor.front_door, sensor.temperature)",
+          "trigger_state": "State that triggers the alert. Examples: 'on' for binary sensors, 'unavailable' for offline devices, '30' for numeric thresholds",
+          "template": "Jinja2 template that returns True when alert should trigger. Example: states('sensor.temperature')|float > 25 would return True when temperature exceeds 25. Test templates in Developer Tools > Template before using.",
+          "for_seconds": "Alert only fires after the trigger has been true for this many seconds continuously (debounce). 0 = no debounce. Useful for 'window open >5min', 'garage open too long', 'leak sensor on >10s to avoid false positives'.",
+          "on_triggered_script": "Optional script to run when this alert triggers. Create scripts in Settings > Automations & Scenes > Scripts."
+        }
+      },
+      "edit_alert": {
+        "title": "✏️ Select Alert to Edit",
+        "description": "Choose which alert you want to edit.",
+        "data": {
+          "alert_id": "Alert to Edit"
+        }
+      },
+      "edit_alert_form": {
+        "title": "✏️ Edit Alert",
+        "description": "Modify any settings below and save your changes.",
+        "data": {
+          "name": "Alert Name",
+          "trigger_type": "Trigger Type",
+          "severity": "Severity Level",
+          "entity_id": "Entity to Monitor",
+          "trigger_state": "Trigger State",
+          "template": "Jinja2 Template",
+          "for_seconds": "Sustain Duration (seconds)",
+          "on_triggered_script": "Script to Run When Triggered (optional)"
+        },
+        "data_description": {
+          "name": "A descriptive name for this alert",
+          "trigger_type": "Simple: Monitor one entity's state. Template: Use Jinja2 for complex conditions.",
+          "severity": "Critical: Urgent issues. Warning: Important but not critical. Info: General notifications.",
+          "entity_id": "The Home Assistant entity to monitor",
+          "trigger_state": "State that triggers the alert (e.g., 'on', 'unavailable', '30')",
+          "template": "Jinja2 template that returns True when alert should trigger. Test in Developer Tools > Template.",
+          "for_seconds": "Alert only fires after trigger has been true for this many seconds continuously (debounce). 0 = no debounce.",
+          "on_triggered_script": "Optional script to run when this alert triggers"
+        }
+      },
+      "remove_alert": {
+        "title": "Remove Emergency Alert",
+        "description": "Select an alert to remove from this group.",
+        "data": {
+          "alert_id": "Alert to Remove"
+        }
+      }
+    },
+    "abort": {
+      "no_alerts_to_remove": "No alerts available to remove",
+      "no_alerts_to_edit": "No alerts available to edit",
+      "alert_not_found": "The selected alert could not be found"
+    }
+  },
+  "selector": {
+    "setup_type": {
+      "options": {
+        "global": "Global Settings Hub - Manage notification settings and escalation (Add Once)",
+        "group": "Alert Group Hub - Create a group of related emergency alerts"
+      }
+    },
+    "trigger_type": {
+      "options": {
+        "simple": "simple: Monitor one entity's state",
+        "template": "template: Use Jinja2 for complex conditions",
+        "logical": "logical: Combine multiple entity conditions"
+      }
+    },
+    "severity": {
+      "options": {
+        "info": "ℹ️ info: General notifications",
+        "warning": "⚠️ warning: Important but not critical",
+        "critical": "🚨 critical: Urgent issues requiring immediate attention"
       }
     }
   }

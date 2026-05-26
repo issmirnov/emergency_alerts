@@ -86,6 +86,7 @@
           "entity_id": "Entity to Monitor",
           "trigger_state": "Trigger State",
           "template": "Jinja2 Template",
+          "for_seconds": "Sustain Duration (seconds)",
           "on_triggered_script": "Script to Run When Triggered (optional)"
         },
         "data_description": {
@@ -95,6 +96,7 @@
           "entity_id": "The Home Assistant entity to monitor (e.g., binary_sensor.front_door, sensor.temperature)",
           "trigger_state": "State that triggers the alert. Examples: 'on' for binary sensors, 'unavailable' for offline devices, '30' for numeric thresholds",
           "template": "Jinja2 template that returns True when alert should trigger. Example: states('sensor.temperature')|float > 25 would return True when temperature exceeds 25. Test templates in Developer Tools > Template before using.",
+          "for_seconds": "Alert only fires after the trigger has been true for this many seconds continuously (debounce). 0 = no debounce. Useful for 'window open >5min', 'garage open too long', 'leak sensor on >10s to avoid false positives'.",
           "on_triggered_script": "Optional script to run when this alert triggers. Create scripts in Settings > Automations & Scenes > Scripts."
         }
       },
@@ -115,6 +117,7 @@
           "entity_id": "Entity to Monitor",
           "trigger_state": "Trigger State",
           "template": "Jinja2 Template",
+          "for_seconds": "Sustain Duration (seconds)",
           "on_triggered_script": "Script to Run When Triggered (optional)"
         },
         "data_description": {
@@ -124,6 +127,7 @@
           "entity_id": "The Home Assistant entity to monitor",
           "trigger_state": "State that triggers the alert (e.g., 'on', 'unavailable', '30')",
           "template": "Jinja2 template that returns True when alert should trigger. Test in Developer Tools > Template.",
+          "for_seconds": "Alert only fires after trigger has been true for this many seconds continuously (debounce). 0 = no debounce.",
           "on_triggered_script": "Optional script to run when this alert triggers"
         }
       },
