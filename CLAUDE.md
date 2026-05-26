@@ -123,6 +123,12 @@ This section grows as patterns and preferences are discovered during work on thi
 - **Single-page config flows** beat multi-step wizards for this domain (Adaptive Lighting pattern).
 - **Memory bank first**: read `.claude/memory-bank/*.md` at session start; project state changes faster than code comments capture.
 
+### Rule: Fix PRs MUST Include a Regression Test
+
+If you are writing a fix PR (commit prefix `fix:`), you must also add a test that **fails on `main` and passes with your fix**. No exceptions for "small" fixes — the recent pattern is that 4 of the last 5 fix PRs (#12, #13) shipped without regression tests, and the bugs were exactly the kind of silent wiring/UI failures that the existing unit tests don't catch. See [CONTRIBUTING.md](CONTRIBUTING.md) for the test pattern (model: `tests/integration/test_template_trigger_rerender.py`).
+
+If the bug genuinely cannot be tested in the pytest harness (e.g., browser-only rendering bug, HA limitation), state so explicitly in the PR description and explain why — do not silently skip the test.
+
 ---
 
 ## Notes

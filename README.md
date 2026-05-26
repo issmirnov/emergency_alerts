@@ -171,27 +171,9 @@ Brief tour of the moving parts:
 
 Full repository layout, local-verification commands, and CI gotchas live in [CLAUDE.md](CLAUDE.md). Testing details in [docs/TESTING.md](docs/TESTING.md).
 
-## Development
+## Contributing
 
-```bash
-# Backend tests (matches CI exactly)
-python -m pytest custom_components/emergency_alerts/tests/ -v
-
-# Translation sync (also enforced in CI)
-python scripts/validate_translations.py
-
-# Convenience wrappers
-./scripts/run_tests.sh                  # full suite
-./scripts/run_tests.sh --backend-only   # pytest only
-./scripts/lint.sh                       # black + isort + flake8 + mypy
-./scripts/fix-format.sh                 # auto-fix formatting
-
-# Docker-based local HA (port 8123, user: dev/dev)
-./dev_tools/local-dev.sh start
-./dev_tools/local-dev.sh logs           # tail logs
-./dev_tools/local-dev.sh restart        # pick up code changes
-./dev_tools/local-dev.sh nuke           # wipe & start fresh
-```
+Setup, testing, code style, translation-sync requirements, and PR guidelines live in [CONTRIBUTING.md](CONTRIBUTING.md). For the deeper repo layout and contributor-targeted conventions, see [CLAUDE.md](CLAUDE.md).
 
 ## Changelog
 
