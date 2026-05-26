@@ -1,5 +1,16 @@
 # Emergency Alerts Integration for Home Assistant
 
+[![Tests](https://img.shields.io/github/actions/workflow/status/issmirnov/emergency_alerts/test.yml?branch=main&label=tests&logo=github)](https://github.com/issmirnov/emergency_alerts/actions/workflows/test.yml)
+[![HACS Validated](https://img.shields.io/badge/HACS-Validated-41BDF5.svg?logo=home-assistant&logoColor=white)](https://hacs.xyz)
+[![Latest Release](https://img.shields.io/github/v/release/issmirnov/emergency_alerts?include_prereleases&sort=semver&logo=github)](https://github.com/issmirnov/emergency_alerts/releases)
+[![Release Date](https://img.shields.io/github/release-date/issmirnov/emergency_alerts?logo=github)](https://github.com/issmirnov/emergency_alerts/releases)
+[![HA Version](https://img.shields.io/badge/HA-2026.2%2B-41BDF5.svg?logo=home-assistant&logoColor=white)](https://www.home-assistant.io)
+[![Python](https://img.shields.io/badge/python-3.13-blue.svg?logo=python&logoColor=white)](https://www.python.org)
+[![Stars](https://img.shields.io/github/stars/issmirnov/emergency_alerts?style=flat&logo=github)](https://github.com/issmirnov/emergency_alerts/stargazers)
+[![Issues](https://img.shields.io/github/issues/issmirnov/emergency_alerts?logo=github)](https://github.com/issmirnov/emergency_alerts/issues)
+[![License](https://img.shields.io/github/license/issmirnov/emergency_alerts)](LICENSE)
+[![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=issmirnov&repository=emergency_alerts&category=integration)
+
 A powerful Home Assistant integration for managing critical alerts with smart escalation, state management, and flexible trigger conditions.
 
 ## Version 4.1.0 - Polish & Modern UX
@@ -16,7 +27,7 @@ v4.1.0 is all about **polish** - taking an already powerful integration and maki
 
 2. **Instant Operations** - Add, edit, or remove alerts with zero downtime. Changes take effect immediately with automatic reload - no more waiting for Home Assistant to restart.
 
-3. **Comprehensive Testing** - Hassfest validation, translation sync checks, and E2E tests ensure the integration just works, every time.
+3. **Comprehensive Testing** - HACS validation, hassfest, translation sync, and 86 pytest tests run on every push and PR. (Playwright E2E suite available locally in `e2e-tests/`.)
 
 ### What's New in v4.1.0
 
@@ -25,13 +36,14 @@ v4.1.0 is all about **polish** - taking an already powerful integration and maki
 - **User-Friendly Labels**: Clear, descriptive field labels and help text
 - **Modern Selectors**: EntitySelector and TemplateSelector with live preview
 - **Instant Changes**: Add/Edit/Remove alerts work immediately - no Home Assistant restart required
-- **74% Less Code**: 353 lines (down from 1,371) in config_flow.py - simpler, more maintainable
+- **73% Less Code**: 366 lines (down from 1,371) in config_flow.py - simpler, more maintainable
 
 **Comprehensive Testing Infrastructure**
 - **Hassfest Validation**: Automated integration structure checks in CI
-- **Translation Sync**: Automatic validation ensures UI strings stay synchronized
-- **E2E Tests**: Playwright-based tests for critical config flow paths
-- **Zero Translation Errors**: Real-time validation prevents runtime string lookup failures
+- **HACS Validation**: HACS repository compliance checked on every push and PR
+- **Backend Tests**: 86 pytest tests (unit + integration with real `hass` fixture) run on every push and PR
+- **Translation Sync**: Auto-fail in pytest if any "Failed to format translation" warning appears, plus a dedicated CI check
+- **Playwright E2E**: Full Playwright + TypeScript suite in `e2e-tests/` for manual local verification (not yet wired to CI)
 
 **Home Assistant 2026.2+ Ready**
 - Updated for latest Home Assistant patterns and best practices
@@ -92,14 +104,14 @@ After v4.1.0:
 ### Technical Excellence
 
 **Robust Testing Infrastructure:**
-- **Hassfest Validation**: Integration structure automatically checked in CI
-- **Translation Sync**: Zero runtime translation errors (validated on every commit)
-- **E2E Tests**: Critical user flows tested with Playwright
-- **Unit Tests**: Comprehensive coverage of all components
-- **CI/CD**: All checks pass before merge
+- **Hassfest + HACS Validation**: Integration structure and HACS compliance checked on every push and PR
+- **Translation Sync**: Translation-error autocheck fixture in `conftest.py` + dedicated CI check
+- **Backend Tests**: 86 pytest tests split across `tests/`, `tests/unit/`, and `tests/integration/`
+- **Playwright E2E**: Available in `e2e-tests/` for local verification
+- **CI/CD**: Daily scheduled run catches Home Assistant version drift
 
 **Modern, Maintainable Codebase:**
-- **74% Code Reduction**: 353 lines (was 1,371) in config_flow.py
+- **73% Code Reduction**: 366 lines (was 1,371) in config_flow.py
 - **Latest Patterns**: Uses modern Home Assistant APIs throughout
 - **Zero Deprecations**: No warnings, ready for HA 2027+
 - **Clean Architecture**: Modular, well-documented, easy to extend
@@ -307,24 +319,38 @@ on_trigger:
 
 ### Comprehensive Testing Infrastructure
 
-v4.1.0 introduces a robust testing system that ensures quality:
+The CI workflow (`.github/workflows/test.yml`) runs on every push to `main` and every pull request, plus a daily cron at 00:00 UTC to catch Home Assistant version drift.
 
-**Automated CI Checks:**
-```bash
-# All of these run automatically on every commit
-hassfest          # Integration structure validation
-pytest            # Unit and integration tests
-translation-sync  # Ensures UI strings stay synchronized
+**CI Jobs:**
+```text
+HACS Validation       hacs/action@main (with brands ignored)
+Hassfest              home-assistant/actions/hassfest@master
+Backend Tests         validate_integration.py + validate_translations.py + 86 pytest tests (Python 3.13)
+Lint and Format       black + isort + flake8 + mypy  (currently non-blocking — `continue-on-error: true`)
 ```
 
 **Local Testing:**
 ```bash
-# Run the full test suite locally
-./scripts/run_tests.sh
+# Full backend suite (matches CI)
+python -m pytest custom_components/emergency_alerts/tests/ -v
 
-# Or run specific test types
-./scripts/run_tests.sh --backend-only    # Just pytest
-python scripts/validate_translations.py   # Just translation sync
+# Convenience wrappers
+./scripts/run_tests.sh                    # full suite
+./scripts/run_tests.sh --backend-only     # pytest only
+python scripts/validate_translations.py   # translation sync only
+python scripts/validate_integration.py    # integration structure only
+./scripts/lint.sh                         # black + isort + flake8 + mypy (real results)
+./scripts/fix-format.sh                   # auto-fix black + isort
+```
+
+**Test Layout:**
+```text
+custom_components/emergency_alerts/tests/
+├── conftest.py                # hass fixtures, autouse translation-error check
+├── test_*.py                  # legacy flat suite (binary_sensor, config_flow, switch, sensor, init, dependencies)
+├── unit/                      # pure-logic tests: action_parsing, state_machine, trigger_evaluation
+└── integration/               # hass-fixture tests: api_contracts, binary_sensor, state_sync, sensor_updates,
+                               #                   service, switch_binary_sensor, e2e_scenarios, template_trigger_rerender
 ```
 
 **Test Coverage:**
@@ -334,6 +360,11 @@ python scripts/validate_translations.py   # Just translation sync
 - Service registration and action execution
 - Translation string synchronization
 - Integration structure (hassfest)
+- Template-trigger re-evaluation regression (PR #14)
+
+**Playwright E2E (local-only):**
+
+The `e2e-tests/` directory contains a full Playwright + TypeScript suite covering config flow paths and card rendering with console-error monitoring. It is not currently invoked by CI — run it locally against the Docker HA instance with `./scripts/run-e2e.sh`.
 
 ### Local Development Environment
 
