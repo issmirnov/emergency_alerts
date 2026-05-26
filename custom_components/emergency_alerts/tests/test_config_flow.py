@@ -193,3 +193,123 @@ def test_alert_schema_preserves_existing_entity_id_via_suggested_value():
             break
     else:
         raise AssertionError("entity_id field not found in schema")
+
+
+# ---------------------------------------------------------------------------
+# Edit-alert flow regression — submitting an edit_alert_form rendered with
+# step_id="add_alert" used to misfire as "already_configured" because the
+# duplicate-name guard didn't know it was an edit. async_step_add_alert now
+# reads `self._editing_alert_id` (set by edit_alert) and allows the slug
+# match when it matches the editing target.
+# ---------------------------------------------------------------------------
+
+
+class _StubConfigEntry:
+    def __init__(self, data):
+        self.data = data
+        self.entry_id = "stub_entry"
+
+
+def _make_options_flow_with_alerts(alerts: dict) -> EmergencyOptionsFlow:
+    """Build an EmergencyOptionsFlow bound to a stub entry holding alerts."""
+    flow = EmergencyOptionsFlow.__new__(EmergencyOptionsFlow)
+    flow.config_entry = _StubConfigEntry({"alerts": alerts})
+    return flow
+
+
+async def test_add_alert_blocks_duplicate_name_when_not_editing():
+    """Without `_editing_alert_id`, slug-matched submission errors as expected."""
+    flow = _make_options_flow_with_alerts({
+        "external_door_open": {"name": "External Door Open", "severity": "warning",
+                               "trigger_type": "simple", "entity_id": "binary_sensor.front_door"}
+    })
+    flow._editing_alert_id = None
+    result = await flow.async_step_add_alert({
+        "name": "External Door Open",  # collides
+        "severity": "warning",
+        "trigger_type": "simple",
+        "entity_id": "binary_sensor.front_door",
+        "trigger_state": "on",
+    })
+    assert result["type"] == "form"
+    assert result["errors"] == {"name": "already_configured"}
+
+
+async def test_edit_alert_does_not_misfire_already_configured(hass):
+    """Edit submission with the SAME name must NOT raise already_configured.
+
+    Regression for v4.1.0/4.2.0 bug: edit_alert_form rendered with
+    step_id="add_alert" caused HA to route POSTs back to add_alert, which
+    then ran the duplicate-name guard and rejected the edit. add_alert now
+    permits the slug match when `_editing_alert_id` is set.
+    """
+    from custom_components.emergency_alerts.const import DOMAIN
+    entry = config_entries.ConfigEntry(
+        version=2, minor_version=0, domain=DOMAIN,
+        title="Security", data={"alerts": {
+            "external_door_open": {
+                "name": "External Door Open", "severity": "warning",
+                "trigger_type": "template",
+                "template": "{{ is_state('binary_sensor.front_door','on') }}",
+                "on_triggered_script": "script.emergency_critical_push",
+            }
+        }}, source="user", unique_id="stub", options={},
+        discovery_keys={}, subentries_data=None,
+    )
+    entry.add_to_hass(hass)
+    flow = EmergencyOptionsFlow()
+    flow.hass = hass
+    flow.config_entry = entry
+    flow._editing_alert_id = "external_door_open"
+
+    result = await flow.async_step_add_alert({
+        "name": "External Door Open",        # same name — same slug
+        "severity": "warning",
+        "trigger_type": "template",
+        "template": "{{ is_state('binary_sensor.front_door','on') }}",
+        "for_seconds": 60,
+        # deliberately omit on_triggered_script — this is the migration case
+    })
+
+    # Edit succeeds and closes the flow
+    assert result["type"] == "create_entry", f"Expected create_entry, got {result}"
+    # Editing state cleared
+    assert flow._editing_alert_id is None
+    # on_triggered_script dropped from storage
+    saved = entry.data["alerts"]["external_door_open"]
+    assert "on_triggered_script" not in saved
+    assert saved.get("for_seconds") == 60
+
+
+async def test_edit_alert_with_renamed_slug_drops_old_key(hass):
+    """Renaming an alert during edit removes the old slug and adds the new one."""
+    from custom_components.emergency_alerts.const import DOMAIN
+    entry = config_entries.ConfigEntry(
+        version=2, minor_version=0, domain=DOMAIN, title="Security",
+        data={"alerts": {
+            "old_name": {
+                "name": "Old Name", "severity": "warning",
+                "trigger_type": "simple", "entity_id": "binary_sensor.x",
+                "trigger_state": "on",
+            }
+        }}, source="user", unique_id="stub2", options={},
+        discovery_keys={}, subentries_data=None,
+    )
+    entry.add_to_hass(hass)
+    flow = EmergencyOptionsFlow()
+    flow.hass = hass
+    flow.config_entry = entry
+    flow._editing_alert_id = "old_name"
+
+    result = await flow.async_step_add_alert({
+        "name": "New Name",
+        "severity": "warning",
+        "trigger_type": "simple",
+        "entity_id": "binary_sensor.x",
+        "trigger_state": "on",
+    })
+
+    assert result["type"] == "create_entry"
+    alerts = entry.data["alerts"]
+    assert "old_name" not in alerts
+    assert "new_name" in alerts
