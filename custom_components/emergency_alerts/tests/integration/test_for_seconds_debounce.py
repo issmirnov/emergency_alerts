@@ -127,6 +127,56 @@ async def test_for_seconds_cancels_if_trigger_clears_during_dwell(hass: HomeAssi
 
 
 @pytest.mark.integration
+async def test_for_seconds_repeat_true_events_do_not_short_circuit_dwell(
+    hass: HomeAssistant,
+):
+    """Regression for the bug Codex flagged on PR #18.
+
+    While the dwell timer is armed, any subsequent ``triggered=True``
+    evaluation (e.g., attribute-only updates on the monitored entity, or
+    a logical trigger whose dependent entities tick) MUST be a no-op.
+    The earlier guard ``self._pending_trigger_unsub is None`` failed this
+    check: re-evaluations during the dwell fell through to the
+    immediate-fire path because the timer was already armed (so the guard
+    was False), defeating the entire debounce.
+    """
+    await _setup_hub(hass, {
+        "name": "Sustain Alert",
+        "trigger_type": "simple",
+        "entity_id": "binary_sensor.repeat_source",
+        "trigger_state": "on",
+        "severity": "warning",
+        "for_seconds": 60,
+    })
+    alert = "binary_sensor.emergency_sustain_alert"
+
+    set_entity_state(hass, "binary_sensor.repeat_source", "on")
+    await hass.async_block_till_done()
+    assert hass.states.get(alert).state == "off", "Dwell should hold alert off"
+
+    # Mid-dwell: re-publish 'on' with changing attributes. HA emits a
+    # state_changed event even when state is unchanged if attributes differ.
+    # Before the fix, each event fell through and fired the alert.
+    for tick in range(3):
+        async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=10))
+        await hass.async_block_till_done()
+        hass.states.async_set(
+            "binary_sensor.repeat_source", "on", {"tick": tick}
+        )
+        await hass.async_block_till_done()
+        assert hass.states.get(alert).state == "off", (
+            f"Alert fired during dwell on repeat-true event (tick {tick}). "
+            f"Codex-flagged bug regressed."
+        )
+
+    # After the full dwell elapses (initial set was at t=0; we're now at
+    # t~30 with mid-dwell ticks; push past 60 from start), alert fires.
+    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=61))
+    await hass.async_block_till_done()
+    assert hass.states.get(alert).state == "on"
+
+
+@pytest.mark.integration
 async def test_for_seconds_works_with_template_triggers(hass: HomeAssistant):
     """Debounce applies uniformly to template-trigger alerts as well."""
     await _setup_hub(hass, {

@@ -551,19 +551,30 @@ class EmergencyBinarySensor(BinarySensorEntity):
     def _set_state(self, triggered, skip_delay: bool = False):
         """Set alert state based on trigger evaluation.
 
-        If for_seconds > 0 and this is a fresh trigger transition, arm a
-        delay timer and exit; the timer's callback will re-enter this method
-        with skip_delay=True once the dwell time has elapsed.
+        For ``for_seconds > 0``, the first ``triggered=True`` arms a delay
+        timer; subsequent ``triggered=True`` events that arrive while the
+        timer is still pending are NO-OPs (we don't want to either re-arm
+        the timer or fire early). The timer's callback re-enters here with
+        ``skip_delay=True`` once the dwell elapses, which routes to the
+        actual fire path.
+
+        ``triggered=False`` always cancels any pending dwell and runs the
+        cleared-side cleanup.
         """
         if triggered:
-            # Gate the initial transition on the debounce delay, but only
-            # for fresh trigger events. If we're already firing, keep firing.
-            if (
-                self._for_seconds > 0
-                and not skip_delay
-                and not self._already_triggered
-                and self._pending_trigger_unsub is None
-            ):
+            # If we're already firing, keep refreshing state (e.g., attribute
+            # updates on the monitored entity).
+            if self._already_triggered:
+                self._apply_triggered_state()
+                return
+            # If a dwell timer is already armed, do nothing — wait for it
+            # to elapse. Earlier this fell through to fire immediately,
+            # which defeated the debounce on every state-change event.
+            if self._pending_trigger_unsub is not None:
+                return
+            # Fresh trigger event. If debounce is configured and we weren't
+            # asked to skip it, arm the timer and exit.
+            if self._for_seconds > 0 and not skip_delay:
                 _LOGGER.debug(
                     f"Alert {self._alert_id} trigger met; holding for "
                     f"{self._for_seconds}s before firing"
@@ -572,7 +583,8 @@ class EmergencyBinarySensor(BinarySensorEntity):
                     self.hass, self._for_seconds, self._on_for_seconds_elapsed
                 )
                 return
-            # for_seconds==0 OR delay already elapsed OR already firing → proceed
+            # No debounce configured, OR the dwell already elapsed (skip_delay)
+            # — fire the alert now.
             self._apply_triggered_state()
         else:
             # Trigger cleared — if a delay was pending, cancel it (alert never
