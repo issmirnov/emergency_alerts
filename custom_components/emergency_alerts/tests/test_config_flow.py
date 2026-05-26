@@ -1,5 +1,6 @@
 """Test the Emergency Alerts config flow."""
 
+import pytest
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
@@ -162,8 +163,8 @@ def test_alert_schema_accepts_empty_submission_with_no_entity_id():
     `description={"suggested_value": ...}` for pre-fill, with no schema
     default, so empty submissions pass through cleanly.
     """
-    flow = EmergencyOptionsFlow()
-    schema = flow._build_alert_schema()
+    # _build_alert_schema doesn't touch self.config_entry — pure schema build
+    schema = EmergencyOptionsFlow._build_alert_schema(None)
 
     # Minimum valid submission for a template trigger: no entity_id, just
     # severity + trigger_type + template + name.
@@ -182,8 +183,9 @@ def test_alert_schema_accepts_empty_submission_with_no_entity_id():
 
 def test_alert_schema_preserves_existing_entity_id_via_suggested_value():
     """Editing an alert: existing entity_id should re-appear as suggestion."""
-    flow = EmergencyOptionsFlow()
-    schema = flow._build_alert_schema(defaults={"entity_id": "binary_sensor.front_door"})
+    schema = EmergencyOptionsFlow._build_alert_schema(
+        None, defaults={"entity_id": "binary_sensor.front_door"}
+    )
 
     # Find the entity_id marker and check the suggested_value attached
     for marker in schema.schema:
@@ -204,24 +206,42 @@ def test_alert_schema_preserves_existing_entity_id_via_suggested_value():
 # ---------------------------------------------------------------------------
 
 
-class _StubConfigEntry:
-    def __init__(self, data):
-        self.data = data
-        self.entry_id = "stub_entry"
+@pytest.fixture
+def _options_flow_factory(hass):
+    """Build an EmergencyOptionsFlow bound to a MockConfigEntry.
+
+    OptionsFlow.config_entry is a read-only property derived from
+    self.handler + hass.config_entries.options registry, so we register a
+    MockConfigEntry with hass and point self.handler at its entry_id.
+    """
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+    from custom_components.emergency_alerts.const import DOMAIN
+
+    def factory(data):
+        entry = MockConfigEntry(
+            domain=DOMAIN, version=2, data=data,
+            title=data.get("hub_name", "Test Hub"),
+        )
+        entry.add_to_hass(hass)
+        flow = EmergencyOptionsFlow()
+        flow.hass = hass
+        flow.handler = entry.entry_id
+        return flow
+
+    return factory
 
 
-def _make_options_flow_with_alerts(alerts: dict) -> EmergencyOptionsFlow:
-    """Build an EmergencyOptionsFlow bound to a stub entry holding alerts."""
-    flow = EmergencyOptionsFlow.__new__(EmergencyOptionsFlow)
-    flow.config_entry = _StubConfigEntry({"alerts": alerts})
-    return flow
-
-
-async def test_add_alert_blocks_duplicate_name_when_not_editing():
+async def test_add_alert_blocks_duplicate_name_when_not_editing(_options_flow_factory):
     """Without `_editing_alert_id`, slug-matched submission errors as expected."""
-    flow = _make_options_flow_with_alerts({
-        "external_door_open": {"name": "External Door Open", "severity": "warning",
-                               "trigger_type": "simple", "entity_id": "binary_sensor.front_door"}
+    flow = _options_flow_factory({
+        "alerts": {
+            "external_door_open": {
+                "name": "External Door Open", "severity": "warning",
+                "trigger_type": "simple",
+                "entity_id": "binary_sensor.front_door",
+                "trigger_state": "on",
+            }
+        }
     })
     flow._editing_alert_id = None
     result = await flow.async_step_add_alert({
@@ -235,7 +255,7 @@ async def test_add_alert_blocks_duplicate_name_when_not_editing():
     assert result["errors"] == {"name": "already_configured"}
 
 
-async def test_edit_alert_does_not_misfire_already_configured(hass):
+async def test_edit_alert_does_not_misfire_already_configured(_options_flow_factory):
     """Edit submission with the SAME name must NOT raise already_configured.
 
     Regression for v4.1.0/4.2.0 bug: edit_alert_form rendered with
@@ -243,23 +263,16 @@ async def test_edit_alert_does_not_misfire_already_configured(hass):
     then ran the duplicate-name guard and rejected the edit. add_alert now
     permits the slug match when `_editing_alert_id` is set.
     """
-    from custom_components.emergency_alerts.const import DOMAIN
-    entry = config_entries.ConfigEntry(
-        version=2, minor_version=0, domain=DOMAIN,
-        title="Security", data={"alerts": {
+    flow = _options_flow_factory({
+        "alerts": {
             "external_door_open": {
                 "name": "External Door Open", "severity": "warning",
                 "trigger_type": "template",
                 "template": "{{ is_state('binary_sensor.front_door','on') }}",
                 "on_triggered_script": "script.emergency_critical_push",
             }
-        }}, source="user", unique_id="stub", options={},
-        discovery_keys={}, subentries_data=None,
-    )
-    entry.add_to_hass(hass)
-    flow = EmergencyOptionsFlow()
-    flow.hass = hass
-    flow.config_entry = entry
+        }
+    })
     flow._editing_alert_id = "external_door_open"
 
     result = await flow.async_step_add_alert({
@@ -276,29 +289,22 @@ async def test_edit_alert_does_not_misfire_already_configured(hass):
     # Editing state cleared
     assert flow._editing_alert_id is None
     # on_triggered_script dropped from storage
-    saved = entry.data["alerts"]["external_door_open"]
+    saved = flow.config_entry.data["alerts"]["external_door_open"]
     assert "on_triggered_script" not in saved
     assert saved.get("for_seconds") == 60
 
 
-async def test_edit_alert_with_renamed_slug_drops_old_key(hass):
+async def test_edit_alert_with_renamed_slug_drops_old_key(_options_flow_factory):
     """Renaming an alert during edit removes the old slug and adds the new one."""
-    from custom_components.emergency_alerts.const import DOMAIN
-    entry = config_entries.ConfigEntry(
-        version=2, minor_version=0, domain=DOMAIN, title="Security",
-        data={"alerts": {
+    flow = _options_flow_factory({
+        "alerts": {
             "old_name": {
                 "name": "Old Name", "severity": "warning",
                 "trigger_type": "simple", "entity_id": "binary_sensor.x",
                 "trigger_state": "on",
             }
-        }}, source="user", unique_id="stub2", options={},
-        discovery_keys={}, subentries_data=None,
-    )
-    entry.add_to_hass(hass)
-    flow = EmergencyOptionsFlow()
-    flow.hass = hass
-    flow.config_entry = entry
+        }
+    })
     flow._editing_alert_id = "old_name"
 
     result = await flow.async_step_add_alert({
@@ -310,6 +316,6 @@ async def test_edit_alert_with_renamed_slug_drops_old_key(hass):
     })
 
     assert result["type"] == "create_entry"
-    alerts = entry.data["alerts"]
+    alerts = flow.config_entry.data["alerts"]
     assert "old_name" not in alerts
     assert "new_name" in alerts
