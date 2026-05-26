@@ -8,6 +8,16 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/en/
 
 No unreleased changes.
 
+## [4.2.1] - 2026-05-26
+
+Single-bug patch release. Cuts a separate version because the fix unblocks
+programmatic alert updates via the options-flow API, which is how external
+tooling (provisioning scripts, migrations) interacts with the integration.
+
+### Fixed
+
+- **Edit-alert form misfired as "already_configured".** Submitting the edit form for an existing alert always rejected with `{name: already_configured}` because `async_step_edit_alert_form` shared `step_id="add_alert"` with the create flow, so HA routed POSTs to `async_step_add_alert`, which then ran the duplicate-name guard against the very alert being edited. The guard now respects `self._editing_alert_id` and allows the slug match when it points at the alert under edit. Renaming an alert during edit removes the old slug. Removes the dead, unreachable user-input branch from `async_step_edit_alert_form`. ([#22](https://github.com/issmirnov/emergency_alerts/pull/22))
+
 ## [4.2.0] - 2026-05-26
 
 Mostly a bug-fix release that papers over six rough edges in v4.1.0, plus one
