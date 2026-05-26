@@ -56,7 +56,7 @@ def main():
     print("🔍 Validating translation sync...")
     print()
 
-    base_path = Path(__file__).parent / "custom_components" / "emergency_alerts"
+    base_path = Path(__file__).resolve().parent.parent / "custom_components" / "emergency_alerts"
     strings_path = base_path / "strings.json"
     translations_path = base_path / "translations" / "en.json"
 

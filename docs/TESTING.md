@@ -18,7 +18,7 @@ We use a **hybrid testing approach** that balances comprehensive coverage with m
 pytest custom_components/emergency_alerts/tests/ -v
 
 # Validate translations are in sync
-python validate_translations.py
+python scripts/validate_translations.py
 
 # Start local HA for manual testing
 ./dev_tools/local-dev.sh start
@@ -51,7 +51,7 @@ python -m script.hassfest --integration-path custom_components/emergency_alerts
 Ensures `strings.json` and `translations/en.json` stay in sync:
 
 ```bash
-python validate_translations.py
+python scripts/validate_translations.py
 ```
 
 **Why:** Translation mismatches cause runtime errors in the config flow UI that are hard to debug. This validation catches them early.
@@ -179,7 +179,7 @@ Local Home Assistant instance for manual testing and debugging:
 **Fix:**
 ```bash
 # Check for differences
-python validate_translations.py
+python scripts/validate_translations.py
 
 # Sync files (copy strings.json to translations/en.json)
 cp custom_components/emergency_alerts/strings.json \
@@ -269,12 +269,12 @@ test('should test new user flow', async ({ page }) => {
 
 1. **Keep strings.json and translations/en.json in sync**
    - Update both files together
-   - Run `python validate_translations.py` before committing
+   - Run `python scripts/validate_translations.py` before committing
 
 2. **Run tests before committing**
    ```bash
    pytest custom_components/emergency_alerts/tests/ -v
-   python validate_translations.py
+   python scripts/validate_translations.py
    ```
 
 3. **Test manually before releasing**

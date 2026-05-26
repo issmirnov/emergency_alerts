@@ -484,5 +484,5 @@ def check_translation_errors(hass: HomeAssistant, caplog):
         pytest.fail(
             f"Translation errors detected during test:\n{error_messages}\n\n"
             f"Fix: Ensure strings.json and translations/en.json are in sync.\n"
-            f"Run: python validate_translations.py"
+            f"Run: python scripts/validate_translations.py"
         )
