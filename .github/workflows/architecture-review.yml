@@ -2,7 +2,7 @@ name: Architecture Review
 
 on:
   pull_request:
-    types: [opened, ready_for_review]
+    types: [opened, ready_for_review, synchronize]
   issue_comment:
     types: [created]
 
@@ -14,9 +14,11 @@ permissions:
 jobs:
   architect-gate:
     name: "Architect-Gate Review"
-    # Run on PR events (except closed), or when someone comments @architect-run
+    # Run on same-repo PR events (forks lack access to ANTHROPIC_API_KEY and
+    # would fail; maintainers can still trigger fork PR reviews by commenting
+    # @architect-run, which runs in the base repo context with secrets).
     if: |
-      (github.event_name == 'pull_request' && github.event.action != 'closed') ||
+      (github.event_name == 'pull_request' && github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository) ||
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@architect-run'))
     runs-on: ubuntu-latest
     timeout-minutes: 15  # Prevent hanging workflows, Claude reviews typically <5 min
@@ -109,11 +111,13 @@ jobs:
           # Use the correct remote (set by previous step, defaults to origin)
           REMOTE="${DIFF_REMOTE:-origin}"
 
-          # Generate unified diff vs base branch (use triple-dot for merge base)
+          # Generate unified diff vs base branch (use triple-dot for merge base).
+          # Path matches what the review prompt tells Claude to read
+          # (.github/claude/prompts/01-general-architecture-review.prompt.md).
           echo "📊 Generating diff against ${REMOTE}/${BASE_REF}"
-          git diff --unified=3 ${REMOTE}/${BASE_REF}...HEAD > /tmp/architect-gate/pr.diff
+          git diff --unified=3 ${REMOTE}/${BASE_REF}...HEAD > /tmp/pr.diff
 
-          echo "diff_path=/tmp/architect-gate/pr.diff" >> $GITHUB_OUTPUT
+          echo "diff_path=/tmp/pr.diff" >> $GITHUB_OUTPUT
           echo "base_ref=${BASE_REF}" >> $GITHUB_OUTPUT
 
           # Count changed files for metrics
