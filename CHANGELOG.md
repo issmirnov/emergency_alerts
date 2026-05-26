@@ -6,7 +6,21 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/en/
 
 ## [Unreleased]
 
-These changes are merged to `main` but `manifest.json` is still at `4.1.0`. Bump to `4.1.1` to cut a release.
+No unreleased changes.
+
+## [4.2.0] - 2026-05-26
+
+Mostly a bug-fix release that papers over six rough edges in v4.1.0, plus one
+genuinely new feature: a top-level `for_seconds` field that gives every alert a
+HA-native sustain-duration debounce.
+
+### Added
+
+- **`for_seconds` debounce field.** New top-level alert config that delays
+  triggering until the underlying condition has been continuously true for the
+  given number of seconds (HA `for:` semantics). Applies uniformly to simple,
+  template, and logical triggers. Cleanly cancels the dwell when the condition
+  flaps. Default `0` keeps old behavior. ([#18](https://github.com/issmirnov/emergency_alerts/pull/18))
 
 ### Fixed
 
@@ -15,16 +29,20 @@ These changes are merged to `main` but `manifest.json` is still at `4.1.0`. Bump
 - **Duplicate / mangled entity IDs.** HA was slugify-combining device name + entity name into IDs like `binary_sensor.emergency_alert_<name>_emergency_<name>`. `binary_sensor`, `select`, and `sensor` platforms now pin `self.entity_id` explicitly so new alerts get clean IDs. Existing alerts in the entity registry are unaffected. ([#13](https://github.com/issmirnov/emergency_alerts/pull/13))
 - **Select entity showed "unknown" for inactive alerts.** `STATE_INACTIVE` (and `STATE_ESCALATED`) were not in the select's `ALERT_STATES` option list, so the widget rendered `unknown` whenever the alert was off. Added both to the options list. ([#12](https://github.com/issmirnov/emergency_alerts/pull/12))
 - **Alert IDs broke on names with special characters.** Names like `Smoke/CO Detector (Triggered)` produced alert IDs with slashes and parens, which broke remove-alert lookups and entity-ID derivation. Added `_slugify_alert_id()` in `config_flow.py` to collapse non-alphanumeric runs into single underscores. ([#12](https://github.com/issmirnov/emergency_alerts/pull/12))
+- **Hub summary sensor reported configured count instead of active count.** `sensor.emergency_alerts_<hub>_summary` was emitting the total number of alerts ever configured on the hub, which made it useless for visibility gating on the dashboard ("show this section when any alert in this hub is firing"). The state is now the count of currently-triggered alerts on the hub, computed via the existing `SUMMARY_UPDATE_SIGNAL` dispatcher. ([#16](https://github.com/issmirnov/emergency_alerts/pull/16))
+- **EntitySelector fields rejected empty submissions.** Leaving an EntitySelector blank on the add/edit alert form raised "Entity not found" because `vol.Optional(key, default="")` was injecting an empty string that EntitySelector then validated against the entity registry. Switched to `description={"suggested_value": ...}` pre-fill via a new `_optional()` helper so unset fields go through cleanly. Removes the long-standing "EntitySelector fields must not have default values" caveat. ([#20](https://github.com/issmirnov/emergency_alerts/pull/20))
 
 ### Changed
 
 - Relocated all dev scripts into `scripts/` (`run_tests.sh`, `lint.sh`, `fix-format.sh`, `docker-test.sh`, `update-card.sh`, `validate_integration.py`, `validate_translations.py`). CI workflow updated to match. Dropped obsolete LLM-era docs from repo root. ([#15](https://github.com/issmirnov/emergency_alerts/pull/15))
 - Added MIT `LICENSE` file (was referenced by README but missing on disk).
+- Added an automated "architect-gate" PR review workflow that posts a System Architecture Review on every PR. ([#19](https://github.com/issmirnov/emergency_alerts/pull/19))
 
 ### Documentation
 
-- README rewritten to focus on what the integration does, with concrete configuration examples and a link to the companion Lovelace card.
+- README rewritten to focus on what the integration does, with concrete configuration examples and a link to the companion Lovelace card. ([#17](https://github.com/issmirnov/emergency_alerts/pull/17))
 - `CLAUDE.md` gained Repository Layout, Local Verification, and CI Gotchas sections, plus the conventions surfaced by recent fix PRs (entity-ID pinning, `on_triggered_script` resolution, alert-ID slugification, `async_track_template_result` for templates).
+- Added `CONTRIBUTING.md` and badges across the README. ([#17](https://github.com/issmirnov/emergency_alerts/pull/17))
 
 ## [4.1.0] - 2026-02-10
 
