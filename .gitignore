@@ -60,6 +60,9 @@ dev_tools/auto_setup_ha.py
 .coverage
 htmlcov/
 
+# Architect-Gate local test artifacts
+.architect-gate-test/
+
 # Slate memory bank (optional - keep if you want to track it)
 # .Slate/
 .worktrees/
