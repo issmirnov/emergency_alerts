@@ -39,9 +39,41 @@ ESCALATION_MINUTES = 5  # Default escalation time if not specified
 SUMMARY_UPDATE_SIGNAL = "emergency_alerts_summary_update"
 
 
+def _resolve_on_triggered(alert_data):
+    """Resolve the on-trigger actions for an alert.
+
+    Returns the explicit ``on_triggered`` action list if set, otherwise
+    synthesizes one from ``on_triggered_script`` (the field exposed by the
+    config_flow UI). Prior to this resolver, ``on_triggered_script`` was
+    stored in alert_data but never consumed by binary_sensor, so the script
+    field in the UI did nothing.
+
+    The synthesized action emits ``entity_id`` inside ``data`` (not
+    ``target``) because both ``_call_actions`` and ``_execute_action``
+    forward only ``action.get("data", {})`` into ``hass.services.async_call``
+    — ``target`` would be silently dropped, leaving the script call with no
+    entity to operate on. HA accepts ``entity_id`` inside ``data`` for the
+    ``script.turn_on`` service (legacy format).
+
+    Output is a list of action dicts that _parse_actions can normalize.
+    """
+    explicit = alert_data.get("on_triggered")
+    if explicit:
+        return explicit
+    script_entity = alert_data.get("on_triggered_script")
+    if script_entity:
+        return [
+            {
+                "service": "script.turn_on",
+                "data": {"entity_id": script_entity},
+            }
+        ]
+    return None
+
+
 def _parse_actions(action_string):
     """Parse action string (JSON/YAML) into a list of action dictionaries.
-    
+
     Supports:
     - Profile references: "profile:profile_id" (returns as-is for later resolution)
     - Single action dict: {"service": "...", "data": {...}}
@@ -197,13 +229,24 @@ class EmergencyBinarySensor(BinarySensorEntity):
         self._action_service = alert_data.get("action_service")
         self._severity = alert_data.get("severity", "warning")
         self._remind_after_seconds = alert_data.get("remind_after_seconds")
-        self._on_triggered = _parse_actions(alert_data.get("on_triggered"))
+        self._on_triggered = _parse_actions(
+            _resolve_on_triggered(alert_data)
+        )
         self._on_cleared = _parse_actions(alert_data.get("on_cleared"))
         self._on_escalated = _parse_actions(alert_data.get("on_escalated"))
 
         # Entity attributes
         self._attr_name = f"Emergency: {name}"
         self._attr_unique_id = f"emergency_{hub_name}_{alert_id}"
+        # Force a clean entity_id on first registration. Without this, HA
+        # would slugify-combine device.name + entity._attr_name and produce
+        # binary_sensor.emergency_alert_<name>_emergency_<name>. Setting
+        # entity_id directly is the documented way to hint a specific
+        # object_id (HA's entity_platform reads this into
+        # internal_integration_suggested_object_id during async_added_to_hass).
+        # Existing alerts in the entity_registry keep their stored entity_id;
+        # this only affects new alerts.
+        self.entity_id = f"binary_sensor.emergency_{alert_id}"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"alert_{entry.entry_id}_{alert_id}")},
             "name": f"Emergency Alert: {name}",

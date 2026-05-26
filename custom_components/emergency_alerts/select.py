@@ -84,6 +84,14 @@ class EmergencyAlertStateSelect(SelectEntity):
         alert_name = alert_data.get("name", alert_id)
         self._attr_name = f"{alert_name} State"
         self._attr_unique_id = f"{entry.entry_id}_{alert_id}_state"
+        # Force a clean entity_id on first registration. Without this, HA
+        # would slugify-combine device.name + entity._attr_name and produce
+        # select.emergency_alert_<name>_<name>_state. Setting entity_id
+        # directly is the documented way to hint a specific object_id (HA's
+        # entity_platform reads this into internal_integration_suggested_object_id
+        # during async_added_to_hass). Existing selects in the entity_registry
+        # keep their stored entity_id; this only affects new alerts.
+        self.entity_id = f"select.{alert_id}_state"
         self._attr_icon = "mdi:state-machine"
 
         # Device info - link to alert device

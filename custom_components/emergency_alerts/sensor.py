@@ -103,6 +103,12 @@ class EmergencyHubSensor(SensorEntity):
         self._attr_name = f"Emergency Alerts {group_name.title()} Summary"
         self._attr_unique_id = f"emergency_alerts_hub_{hub_name}"
         self._attr_icon = "mdi:view-dashboard"
+        # Force clean entity_id. Without this, device.name + entity._attr_name
+        # would combine into sensor.emergency_alerts_<group>_emergency_alerts_<group>_summary.
+        # Use group (lowercased) so the entity_id matches the user-facing hub
+        # name from config_flow rather than the internal hub_name slug.
+        # See note in binary_sensor.py.
+        self.entity_id = f"sensor.emergency_alerts_{group_name.lower()}_summary"
 
         # This sensor represents the hub device itself
         self._attr_device_info = {
