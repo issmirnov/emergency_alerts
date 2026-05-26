@@ -92,13 +92,24 @@ class EmergencyGlobalSummarySensor(SensorEntity):
 
 
 class EmergencyHubSensor(SensorEntity):
-    """Sensor representing the Emergency Alerts hub device."""
+    """Sensor representing the Emergency Alerts hub device.
+
+    The state reports the count of currently-firing alerts in this hub —
+    not the total configured. Use this for dashboard visibility gating
+    ("show the hub section when state > 0"). The total-configured count
+    is exposed via the ``configured_count`` attribute, and the firing IDs
+    via ``active_alerts``.
+    """
+
+    _attr_should_poll = False
 
     def __init__(self, hass, entry, group_name, hub_name):
         self.hass = hass
         self._entry = entry
         self._group_name = group_name
         self._hub_name = hub_name
+        self._active_alerts: list[str] = []
+        self._unsub = None
 
         self._attr_name = f"Emergency Alerts {group_name.title()} Summary"
         self._attr_unique_id = f"emergency_alerts_hub_{hub_name}"
@@ -119,19 +130,53 @@ class EmergencyHubSensor(SensorEntity):
             "sw_version": "1.0",
         }
 
+    async def async_added_to_hass(self):
+        """Subscribe to alert state-change broadcasts."""
+        from .binary_sensor import SUMMARY_UPDATE_SIGNAL
+
+        @callback
+        def update_summary():
+            self._refresh_active_alerts()
+            self.async_write_ha_state()
+
+        self._unsub = async_dispatcher_connect(
+            self.hass, SUMMARY_UPDATE_SIGNAL, update_summary
+        )
+        self._refresh_active_alerts()
+
+    async def async_will_remove_from_hass(self):
+        if self._unsub:
+            self._unsub()
+            self._unsub = None
+
+    def _refresh_active_alerts(self):
+        """Recompute the list of currently-firing alert entity_ids in this hub."""
+        entities = self.hass.data.get(DOMAIN, {}).get("entities", [])
+        self._active_alerts = [
+            e.entity_id
+            for e in entities
+            if getattr(e, "_hub_name", None) == self._hub_name and e.is_on
+        ]
+
     @property
     def native_value(self):
-        """Return the number of alerts in this hub."""
-        alerts_data = self._entry.data.get("alerts", {})
-        return len(alerts_data)
+        """Number of currently-firing alerts in this hub (0 when nothing active)."""
+        return len(self._active_alerts)
 
     @property
     def extra_state_attributes(self):
-        """Return additional attributes."""
+        """Return additional attributes.
+
+        ``alert_count`` (deprecated alias) and ``configured_count`` both report
+        the total number of alerts configured in this hub. ``active_alerts``
+        is the list of currently-firing alert entity_ids.
+        """
         alerts_data = self._entry.data.get("alerts", {})
         return {
             "group": self._group_name,
             "hub_name": self._hub_name,
-            "alert_count": len(alerts_data),
+            "configured_count": len(alerts_data),
+            "alert_count": len(alerts_data),  # Backward-compat alias
             "alerts": list(alerts_data.keys()),
+            "active_alerts": list(self._active_alerts),
         }
