@@ -39,9 +39,34 @@ ESCALATION_MINUTES = 5  # Default escalation time if not specified
 SUMMARY_UPDATE_SIGNAL = "emergency_alerts_summary_update"
 
 
+def _resolve_on_triggered(alert_data):
+    """Resolve the on-trigger actions for an alert.
+
+    Returns the explicit ``on_triggered`` action list if set, otherwise
+    synthesizes one from ``on_triggered_script`` (the field exposed by the
+    config_flow UI). Prior to this resolver, ``on_triggered_script`` was
+    stored in alert_data but never consumed by binary_sensor, so the script
+    field in the UI did nothing.
+
+    Output is a list of action dicts that _parse_actions can normalize.
+    """
+    explicit = alert_data.get("on_triggered")
+    if explicit:
+        return explicit
+    script_entity = alert_data.get("on_triggered_script")
+    if script_entity:
+        return [
+            {
+                "service": "script.turn_on",
+                "target": {"entity_id": script_entity},
+            }
+        ]
+    return None
+
+
 def _parse_actions(action_string):
     """Parse action string (JSON/YAML) into a list of action dictionaries.
-    
+
     Supports:
     - Profile references: "profile:profile_id" (returns as-is for later resolution)
     - Single action dict: {"service": "...", "data": {...}}
@@ -197,13 +222,21 @@ class EmergencyBinarySensor(BinarySensorEntity):
         self._action_service = alert_data.get("action_service")
         self._severity = alert_data.get("severity", "warning")
         self._remind_after_seconds = alert_data.get("remind_after_seconds")
-        self._on_triggered = _parse_actions(alert_data.get("on_triggered"))
+        self._on_triggered = _parse_actions(
+            _resolve_on_triggered(alert_data)
+        )
         self._on_cleared = _parse_actions(alert_data.get("on_cleared"))
         self._on_escalated = _parse_actions(alert_data.get("on_escalated"))
 
         # Entity attributes
         self._attr_name = f"Emergency: {name}"
         self._attr_unique_id = f"emergency_{hub_name}_{alert_id}"
+        # Force a clean entity_id on first registration. Without this, HA
+        # would slugify-combine device.name + entity._attr_name and produce
+        # binary_sensor.emergency_alert_<name>_emergency_<name>. Existing
+        # alerts already in the entity_registry keep their stored entity_id;
+        # this only affects new alerts.
+        self._attr_suggested_object_id = f"emergency_{alert_id}"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"alert_{entry.entry_id}_{alert_id}")},
             "name": f"Emergency Alert: {name}",
