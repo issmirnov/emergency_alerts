@@ -199,6 +199,7 @@ def validate_hacs_files():
 
 def main():
     """Run all validation checks."""
+    os.chdir(Path(__file__).resolve().parent.parent)
     print("🧪 Emergency Alerts Integration Validation")
     print("=" * 50)
     

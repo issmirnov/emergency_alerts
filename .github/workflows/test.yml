@@ -81,11 +81,11 @@ jobs:
 
     - name: Run validation script
       run: |
-        python validate_integration.py
+        python scripts/validate_integration.py
 
     - name: Validate translation sync
       run: |
-        python validate_translations.py
+        python scripts/validate_translations.py
 
     - name: Run backend tests
       run: |

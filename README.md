@@ -320,11 +320,11 @@ translation-sync  # Ensures UI strings stay synchronized
 **Local Testing:**
 ```bash
 # Run the full test suite locally
-./run_tests.sh
+./scripts/run_tests.sh
 
 # Or run specific test types
-./run_tests.sh --backend-only    # Just pytest
-python validate_translations.py   # Just translation sync
+./scripts/run_tests.sh --backend-only    # Just pytest
+python scripts/validate_translations.py   # Just translation sync
 ```
 
 **Test Coverage:**

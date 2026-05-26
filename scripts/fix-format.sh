@@ -67,7 +67,7 @@ print_section "🎉 Formatting Complete"
 
 print_status "✨ All formatting fixes have been applied!" "$GREEN"
 print_status "📝 Review the changes with: git diff" "$BLUE"
-print_status "🚀 Run ./lint.sh to verify all checks pass" "$YELLOW"
+print_status "🚀 Run ./scripts/lint.sh to verify all checks pass" "$YELLOW"
 
 # Deactivate virtual environment
 deactivate 
