@@ -160,17 +160,33 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
         )
 
     async def async_step_add_alert(self, user_input=None):
-        """Add alert - SINGLE PAGE with ALL fields."""
+        """Add or edit alert - SINGLE PAGE with ALL fields.
+
+        Doubles as the form-submission handler for `edit_alert_form` because
+        that step reuses `step_id="add_alert"` for the form rendering. When
+        `self._editing_alert_id` is set we treat the submission as an edit:
+        the existing alert_id is allowed (it's the one being edited) and we
+        drop the old key if the name change produces a different slug.
+        """
         errors = {}
+        editing_id = getattr(self, "_editing_alert_id", None)
 
         if user_input is not None:
             try:
                 alert_id = _slugify_alert_id(user_input["name"])
                 alerts = dict(self.config_entry.data.get(CONF_ALERTS, {}))
 
-                if alert_id in alerts:
+                # Duplicate-name guard: only applies to adds, or to edits where
+                # the user renamed the alert into a slug that collides with a
+                # different existing alert.
+                if alert_id in alerts and alert_id != editing_id:
                     errors["name"] = "already_configured"
                 else:
+                    # When editing with a renamed alert (slug changed), remove
+                    # the old key so we don't leave two copies behind.
+                    if editing_id and editing_id != alert_id:
+                        alerts.pop(editing_id, None)
+
                     alerts[alert_id] = self._build_alert_data(user_input)
                     new_data = dict(self.config_entry.data)
                     new_data[CONF_ALERTS] = alerts
@@ -179,18 +195,23 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                         self.config_entry, data=new_data
                     )
 
-                    # Reload entry to create new entities instantly
+                    # Clear edit state so a subsequent add isn't treated as edit
+                    self._editing_alert_id = None
+
+                    # Reload entry to create/update entities instantly
                     await self.hass.config_entries.async_reload(self.config_entry.entry_id)
 
                     return self.async_create_entry(title="", data={})
 
             except Exception as err:
-                _LOGGER.error("Error creating alert: %s", err)
+                _LOGGER.error("Error %s alert: %s", "editing" if editing_id else "creating", err)
                 errors["base"] = "invalid_input"
 
         return self.async_show_form(
             step_id="add_alert",
-            data_schema=self._build_alert_schema(),
+            data_schema=self._build_alert_schema(
+                defaults=user_input if editing_id else None
+            ),
             errors=errors,
         )
 
@@ -315,12 +336,15 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
         )
 
     async def async_step_edit_alert_form(self, user_input=None):
-        """Show edit form with current values."""
-        alerts = dict(self.config_entry.data.get(CONF_ALERTS, {}))
-        alert_id = self._editing_alert_id
-        current_alert = alerts.get(alert_id, {})
+        """Render the edit form with current values pre-filled.
 
-        # Use current values as defaults
+        Form submission routes to `async_step_add_alert` because we reuse
+        `step_id="add_alert"` for translation/UX consistency. `add_alert`
+        detects edit mode via `self._editing_alert_id` set in
+        `async_step_edit_alert`.
+        """
+        alerts = dict(self.config_entry.data.get(CONF_ALERTS, {}))
+        current_alert = alerts.get(self._editing_alert_id, {})
         defaults = dict(current_alert)
 
         # Migrate old script array format to string
@@ -330,29 +354,8 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
             except (KeyError, IndexError, TypeError):
                 defaults["on_triggered_script"] = ""
 
-        if user_input is not None:
-            try:
-                # Update alert data
-                alerts[alert_id] = self._build_alert_data(user_input)
-                new_data = dict(self.config_entry.data)
-                new_data[CONF_ALERTS] = alerts
-
-                self.hass.config_entries.async_update_entry(
-                    self.config_entry, data=new_data
-                )
-
-                # Reload to update entities
-                await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-
-                return self.async_create_entry(title="", data={})
-
-            except Exception as err:
-                _LOGGER.error("Error updating alert: %s", err)
-                return self.async_abort(reason="update_failed")
-
-        # Show form pre-filled with current values (reuse add_alert step for same UX)
         return self.async_show_form(
-            step_id="add_alert",  # Reuse add_alert translations
+            step_id="add_alert",
             data_schema=self._build_alert_schema(defaults=defaults),
         )
 
