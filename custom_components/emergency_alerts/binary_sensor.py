@@ -7,7 +7,12 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import callback, HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_send, async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.event import async_call_later, async_track_state_change_event
+from homeassistant.helpers.event import (
+    async_call_later,
+    async_track_state_change_event,
+    async_track_template_result,
+    TrackTemplate,
+)
 from homeassistant.helpers.template import Template
 import yaml
 
@@ -315,30 +320,52 @@ class EmergencyBinarySensor(BinarySensorEntity):
         # Register cleanup callback when entity is properly added to hass
         self.async_on_remove(self._cleanup_timers)
         
-        # Track all referenced entities for state changes
-        entities = set()
-        if self._trigger_type == "simple" and self._entity_id:
-            entities.add(self._entity_id)
-        elif self._trigger_type == "logical" and self._logical_conditions:
-            for cond in self._logical_conditions:
-                if isinstance(cond, dict) and "entity_id" in cond:
-                    entities.add(cond["entity_id"])
-        # For template, we can't know all entities, so listen to all changes
-        if self._trigger_type == "template":
-            entities = None
-
+        # Track referenced entities so the trigger re-evaluates when they change.
         @callback
         def state_change(event):
             self._evaluate_trigger()
 
-        if entities:
-            self._unsub = async_track_state_change_event(
-                self.hass, list(entities), state_change
+        if self._trigger_type == "template" and self._template:
+            # Template triggers must use async_track_template_result so HA
+            # subscribes to the entities the Jinja actually references — not
+            # just an explicit entity_id field on the alert. Previously this
+            # branch called async_track_state_change_event(hass, [], ...) with
+            # an empty entity list, which subscribes to nothing and causes
+            # template alerts to never re-evaluate after their initial render
+            # (so they latch on/off until integration reload).
+            template = Template(self._template, self.hass)
+
+            @callback
+            def template_result_change(event, updates):
+                self._evaluate_trigger()
+
+            info = async_track_template_result(
+                self.hass,
+                [TrackTemplate(template, None)],
+                template_result_change,
             )
+            self._unsub = info.async_remove
+            # Kick off the initial async render so HA registers the listener
+            # against the discovered entities.
+            info.async_refresh()
         else:
-            # Listen to all state changes for template triggers
-            self._unsub = async_track_state_change_event(
-                self.hass, [], state_change)
+            # simple + logical triggers: derive the explicit entity list.
+            entities: set[str] = set()
+            if self._trigger_type == "simple" and self._entity_id:
+                entities.add(self._entity_id)
+            elif self._trigger_type == "logical" and self._logical_conditions:
+                for cond in self._logical_conditions:
+                    if isinstance(cond, dict) and "entity_id" in cond:
+                        entities.add(cond["entity_id"])
+
+            if entities:
+                self._unsub = async_track_state_change_event(
+                    self.hass, list(entities), state_change
+                )
+            else:
+                # No entities to watch (logical with no entity_ids, or an
+                # otherwise unconfigured alert) — leave the listener unset.
+                self._unsub = None
 
         # Listen for switch updates (switches will broadcast their state changes)
         self.async_on_remove(
