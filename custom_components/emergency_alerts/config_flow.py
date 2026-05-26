@@ -24,6 +24,21 @@ def _slugify_alert_id(name: str) -> str:
     slug = re.sub(r"[^a-z0-9_]+", "_", name.lower()).strip("_")
     return re.sub(r"_+", "_", slug)
 
+
+def _optional(key: str, value: Any = None) -> vol.Optional:
+    """Build a vol.Optional that pre-fills via `suggested_value`, not `default`.
+
+    `EntitySelector` rejects empty strings ("Entity not found"), so passing
+    `default=""` to an Optional EntitySelector breaks form submission whenever
+    the field is left blank. The HA-idiomatic alternative is to pre-fill the
+    visible value via `description={"suggested_value": ...}` and leave the
+    schema default unset. When `value` is falsy we omit even the suggestion so
+    the field renders truly empty.
+    """
+    if value:
+        return vol.Optional(key, description={"suggested_value": value})
+    return vol.Optional(key)
+
 from .const import (
     DOMAIN,
     CONF_HUB_TYPE,
@@ -201,7 +216,7 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
-            vol.Optional("entity_id", default=defaults.get("entity_id", "")): selector.EntitySelector(),
+            _optional("entity_id", defaults.get("entity_id")): selector.EntitySelector(),
             vol.Optional(
                 "trigger_state", default=defaults.get("trigger_state", "on")
             ): str,
@@ -214,7 +229,7 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
             vol.Optional(
                 "for_seconds", default=defaults.get("for_seconds", 0)
             ): vol.All(vol.Coerce(int), vol.Range(min=0, max=86400)),
-            vol.Optional("on_triggered_script", default=defaults.get("on_triggered_script", "")): selector.EntitySelector(
+            _optional("on_triggered_script", defaults.get("on_triggered_script")): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="script")
             ),
         })
