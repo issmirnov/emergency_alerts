@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 import voluptuous as vol
@@ -10,6 +11,18 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import callback
 from homeassistant.helpers import selector
+
+
+def _slugify_alert_id(name: str) -> str:
+    """Derive a clean alert_id from a display name.
+
+    Strips/collapses non-alphanumeric characters so names like
+    "Smoke/CO Detector (Triggered)" don't produce alert_ids with
+    slashes or parens (which break remove_alert lookups and pollute
+    entity_id derivation).
+    """
+    slug = re.sub(r"[^a-z0-9_]+", "_", name.lower()).strip("_")
+    return re.sub(r"_+", "_", slug)
 
 from .const import (
     DOMAIN,
@@ -137,7 +150,7 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
 
         if user_input is not None:
             try:
-                alert_id = user_input["name"].lower().replace(" ", "_")
+                alert_id = _slugify_alert_id(user_input["name"])
                 alerts = dict(self.config_entry.data.get(CONF_ALERTS, {}))
 
                 if alert_id in alerts:

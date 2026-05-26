@@ -17,6 +17,7 @@ from .const import (
     STATE_INACTIVE,
     STATE_ACKNOWLEDGED,
     STATE_SNOOZED,
+    STATE_ESCALATED,
     STATE_RESOLVED,
     DEFAULT_SNOOZE_DURATION,
     SIGNAL_ALERT_UPDATE,
@@ -27,11 +28,17 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# Available states for the select entity
+# Available states for the select entity. Includes INACTIVE and ESCALATED so the
+# select widget can display a meaningful current value when the alert is not
+# firing (INACTIVE) or has escalated past its ack window (ESCALATED). Previously
+# the sync logic set _attr_current_option to STATE_INACTIVE when the alert was
+# off, but since "inactive" wasn't in this list, the select rendered "unknown".
 ALERT_STATES = [
+    STATE_INACTIVE,
     STATE_ACTIVE,
     STATE_ACKNOWLEDGED,
     STATE_SNOOZED,
+    STATE_ESCALATED,
     STATE_RESOLVED,
 ]
 
