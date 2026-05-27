@@ -197,6 +197,70 @@ def test_alert_schema_preserves_existing_entity_id_via_suggested_value():
         raise AssertionError("entity_id field not found in schema")
 
 
+def test_alert_schema_accepts_logical_trigger_type():
+    """`logical` is now a selectable trigger_type — schema must accept it."""
+    schema = EmergencyOptionsFlow._build_alert_schema(None)
+    result = schema({
+        "name": "Compound Alert",
+        "severity": "critical",
+        "trigger_type": "logical",
+        "logical_operator": "and",
+        "logical_conditions": [
+            {"entity_id": "binary_sensor.front_door", "state": "on"},
+            {"entity_id": "binary_sensor.motion_living_room", "state": "on"},
+        ],
+    })
+    assert result["trigger_type"] == "logical"
+    assert result["logical_operator"] == "and"
+    assert len(result["logical_conditions"]) == 2
+
+
+def test_build_alert_data_rejects_logical_with_no_conditions():
+    """Logical trigger without conditions must raise."""
+    flow = EmergencyOptionsFlow()
+    with pytest.raises(vol.Invalid, match="At least one condition is required"):
+        flow._build_alert_data({
+            "name": "Bad Alert",
+            "severity": "warning",
+            "trigger_type": "logical",
+            "logical_operator": "and",
+        })
+
+
+def test_build_alert_data_rejects_logical_with_malformed_conditions():
+    """Conditions must be a list of dicts with entity_id + state."""
+    flow = EmergencyOptionsFlow()
+    with pytest.raises(vol.Invalid, match="must be a list of"):
+        flow._build_alert_data({
+            "name": "Bad Alert",
+            "severity": "warning",
+            "trigger_type": "logical",
+            "logical_operator": "and",
+            "logical_conditions": [{"entity_id": "binary_sensor.x"}],  # missing 'state'
+        })
+
+
+def test_build_alert_data_persists_logical_fields():
+    """Happy path: a valid logical alert serializes both fields into storage."""
+    flow = EmergencyOptionsFlow()
+    data = flow._build_alert_data({
+        "name": "Front Door And Motion",
+        "severity": "critical",
+        "trigger_type": "logical",
+        "logical_operator": "or",
+        "logical_conditions": [
+            {"entity_id": "binary_sensor.front_door", "state": "on"},
+            {"entity_id": "binary_sensor.motion_living_room", "state": "on"},
+        ],
+    })
+    assert data["trigger_type"] == "logical"
+    assert data["logical_operator"] == "or"
+    assert len(data["logical_conditions"]) == 2
+    # No stray simple/template fields
+    assert "entity_id" not in data
+    assert "template" not in data
+
+
 # ---------------------------------------------------------------------------
 # Edit-alert flow regression — submitting an edit_alert_form rendered with
 # step_id="add_alert" used to misfire as "already_configured" because the

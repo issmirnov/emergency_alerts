@@ -233,7 +233,7 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                 "trigger_type", default=defaults.get("trigger_type", "simple")
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=["simple", "template"],
+                    options=["simple", "template", "logical"],
                     mode=selector.SelectSelectorMode.DROPDOWN,
                 )
             ),
@@ -242,6 +242,21 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
                 "trigger_state", default=defaults.get("trigger_state", "on")
             ): str,
             vol.Optional("template", default=defaults.get("template", "")): selector.TemplateSelector(),
+            # Logical trigger fields. Only used when trigger_type == "logical".
+            # `logical_conditions` is a list of {entity_id, state} pairs;
+            # ObjectSelector renders it as a YAML editor and round-trips the
+            # parsed list directly into alert_data. `_parse_logical_conditions`
+            # in binary_sensor.py also accepts a JSON/YAML string, so older
+            # alerts created via the API still load fine.
+            _optional("logical_conditions", defaults.get("logical_conditions")): selector.ObjectSelector(),
+            vol.Optional(
+                "logical_operator", default=defaults.get("logical_operator", "and")
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=["and", "or"],
+                    mode=selector.SelectSelectorMode.DROPDOWN,
+                )
+            ),
             # Debounce / sustain duration: alert only fires after the trigger
             # condition has been true for this many seconds continuously. 0 =
             # no debounce (fire immediately). Useful for "window open >5min",
@@ -282,6 +297,27 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
             # Entity ID is optional for template triggers
             if user_input.get("entity_id"):
                 alert_data["entity_id"] = user_input["entity_id"]
+        elif trigger_type == "logical":
+            # logical_conditions is a list of {entity_id, state} dicts; the
+            # runtime evaluator (binary_sensor._parse_logical_conditions) is
+            # the source of truth on the schema.
+            conditions = user_input.get("logical_conditions")
+            if not conditions:
+                raise vol.Invalid(
+                    "At least one condition is required for logical triggers"
+                )
+            if not isinstance(conditions, list) or not all(
+                isinstance(c, dict) and c.get("entity_id") and c.get("state") is not None
+                for c in conditions
+            ):
+                raise vol.Invalid(
+                    "logical_conditions must be a list of "
+                    "{entity_id, state} dicts"
+                )
+            alert_data["logical_conditions"] = conditions
+            alert_data["logical_operator"] = user_input.get(
+                "logical_operator", "and"
+            )
 
         # Store script entity_id as string (binary sensor will build action)
         if user_input.get("on_triggered_script"):
