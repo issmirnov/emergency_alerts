@@ -87,7 +87,8 @@
           "trigger_state": "Trigger State",
           "template": "Jinja2 Template",
           "for_seconds": "Sustain Duration (seconds)",
-          "on_triggered_script": "Script to Run When Triggered (optional)"
+          "on_triggered_script": "Script to Run When Triggered (optional)",
+          "on_escalated_script": "Script to Run When Escalated (optional)"
         },
         "data_description": {
           "name": "A descriptive name for this alert (e.g., 'Front Door Open', 'High Temperature')",
@@ -97,7 +98,8 @@
           "trigger_state": "State that triggers the alert. Examples: 'on' for binary sensors, 'unavailable' for offline devices, '30' for numeric thresholds",
           "template": "Jinja2 template that returns True when alert should trigger. Example: states('sensor.temperature')|float > 25 would return True when temperature exceeds 25. Test templates in Developer Tools > Template before using.",
           "for_seconds": "Alert only fires after the trigger has been true for this many seconds continuously (debounce). 0 = no debounce. Useful for 'window open >5min', 'garage open too long', 'leak sensor on >10s to avoid false positives'.",
-          "on_triggered_script": "Optional script to run when this alert triggers. Create scripts in Settings > Automations & Scenes > Scripts."
+          "on_triggered_script": "Optional script to run when this alert triggers. Create scripts in Settings > Automations & Scenes > Scripts.",
+          "on_escalated_script": "Optional script to run when this alert escalates (unacknowledged past the escalation timeout). Same pattern as on_triggered_script. Useful for sending an extra or louder notification after the first one is ignored."
         }
       },
       "edit_alert": {
@@ -118,7 +120,8 @@
           "trigger_state": "Trigger State",
           "template": "Jinja2 Template",
           "for_seconds": "Sustain Duration (seconds)",
-          "on_triggered_script": "Script to Run When Triggered (optional)"
+          "on_triggered_script": "Script to Run When Triggered (optional)",
+          "on_escalated_script": "Script to Run When Escalated (optional)"
         },
         "data_description": {
           "name": "A descriptive name for this alert",
@@ -128,7 +131,8 @@
           "trigger_state": "State that triggers the alert (e.g., 'on', 'unavailable', '30')",
           "template": "Jinja2 template that returns True when alert should trigger. Test in Developer Tools > Template.",
           "for_seconds": "Alert only fires after trigger has been true for this many seconds continuously (debounce). 0 = no debounce.",
-          "on_triggered_script": "Optional script to run when this alert triggers"
+          "on_triggered_script": "Optional script to run when this alert triggers",
+          "on_escalated_script": "Optional script to run when this alert escalates (unacked past the timeout)"
         }
       },
       "remove_alert": {

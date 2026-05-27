@@ -253,6 +253,9 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
             _optional("on_triggered_script", defaults.get("on_triggered_script")): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="script")
             ),
+            _optional("on_escalated_script", defaults.get("on_escalated_script")): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="script")
+            ),
         })
 
     def _build_alert_data(self, user_input):
@@ -283,6 +286,8 @@ class EmergencyOptionsFlow(config_entries.OptionsFlow):
         # Store script entity_id as string (binary sensor will build action)
         if user_input.get("on_triggered_script"):
             alert_data["on_triggered_script"] = user_input["on_triggered_script"]
+        if user_input.get("on_escalated_script"):
+            alert_data["on_escalated_script"] = user_input["on_escalated_script"]
 
         # Persist the debounce duration only if non-zero (keeps the stored
         # config tidy and matches how older alerts will load — int(...) treats

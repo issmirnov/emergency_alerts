@@ -44,14 +44,12 @@ ESCALATION_MINUTES = 5  # Default escalation time if not specified
 SUMMARY_UPDATE_SIGNAL = "emergency_alerts_summary_update"
 
 
-def _resolve_on_triggered(alert_data):
-    """Resolve the on-trigger actions for an alert.
+def _resolve_script_field(alert_data, action_field, script_field):
+    """Resolve an action list, preferring the explicit field over a script shortcut.
 
-    Returns the explicit ``on_triggered`` action list if set, otherwise
-    synthesizes one from ``on_triggered_script`` (the field exposed by the
-    config_flow UI). Prior to this resolver, ``on_triggered_script`` was
-    stored in alert_data but never consumed by binary_sensor, so the script
-    field in the UI did nothing.
+    If ``alert_data[action_field]`` is set, return it unchanged. Otherwise,
+    if ``alert_data[script_field]`` is set, synthesize a single-entry list
+    that calls ``script.turn_on`` against the named script entity.
 
     The synthesized action emits ``entity_id`` inside ``data`` (not
     ``target``) because both ``_call_actions`` and ``_execute_action``
@@ -60,12 +58,13 @@ def _resolve_on_triggered(alert_data):
     entity to operate on. HA accepts ``entity_id`` inside ``data`` for the
     ``script.turn_on`` service (legacy format).
 
-    Output is a list of action dicts that _parse_actions can normalize.
+    Used to wire both ``on_triggered_script`` and ``on_escalated_script``
+    config-flow UI fields into the runtime action lists.
     """
-    explicit = alert_data.get("on_triggered")
+    explicit = alert_data.get(action_field)
     if explicit:
         return explicit
-    script_entity = alert_data.get("on_triggered_script")
+    script_entity = alert_data.get(script_field)
     if script_entity:
         return [
             {
@@ -74,6 +73,25 @@ def _resolve_on_triggered(alert_data):
             }
         ]
     return None
+
+
+def _resolve_on_triggered(alert_data):
+    """Resolve the on-trigger actions: explicit ``on_triggered`` or ``on_triggered_script``.
+
+    See :func:`_resolve_script_field` for the resolution rules.
+    """
+    return _resolve_script_field(alert_data, "on_triggered", "on_triggered_script")
+
+
+def _resolve_on_escalated(alert_data):
+    """Resolve the on-escalation actions: explicit ``on_escalated`` or ``on_escalated_script``.
+
+    Mirrors :func:`_resolve_on_triggered` so users can wire native escalation
+    notifications without an external wrapper automation. The
+    ``on_escalated_script`` field is exposed by the config_flow UI alongside
+    ``on_triggered_script``.
+    """
+    return _resolve_script_field(alert_data, "on_escalated", "on_escalated_script")
 
 
 def _parse_actions(action_string):
@@ -246,7 +264,9 @@ class EmergencyBinarySensor(BinarySensorEntity):
             _resolve_on_triggered(alert_data)
         )
         self._on_cleared = _parse_actions(alert_data.get("on_cleared"))
-        self._on_escalated = _parse_actions(alert_data.get("on_escalated"))
+        self._on_escalated = _parse_actions(
+            _resolve_on_escalated(alert_data)
+        )
 
         # Entity attributes
         self._attr_name = f"Emergency: {name}"

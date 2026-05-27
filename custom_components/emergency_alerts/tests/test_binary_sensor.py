@@ -5,6 +5,8 @@ from unittest.mock import AsyncMock, Mock, patch
 from homeassistant.core import HomeAssistant
 
 from custom_components.emergency_alerts.binary_sensor import (
+    _resolve_on_escalated,
+    _resolve_on_triggered,
     async_setup_entry,
     EmergencyBinarySensor,
 )
@@ -264,6 +266,73 @@ async def test_action_calls(hass: HomeAssistant, mock_template_config_entry):
         
         # Clean up escalation timer if it was started
         sensor._cleanup_timers()
+
+
+# ---------------------------------------------------------------------------
+# Resolver tests — _resolve_on_triggered and _resolve_on_escalated share the
+# same shape (explicit action list wins over script shortcut). The unit tests
+# pin the contract so a future refactor of `_resolve_script_field` doesn't
+# silently break either field.
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_on_triggered_returns_none_when_neither_field_set():
+    assert _resolve_on_triggered({}) is None
+
+
+def test_resolve_on_triggered_synthesizes_script_turn_on_from_shortcut():
+    result = _resolve_on_triggered({"on_triggered_script": "script.front_door_chime"})
+    assert result == [{
+        "service": "script.turn_on",
+        "data": {"entity_id": "script.front_door_chime"},
+    }]
+
+
+def test_resolve_on_triggered_explicit_actions_take_precedence_over_shortcut():
+    explicit = [{"service": "notify.notify", "data": {"message": "hi"}}]
+    result = _resolve_on_triggered({
+        "on_triggered": explicit,
+        "on_triggered_script": "script.also_run",  # ignored
+    })
+    assert result is explicit
+
+
+def test_resolve_on_escalated_returns_none_when_neither_field_set():
+    assert _resolve_on_escalated({}) is None
+
+
+def test_resolve_on_escalated_synthesizes_script_turn_on_from_shortcut():
+    result = _resolve_on_escalated({"on_escalated_script": "script.emergency_critical_push"})
+    assert result == [{
+        "service": "script.turn_on",
+        "data": {"entity_id": "script.emergency_critical_push"},
+    }]
+
+
+def test_resolve_on_escalated_explicit_actions_take_precedence_over_shortcut():
+    explicit = [{"service": "notify.mobile_app_x", "data": {"message": "escalation!"}}]
+    result = _resolve_on_escalated({
+        "on_escalated": explicit,
+        "on_escalated_script": "script.ignored",
+    })
+    assert result is explicit
+
+
+def test_resolve_on_escalated_independent_of_on_triggered_script():
+    """Setting only on_triggered_script must NOT bleed into on_escalated.
+
+    Regression: an earlier draft factored the resolver as a single helper
+    that defaulted to the on_triggered_script field for both. The fields
+    must stay independent so users can configure a quiet initial trigger
+    and a louder escalation, or vice versa.
+    """
+    alert = {"on_triggered_script": "script.chime_only"}
+    assert _resolve_on_triggered(alert) is not None
+    assert _resolve_on_escalated(alert) is None
+
+    alert = {"on_escalated_script": "script.escalation_only"}
+    assert _resolve_on_triggered(alert) is None
+    assert _resolve_on_escalated(alert) is not None
 
 
 async def test_extra_state_attributes(hass: HomeAssistant, create_binary_sensor):
