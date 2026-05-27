@@ -8,6 +8,59 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/en/
 
 No unreleased changes.
 
+## [4.4.0] - 2026-05-27
+
+The release that finally fixes the "Emergency Alert: X Emergency: X"
+doubled label on every card, plus aligns the state machine with severity
+so info-severity alerts behave as ambient cards instead of pretending to
+be actionable alerts.
+
+### Fixed
+
+- **Doubled entity labels everywhere.** HA renders `friendly_name` from
+  `device.name + entity._attr_name` whenever `device.name_by_user` is
+  set — and earlier releases set both, so a "Dishwasher Done" alert ended
+  up with `friendly_name = "Dishwasher Done Emergency: Dishwasher Done"`.
+  No amount of post-creation renaming could escape this. ([#30](https://github.com/issmirnov/emergency_alerts/pull/30))
+
+### Changed
+
+- **Adopted HA's modern entity-naming pattern.** Every entity now sets
+  `_attr_has_entity_name = True`. The device carries the full alert
+  name; the entity has either `_attr_name = None` (binary_sensor — the
+  primary entity on the device) or a short suffix (`"State"` for the
+  select, `"Summary"` for the hub sensor, the switch type for legacy
+  switches). HA renders the friendly_name as just `device.name` for
+  primary entities and `device.name <suffix>` for secondary ones — no
+  prefix, no doubling.
+- **`Emergency Alert: ` device prefix gone.** New alerts arrive with
+  clean device names. Existing installs need a one-shot migration; see
+  `scripts/migrate_v4_4_clean_names.py` in the companion hassio repo (or
+  manually `device_registry/update` each device to strip the prefix).
+- **Info-severity alerts are now ambient.** They:
+  - Skip the escalation timer entirely (`_start_escalation_timer` is a
+    no-op when `severity == "info"`)
+  - Drop `snoozed` + `escalated` from their select option list (new
+    `INFO_ALERT_STATES` constant), keeping just
+    `inactive / active / acknowledged / resolved`
+
+  Warning + critical alerts unchanged — they retain the full state
+  machine with escalation and snooze.
+
+### Companion card
+
+- `lovelace-emergency-alerts-card` v4.1.0+ hides the snooze button and
+  the ⚠️ escalated badge for info alerts. Upgrade alongside this release
+  or the ambient-card UX won't match the integration's state machine.
+
+### Migration
+
+Existing devices keep their `name` field at the legacy
+`"Emergency Alert: <name>"` value because HA doesn't auto-refresh
+device.name after the integration changes how it sets it. The companion
+hassio repo's `scripts/migrate_v4_4_clean_names.py` strips the prefix
+via a one-shot WS pass. Idempotent — safe to re-run.
+
 ## [4.3.0] - 2026-05-26
 
 Two user-facing features land together: a UI config-flow option for the
