@@ -26,7 +26,7 @@ force_alphabetical_sort_within_sections = true
 combine_as_imports = true
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.13"
 show_error_codes = true
 follow_imports = "silent"
 ignore_missing_imports = true

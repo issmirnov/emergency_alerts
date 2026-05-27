@@ -8,6 +8,64 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/en/
 
 No unreleased changes.
 
+## [4.2.2] - 2026-05-26
+
+Cleanup release: gets PRs #24 and #25 into a tagged version, corrects the
+`hacs.json` HA-version claim, stops shipping dev artifacts in release
+tarballs, and rounds out the README with an honest comparison to HA's
+built-in `alert:` / `notify:`. No functional changes to alert behavior —
+upgrade is risk-free.
+
+### Fixed
+
+- **`hacs.json` claimed HA 2023.1.0 minimum, which was a lie.** The
+  integration uses `OptionsFlow.config_entry` as a sealed property — a
+  feature that landed in HA 2026.2. On anything older, every options-flow
+  step raises `AttributeError: 'EmergencyOptionsFlow' object has no
+  attribute 'config_entry'`. Bumped `hacs.json` and `test_requirements.txt`
+  to `homeassistant>=2026.2.0` so HACS users see the correct compatibility
+  warning and the test image matches the true floor.
+- **Test image was running HA 2024.3.3** because `test_requirements.txt`
+  said `>=2024.1.0`, so three integration tests (`test_concurrent_updates`,
+  `test_snooze_select_updates_binary_sensor`, `test_select_mutual_exclusivity`)
+  appeared "flaky" — they were actually hitting the `config_entry`
+  attribute-error on the older HA. Pinning the test floor to 2026.2
+  resolves them; all 99 tests now pass on the matched-floor image.
+
+### Changed
+
+- **Stop shipping dev artifacts in release tarballs.** Added
+  `.gitattributes` with `export-ignore` for `tests/`, `test_requirements.txt`,
+  `htmlcov/`, `dev_tools/`, `e2e-tests/`, `.devcontainer/`, `Dockerfile.*`,
+  `docker-compose.yml`, `scripts/`, `docs/`, the `lovelace-emergency-alerts-card`
+  vendored copy, and other dev-only paths. The next release tarball drops
+  from ~bloat to ~180KB and no longer creates spurious `tests/` and
+  `test_requirements.txt` files under `custom_components/emergency_alerts/`
+  on user installs. ([#24](https://github.com/issmirnov/emergency_alerts/pull/24) covered the symlink; this finishes the cleanup.)
+- **Bumped `Dockerfile.test` base to `python:3.13-slim`** to match HA
+  2026's Python-3.13 requirement (CI was already on 3.13; the Dockerfile
+  drifted).
+- **Bumped `pyproject.toml` mypy target to `3.13`** (was `3.9`).
+
+### Documentation
+
+- **README: added "How it compares to HA's built-in `alert:` and `notify:`"
+  section** — a side-by-side table covering config style, state model,
+  trigger types, ack/snooze/escalate semantics, severity rollups, and
+  when to pick each. Helps anyone evaluating against the in-tree options.
+
+### Workflow
+
+- **Architect-Gate now actually reviews diffs.** The Claude review action
+  was running with no tools and couldn't read the diff file or run git;
+  every SAR landed as "you haven't provided a PR diff". Added
+  `--allowed-tools Read,Grep,Glob,Bash(git*)` and appended a PR Changes
+  Summary block with explicit git commands. Mirrors the working config
+  in `chronicle` and `claude-k8s`. ([#25](https://github.com/issmirnov/emergency_alerts/pull/25))
+- **Dropped dangling dev-mode symlink** `custom_components/emergency_alerts/emergency_alerts`
+  that shipped in every release tarball as a broken symlink and made
+  HACS's post-extract backup step error out. ([#24](https://github.com/issmirnov/emergency_alerts/pull/24))
+
 ## [4.2.1] - 2026-05-26
 
 Single-bug patch release. Cuts a separate version because the fix unblocks

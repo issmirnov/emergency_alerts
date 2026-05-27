@@ -1,0 +1,35 @@
+# `export-ignore` keeps these out of `git archive` (which is what GitHub
+# builds for release tarballs, and what HACS downloads). Anything still
+# in the working tree is fine for local dev; this just stops it from
+# being shipped to every user who installs via HACS.
+#
+# Inside the integration directory — these end up under
+# /config/custom_components/emergency_alerts/ on user installs if not
+# excluded, and serve no runtime purpose.
+custom_components/emergency_alerts/tests/                                 export-ignore
+custom_components/emergency_alerts/test_requirements.txt                  export-ignore
+custom_components/emergency_alerts/htmlcov/                               export-ignore
+custom_components/emergency_alerts/__pycache__/                           export-ignore
+
+# Repo root — dev-only files that shouldn't even appear in source archives
+# downloaded by HACS (HACS only extracts custom_components/, but smaller
+# tarballs are nicer and these aren't useful to users).
+.claude/                                                                  export-ignore
+.cursor/                                                                  export-ignore
+.devcontainer/                                                            export-ignore
+.devcontainer.json                                                        export-ignore
+.github/                                                                  export-ignore
+.pytest_cache/                                                            export-ignore
+.screenshots/                                                             export-ignore
+CLAUDE.md                                                                 export-ignore
+CONTRIBUTING.md                                                           export-ignore
+Dockerfile.lint                                                           export-ignore
+Dockerfile.test                                                           export-ignore
+dev_tools/                                                                export-ignore
+docker-compose.yml                                                        export-ignore
+docs/                                                                     export-ignore
+e2e-tests/                                                                export-ignore
+lovelace-emergency-alerts-card/                                           export-ignore
+pyproject.toml                                                            export-ignore
+pytest.ini                                                                export-ignore
+scripts/                                                                  export-ignore
