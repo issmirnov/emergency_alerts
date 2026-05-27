@@ -156,6 +156,34 @@ jobs:
             fi
           done
 
+          # Append PR summary so Claude knows where the diff lives and how
+          # to retrieve it. Without this, the assembled prompt only mentions
+          # `/tmp/pr.diff` in passing and Claude often responds with "you
+          # haven't provided a PR diff" — even when the diff file exists.
+          # The git commands below give it the same view chronicle/claude-k8s
+          # use and let it spot-check specific files without exploding the
+          # context window with a full diff dump.
+          echo "" >> /tmp/architect-gate/full-prompt.md
+          echo "---" >> /tmp/architect-gate/full-prompt.md
+          echo "" >> /tmp/architect-gate/full-prompt.md
+          echo "## PR Changes Summary" >> /tmp/architect-gate/full-prompt.md
+          echo "" >> /tmp/architect-gate/full-prompt.md
+          echo "**Files Changed**: ${{ steps.diff.outputs.changed_files }}" >> /tmp/architect-gate/full-prompt.md
+          echo "**Commits**: ${{ steps.diff.outputs.commit_count }}" >> /tmp/architect-gate/full-prompt.md
+          echo "**Base Branch**: ${{ steps.diff.outputs.base_ref }}" >> /tmp/architect-gate/full-prompt.md
+          echo "" >> /tmp/architect-gate/full-prompt.md
+          echo "Use the following commands to review the changes:" >> /tmp/architect-gate/full-prompt.md
+          echo '```bash' >> /tmp/architect-gate/full-prompt.md
+          echo "# See which files changed" >> /tmp/architect-gate/full-prompt.md
+          echo "git diff --name-status origin/${{ steps.diff.outputs.base_ref }}...HEAD" >> /tmp/architect-gate/full-prompt.md
+          echo "" >> /tmp/architect-gate/full-prompt.md
+          echo "# See full unified diff" >> /tmp/architect-gate/full-prompt.md
+          echo "git diff origin/${{ steps.diff.outputs.base_ref }}...HEAD" >> /tmp/architect-gate/full-prompt.md
+          echo "" >> /tmp/architect-gate/full-prompt.md
+          echo "# See diff for a specific file" >> /tmp/architect-gate/full-prompt.md
+          echo "git diff origin/${{ steps.diff.outputs.base_ref }}...HEAD -- path/to/file" >> /tmp/architect-gate/full-prompt.md
+          echo '```' >> /tmp/architect-gate/full-prompt.md
+
           echo "prompt_path=/tmp/architect-gate/full-prompt.md" >> $GITHUB_OUTPUT
 
           # Show prompt size for metrics
@@ -172,6 +200,12 @@ jobs:
             {
               "model": "claude-sonnet-4-5-20250929"
             }
+          # Without explicit --allowed-tools the action runs Claude with no
+          # tools, so it cannot Read /tmp/pr.diff or run `git diff` to see
+          # what changed — and falls back to "you haven't provided a PR diff".
+          # Mirror chronicle/claude-k8s: Read for files, Grep/Glob for search,
+          # Bash(git*) for diff retrieval.
+          claude_args: "--allowed-tools Read --allowed-tools Grep --allowed-tools Glob --allowed-tools 'Bash(git*)'"
           show_full_output: true
         continue-on-error: true  # Allow retry on failure
 
@@ -186,6 +220,7 @@ jobs:
             {
               "model": "claude-sonnet-4-5-20250929"
             }
+          claude_args: "--allowed-tools Read --allowed-tools Grep --allowed-tools Glob --allowed-tools 'Bash(git*)'"
           show_full_output: true
 
       - name: Save System Architecture Review (SAR)
