@@ -8,6 +8,37 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/en/
 
 No unreleased changes.
 
+## [4.3.0] - 2026-05-26
+
+Two user-facing features land together: a UI config-flow option for the
+existing `logical` trigger type, and an `on_escalated_script` field that
+parallels `on_triggered_script`.
+
+### Added
+
+- **`logical` trigger type is now selectable in the UI** ([#28](https://github.com/issmirnov/emergency_alerts/pull/28)). The evaluator has supported it for ages — combining N `{entity_id, state}` pairs with AND or OR — but the config flow only offered `simple` and `template`. Adds two new fields:
+  - `logical_conditions` — `ObjectSelector` (YAML editor in the HA UI). A list where each item has an `entity_id` and a `state`. The existing JSON/YAML string parser still works for API-created alerts.
+  - `logical_operator` — `and` (default) or `or`.
+
+  Example:
+  ```yaml
+  - entity_id: binary_sensor.front_door
+    state: 'on'
+  - entity_id: binary_sensor.motion_living_room
+    state: 'on'
+  ```
+  With `logical_operator: and` fires only when both are on. Validation
+  rejects empty conditions or items missing `entity_id` / `state`.
+
+- **`on_escalated_script` field** ([#27](https://github.com/issmirnov/emergency_alerts/pull/27)) — new optional config-flow field that mirrors `on_triggered_script`. Point it at a `script.<x>` entity and the integration will call `script.turn_on` against it when the escalation timer fires (alert active and unacknowledged past the escalation timeout). Lets users wire a louder/different notification on escalation without a separate HA automation listening for `select.<alert>_state → escalated`.
+
+  Implementation note: factored out a shared `_resolve_script_field` helper in `binary_sensor.py` so both `_resolve_on_triggered` and `_resolve_on_escalated` follow the same explicit-action-wins-over-script-shortcut contract. The two resolvers stay independent — setting only `on_triggered_script` does NOT cause the escalation to fire it (and vice versa).
+
+### Tests
+
+- 7 new unit tests for the resolvers in `test_binary_sensor.py` covering: returns-None-when-neither-set, synthesizes-`script.turn_on`, explicit-actions-take-precedence, and a specific regression that the trigger and escalation resolvers stay independent.
+- 4 new tests in `test_config_flow.py` covering: schema accepts logical-trigger submissions, `_build_alert_data` rejects logical with no conditions, rejects malformed conditions (missing state), and persists `logical_conditions` + `logical_operator` cleanly.
+
 ## [4.2.2] - 2026-05-26
 
 Cleanup release: gets PRs #24 and #25 into a tagged version, corrects the
