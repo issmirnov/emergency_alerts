@@ -110,7 +110,7 @@ async def test_acknowledge_switch_initialization(hass: HomeAssistant, mock_confi
     )
 
     assert switch._switch_type == SWITCH_TYPE_ACKNOWLEDGE
-    assert switch._attr_name == "Test Alert Acknowledged"
+    assert switch._attr_name == "Acknowledged"  # v4.4.0: short suffix; full label via device + has_entity_name
     assert switch._attr_unique_id == "test_entry_123_test_alert_acknowledged"
     assert switch._attr_icon == "mdi:check-circle-outline"
     assert switch._attr_is_on is False
@@ -178,7 +178,7 @@ async def test_snooze_switch_initialization(hass: HomeAssistant, mock_config_ent
     switch.entity_id = "switch.emergency_test_alert_snoozed"
 
     assert switch._switch_type == SWITCH_TYPE_SNOOZE
-    assert switch._attr_name == "Test Alert Snoozed"
+    assert switch._attr_name == "Snoozed"  # v4.4.0
     assert switch._attr_unique_id == "test_entry_123_test_alert_snoozed"
     assert switch._attr_icon == "mdi:bell-sleep"
     assert switch._attr_is_on is False
@@ -273,7 +273,7 @@ async def test_resolve_switch_initialization(hass: HomeAssistant, mock_config_en
     switch.entity_id = "switch.emergency_test_alert_resolved"
 
     assert switch._switch_type == SWITCH_TYPE_RESOLVE
-    assert switch._attr_name == "Test Alert Resolved"
+    assert switch._attr_name == "Resolved"  # v4.4.0
     assert switch._attr_unique_id == "test_entry_123_test_alert_resolved"
     assert switch._attr_icon == "mdi:check-circle"
     assert switch._attr_is_on is False

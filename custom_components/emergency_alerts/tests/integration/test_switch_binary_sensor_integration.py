@@ -145,3 +145,69 @@ async def test_select_mutual_exclusivity(hass: HomeAssistant, init_group_hub):
     binary_state = hass.states.get(binary_sensor_id)
     assert binary_state.attributes.get("acknowledged") is False
     assert binary_state.attributes.get("snoozed") is True
+
+
+# ---------------------------------------------------------------------------
+# v4.4.0: severity-aware select options + modern naming.
+# ---------------------------------------------------------------------------
+
+
+from custom_components.emergency_alerts.select import (
+    ALERT_STATES,
+    INFO_ALERT_STATES,
+    EmergencyAlertStateSelect,
+)
+
+
+def _build_select(hass, severity: str = "warning"):
+    """Build an EmergencyAlertStateSelect for naming/options tests."""
+    from unittest.mock import MagicMock
+    entry = MagicMock()
+    entry.entry_id = "stub_entry"
+    return EmergencyAlertStateSelect(
+        hass=hass,
+        entry=entry,
+        alert_id="dishwasher_done",
+        alert_data={"name": "Dishwasher Done", "severity": severity},
+    )
+
+
+def test_v4_4_select_uses_has_entity_name_with_status_suffix(hass):
+    """Select friendly_name renders as `<Alert Name> State` via has_entity_name."""
+    s = _build_select(hass)
+    assert s._attr_has_entity_name is True
+    assert s._attr_name == "State"
+    # No leading prefix in the suffix.
+    assert "Emergency:" not in s._attr_name
+
+
+def test_v4_4_select_options_full_state_machine_for_warning(hass):
+    """Warning alerts get the full option list (includes snoozed, escalated)."""
+    s = _build_select(hass, severity="warning")
+    assert s._attr_options == ALERT_STATES
+    assert "snoozed" in s._attr_options
+    assert "escalated" in s._attr_options
+
+
+def test_v4_4_select_options_full_state_machine_for_critical(hass):
+    """Critical severity behaves identically to warning."""
+    s = _build_select(hass, severity="critical")
+    assert s._attr_options == ALERT_STATES
+
+
+def test_v4_4_select_options_ambient_for_info(hass):
+    """Info alerts drop snoozed + escalated; keep ack + resolve."""
+    s = _build_select(hass, severity="info")
+    assert s._attr_options == INFO_ALERT_STATES
+    assert "snoozed" not in s._attr_options, \
+        "info alerts must not allow snooze (they auto-clear)"
+    assert "escalated" not in s._attr_options, \
+        "info alerts must not allow escalation (no on_escalated action target)"
+    # But ack + resolve remain so users can dismiss a card they don't care about.
+    assert "acknowledged" in s._attr_options
+    assert "resolved" in s._attr_options
+
+
+def test_v4_4_info_states_is_strict_subset_of_full_states():
+    """INFO_ALERT_STATES must not introduce any state outside the full set."""
+    assert set(INFO_ALERT_STATES).issubset(set(ALERT_STATES))

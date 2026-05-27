@@ -29,7 +29,11 @@ async def test_simple_trigger_setup(hass: HomeAssistant, mock_config_entry):
 
     sensor = sensors[0]
     assert isinstance(sensor, EmergencyBinarySensor)
-    assert sensor._attr_name == "Emergency: Test Alert"
+    # v4.4.0: device.name carries the alert label, _attr_name is None so HA
+    # renders friendly_name as just the device name (no "Emergency:" prefix).
+    assert sensor._attr_name is None
+    assert sensor._attr_has_entity_name is True
+    assert sensor._attr_device_info["name"] == "Test Alert"
     assert sensor._trigger_type == "simple"
     assert sensor._entity_id == "binary_sensor.test_sensor"
     assert sensor._trigger_state == "on"
@@ -359,3 +363,83 @@ async def test_extra_state_attributes(hass: HomeAssistant, create_binary_sensor)
     # Check severity and group are present
     assert attrs["severity"] == "warning"
     assert attrs["group"] == "security"
+
+
+# ---------------------------------------------------------------------------
+# v4.4.0: modern entity naming + severity-aware state machine.
+# ---------------------------------------------------------------------------
+
+
+def _make_sensor(hass, severity: str = "warning"):
+    """Build an EmergencyBinarySensor with a given severity for naming tests."""
+    from unittest.mock import MagicMock
+    from custom_components.emergency_alerts.binary_sensor import EmergencyBinarySensor
+    entry = MagicMock()
+    entry.entry_id = "stub_entry"
+    entry.data = {"hub_name": "test_hub"}
+    return EmergencyBinarySensor(
+        hass=hass, entry=entry, alert_id="dishwasher_done",
+        alert_data={
+            "name": "Dishwasher Done",
+            "trigger_type": "simple",
+            "entity_id": "binary_sensor.dishwasher_running",
+            "trigger_state": "off",
+            "severity": severity,
+        },
+        group="appliances", hub_name="test_hub",
+    )
+
+
+async def test_v4_4_naming_uses_has_entity_name_with_none_name(hass: HomeAssistant):
+    """v4.4.0: friendly_name renders as just device.name, no Emergency prefix."""
+    s = _make_sensor(hass)
+    assert s._attr_has_entity_name is True, "has_entity_name must be True"
+    assert s._attr_name is None, "_attr_name must be None so HA renders only device.name"
+    # Device name carries the alert label — no 'Emergency Alert: ' prefix.
+    assert s._attr_device_info["name"] == "Dishwasher Done"
+
+
+async def test_v4_4_device_name_has_no_legacy_prefix(hass: HomeAssistant):
+    """No code path should reintroduce the 'Emergency Alert: ' device prefix."""
+    s = _make_sensor(hass)
+    assert "Emergency Alert:" not in s._attr_device_info["name"]
+    assert "Emergency:" not in (s._attr_device_info.get("name") or "")
+
+
+async def test_v4_4_escalation_timer_skipped_for_info_severity(hass: HomeAssistant):
+    """Info-severity alerts must not arm the escalation timer."""
+    s = _make_sensor(hass, severity="info")
+    s.hass = hass
+
+    await s._start_escalation_timer()
+    assert s._escalation_task is None, \
+        "info alerts must not arm the escalation timer"
+
+
+async def test_v4_4_escalation_timer_still_arms_for_warning(hass: HomeAssistant):
+    """Warning alerts (and critical) must still arm the escalation timer."""
+    s = _make_sensor(hass, severity="warning")
+    s.hass = hass
+    # Skip the early-return on remind_after=None by setting a non-zero time.
+    s._remind_after_seconds = 300
+
+    await s._start_escalation_timer()
+    assert s._escalation_task is not None, \
+        "warning alerts must arm the escalation timer"
+    # Cleanup
+    if s._escalation_task:
+        s._escalation_task()
+        s._escalation_task = None
+
+
+async def test_v4_4_escalation_timer_still_arms_for_critical(hass: HomeAssistant):
+    """Critical severity is treated identically to warning here."""
+    s = _make_sensor(hass, severity="critical")
+    s.hass = hass
+    s._remind_after_seconds = 300
+
+    await s._start_escalation_timer()
+    assert s._escalation_task is not None
+    if s._escalation_task:
+        s._escalation_task()
+        s._escalation_task = None

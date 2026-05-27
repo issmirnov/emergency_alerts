@@ -268,21 +268,23 @@ class EmergencyBinarySensor(BinarySensorEntity):
             _resolve_on_escalated(alert_data)
         )
 
-        # Entity attributes
-        self._attr_name = f"Emergency: {name}"
+        # Modern HA naming: the device carries the full label, the entity has
+        # no name of its own. HA frontends render friendly_name as just
+        # `device.name`, eliminating the `<device> <entity>` doubling that
+        # earlier releases worked around with name_by_user overrides.
+        self._attr_has_entity_name = True
+        self._attr_name = None
         self._attr_unique_id = f"emergency_{hub_name}_{alert_id}"
-        # Force a clean entity_id on first registration. Without this, HA
-        # would slugify-combine device.name + entity._attr_name and produce
-        # binary_sensor.emergency_alert_<name>_emergency_<name>. Setting
-        # entity_id directly is the documented way to hint a specific
-        # object_id (HA's entity_platform reads this into
-        # internal_integration_suggested_object_id during async_added_to_hass).
-        # Existing alerts in the entity_registry keep their stored entity_id;
-        # this only affects new alerts.
+        # Pin a clean entity_id on first registration. With has_entity_name=True
+        # and _attr_name=None, HA derives object_id from the device name —
+        # which would be e.g. `binary_sensor.living_room_humidity`, dropping
+        # the `emergency_` namespace prefix. Set entity_id explicitly so the
+        # ID still encodes that this is an emergency_alerts entity. Existing
+        # alerts in the entity_registry keep their stored entity_id.
         self.entity_id = f"binary_sensor.emergency_{alert_id}"
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"alert_{entry.entry_id}_{alert_id}")},
-            "name": f"Emergency Alert: {name}",
+            "name": name,
             "manufacturer": "Emergency Alerts",
             "model": f"{self._severity.title()} Alert",
             "sw_version": "1.0",
@@ -809,7 +811,16 @@ class EmergencyBinarySensor(BinarySensorEntity):
             self._pending_trigger_unsub = None
 
     async def _start_escalation_timer(self):
-        """Start escalation timer (called by switches when un-acknowledging)."""
+        """Start escalation timer (called by switches when un-acknowledging).
+
+        Info-severity alerts are ambient — they auto-clear when the underlying
+        trigger condition flips. Escalating to a louder state makes no sense
+        for them, so we skip the timer entirely. Warning/critical keep the
+        full timer behavior.
+        """
+        if self._severity == "info":
+            return
+
         remind_after = self._get_escalation_time()
         if remind_after is None or remind_after <= 0:
             return

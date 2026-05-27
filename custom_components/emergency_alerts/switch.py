@@ -71,12 +71,13 @@ class BaseEmergencyAlertSwitch(SwitchEntity):
         self._switch_type = switch_type
         self._attr_is_on = False
 
-        # Naming
-        alert_name = alert_data.get("name", alert_id)
-        self._attr_name = f"{alert_name} {switch_name}"
+        # Modern HA naming: device carries the alert name; switch is just the
+        # `<switch_name>` surface (Acknowledge / Snooze / Resolve) on it.
+        self._attr_has_entity_name = True
+        self._attr_name = switch_name
         self._attr_unique_id = f"{entry.entry_id}_{alert_id}_{switch_type}"
 
-        # Device info - link to alert device
+        # Device info - link to alert device (name comes from binary_sensor)
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"alert_{entry.entry_id}_{alert_id}")},
         )
