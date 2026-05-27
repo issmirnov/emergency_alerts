@@ -1,9 +1,14 @@
 pytest>=7.0.0
 pytest-cov>=4.0.0
 pytest-asyncio>=0.21.0
-pytest-homeassistant-custom-component>=0.13.0
+# pin pytest-homeassistant-custom-component to a version that ships HA 2026.2+
+# so OptionsFlow.config_entry is auto-bound (the integration relies on this).
+pytest-homeassistant-custom-component>=0.13.250
 pytest-xdist>=3.0.0
-homeassistant>=2024.1.0
+# True minimum: HA changed OptionsFlow.config_entry to a sealed property in
+# 2026.2 — pre-2026.2 won't bind it and self.config_entry raises AttributeError
+# inside the options flow. Match the floor in hacs.json + manifest.
+homeassistant>=2026.2.0
 freezegun>=1.2.0
 syrupy>=4.0.0
 pytz>=2023.3 

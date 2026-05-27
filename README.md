@@ -35,6 +35,30 @@ Everything is exposed as plain HA entities you can chart, automate against, or w
 - **UI-first** — full visual config flow, zero YAML required to set up alerts.
 - **Zero external runtime dependencies** — pure HA integration.
 
+## How it compares to HA's built-in `alert:` and `notify:`
+
+HA already ships two things that look adjacent. Here's when to use what:
+
+| | **`notify:`** (core) | **`alert:`** (core) | **`emergency_alerts`** (this) |
+|---|---|---|---|
+| Configuration | YAML | YAML | UI config flow |
+| Fires a notification | ✅ | ✅ (loops until ack) | ✅ (via `on_triggered_script` or any action hook) |
+| Has a state | ❌ (fire-and-forget) | `idle` / `on` | full lifecycle: `inactive` / `active` / `acknowledged` / `snoozed` / `escalated` / `resolved` |
+| Trigger types | n/a (caller decides) | state of one entity (`on`/`off`) | simple state match, Jinja template, or logical AND/OR over up to 10 conditions |
+| Sustain duration (alert only after condition is true for N seconds) | ❌ | ❌ | ✅ `for_seconds` field |
+| Acknowledge to silence | ❌ | ✅ (one way: turn off the alert switch) | ✅ (acknowledge / snooze / resolve, exposed as a `select` entity) |
+| Auto-escalation on unacked | ❌ | ❌ | ✅ separate `escalated` state + `on_escalated` action hook |
+| Reminder cadence | ❌ | `repeat:` minutes list | per-alert `remind_after_seconds` |
+| Multiple severity levels | ❌ | ❌ | `info` / `warning` / `critical`, rolled up per hub |
+| Group / hub roll-up sensor | ❌ | ❌ | ✅ `sensor.emergency_alerts_<hub>_summary` |
+| Companion Lovelace card | ❌ | ❌ | ✅ [one-tap ack/snooze/resolve](https://github.com/issmirnov/lovelace-emergency-alerts-card) |
+
+**Use `notify:`** when you just want to *fire* a message — you already detect the condition somewhere else, and you don't need state, ack, or retries.
+
+**Use `alert:`** when YAML is fine and you want a built-in repeat-until-acknowledged loop for a single binary condition. It's stable, in-tree, and zero dependencies.
+
+**Use `emergency_alerts`** when you want any of: a real state machine you can query and dashboard, multi-condition (template/logical) triggers, severity rollups across many alerts, sustain-duration debounce, separate acknowledge / snooze / escalate signals, or no-YAML setup. The trade-off is a custom-integration dependency (HACS) versus core.
+
 ## Companion card
 
 [**lovelace-emergency-alerts-card**](https://github.com/issmirnov/lovelace-emergency-alerts-card) — a dashboard card that renders each alert with one-tap acknowledge / snooze / resolve buttons driving the `select.<alert>_state` entity this integration exposes. Install separately via HACS.
