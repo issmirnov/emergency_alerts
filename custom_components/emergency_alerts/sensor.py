@@ -51,6 +51,8 @@ class EmergencyGlobalSummarySensor(SensorEntity):
 
     def __init__(self, hass):
         self.hass = hass
+        # Global summary isn't tied to a hub device, so it doesn't get the
+        # has_entity_name treatment — friendly_name is exactly this string.
         self._attr_name = "Emergency Alerts Summary"
         self._attr_unique_id = "emergency_alerts_global_summary"
         self._attr_icon = "mdi:alert-circle"
@@ -111,20 +113,22 @@ class EmergencyHubSensor(SensorEntity):
         self._active_alerts: list[str] = []
         self._unsub = None
 
-        self._attr_name = f"Emergency Alerts {group_name.title()} Summary"
+        # Modern HA naming: the hub device carries the group name as its
+        # label; this sensor is just the "Summary" surface on that device.
+        # Frontend renders as e.g. "Thermo Summary" instead of the old
+        # doubled "Emergency Alerts - Thermo Emergency Alerts Thermo Summary".
+        self._attr_has_entity_name = True
+        self._attr_name = "Summary"
         self._attr_unique_id = f"emergency_alerts_hub_{hub_name}"
         self._attr_icon = "mdi:view-dashboard"
-        # Force clean entity_id. Without this, device.name + entity._attr_name
-        # would combine into sensor.emergency_alerts_<group>_emergency_alerts_<group>_summary.
-        # Use group (lowercased) so the entity_id matches the user-facing hub
-        # name from config_flow rather than the internal hub_name slug.
-        # See note in binary_sensor.py.
+        # Pin entity_id so it stays `sensor.emergency_alerts_<group>_summary`.
         self.entity_id = f"sensor.emergency_alerts_{group_name.lower()}_summary"
 
-        # This sensor represents the hub device itself
+        custom = entry.data.get("custom_name")
+        device_name = group_name.title() + (f" ({custom})" if custom else "")
         self._attr_device_info = {
             "identifiers": {(DOMAIN, f"hub_{entry.entry_id}")},
-            "name": f"Emergency Alerts - {group_name.title()}" + (f" ({entry.data.get('custom_name')})" if entry.data.get("custom_name") else ""),
+            "name": device_name,
             "manufacturer": "Emergency Alerts",
             "model": f"{group_name.title()} Hub",
             "sw_version": "1.0",

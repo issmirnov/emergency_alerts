@@ -28,17 +28,25 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# Available states for the select entity. Includes INACTIVE and ESCALATED so the
-# select widget can display a meaningful current value when the alert is not
-# firing (INACTIVE) or has escalated past its ack window (ESCALATED). Previously
-# the sync logic set _attr_current_option to STATE_INACTIVE when the alert was
-# off, but since "inactive" wasn't in this list, the select rendered "unknown".
+# Full state set for warning/critical alerts. Includes INACTIVE so the select
+# widget can render a meaningful "off" value when the alert isn't firing.
 ALERT_STATES = [
     STATE_INACTIVE,
     STATE_ACTIVE,
     STATE_ACKNOWLEDGED,
     STATE_SNOOZED,
     STATE_ESCALATED,
+    STATE_RESOLVED,
+]
+
+# Info-severity alerts are ambient: they auto-clear when the trigger condition
+# flips, so snooze and escalation make no sense. They keep acknowledge +
+# resolve so the user can dismiss a notification they don't care to leave on
+# the dashboard.
+INFO_ALERT_STATES = [
+    STATE_INACTIVE,
+    STATE_ACTIVE,
+    STATE_ACKNOWLEDGED,
     STATE_RESOLVED,
 ]
 
@@ -76,25 +84,27 @@ class EmergencyAlertStateSelect(SelectEntity):
         self._entry = entry
         self._alert_id = alert_id
         self._alert_data = alert_data
-        self._attr_options = ALERT_STATES
+        # Severity decides the option set: info alerts are ambient (no snooze,
+        # no escalation), warning/critical use the full state machine.
+        self._severity = alert_data.get("severity", "warning")
+        self._attr_options = (
+            INFO_ALERT_STATES if self._severity == "info" else ALERT_STATES
+        )
         self._attr_current_option = STATE_ACTIVE
         self._snooze_task = None
 
-        # Naming
-        alert_name = alert_data.get("name", alert_id)
-        self._attr_name = f"{alert_name} State"
+        # Modern HA naming: device carries the alert's display name, the select
+        # entity is just the "State" surface on that device. HA renders this as
+        # `<Alert Name> State` automatically.
+        self._attr_has_entity_name = True
+        self._attr_name = "State"
         self._attr_unique_id = f"{entry.entry_id}_{alert_id}_state"
-        # Force a clean entity_id on first registration. Without this, HA
-        # would slugify-combine device.name + entity._attr_name and produce
-        # select.emergency_alert_<name>_<name>_state. Setting entity_id
-        # directly is the documented way to hint a specific object_id (HA's
-        # entity_platform reads this into internal_integration_suggested_object_id
-        # during async_added_to_hass). Existing selects in the entity_registry
-        # keep their stored entity_id; this only affects new alerts.
+        # Pin entity_id explicitly so it stays `select.<alert>_state` rather
+        # than being derived from device.name + entity._attr_name.
         self.entity_id = f"select.{alert_id}_state"
         self._attr_icon = "mdi:state-machine"
 
-        # Device info - link to alert device
+        # Device info - link to alert device (name comes from binary_sensor)
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"alert_{entry.entry_id}_{alert_id}")},
         )
