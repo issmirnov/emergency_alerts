@@ -6,6 +6,7 @@
 [![Release Date](https://img.shields.io/github/release-date/issmirnov/emergency_alerts?logo=github)](https://github.com/issmirnov/emergency_alerts/releases)
 [![HA Version](https://img.shields.io/badge/HA-2026.2%2B-41BDF5.svg?logo=home-assistant&logoColor=white)](https://www.home-assistant.io)
 [![Python](https://img.shields.io/badge/python-3.13-blue.svg?logo=python&logoColor=white)](https://www.python.org)
+[![Active Installs](https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=active%20installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.emergency_alerts.total)](https://analytics.home-assistant.io/)
 [![Stars](https://img.shields.io/github/stars/issmirnov/emergency_alerts?style=flat&logo=github)](https://github.com/issmirnov/emergency_alerts/stargazers)
 [![Issues](https://img.shields.io/github/issues/issmirnov/emergency_alerts?logo=github)](https://github.com/issmirnov/emergency_alerts/issues)
 [![License](https://img.shields.io/github/license/issmirnov/emergency_alerts)](LICENSE)
