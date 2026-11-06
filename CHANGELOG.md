@@ -18,8 +18,10 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/en/
   with lists.** The handlers compared each alert's entity ID with the call's
   `entity_id` using `==`. Home Assistant sends a list for `target:`, so those
   calls matched nothing and did nothing, with no error. The handlers now use
-  Home Assistant's own target helper and act on every alert named. They also
-  update the State select, which kept its old option even when a call worked.
+  Home Assistant's own target helper and act on every alert named.
+  `acknowledge` now skips alerts that aren't firing. On those, the flag used
+  to carry into the next incident. The services also update the State select,
+  which kept its old option even when a call worked.
   ([#35](https://github.com/issmirnov/emergency_alerts/pull/35))
 
 ## [4.4.0] - 2026-05-27

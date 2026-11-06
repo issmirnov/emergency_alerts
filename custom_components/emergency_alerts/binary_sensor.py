@@ -857,6 +857,13 @@ class EmergencyBinarySensor(BinarySensorEntity):
             self._escalation_task = None
 
     async def async_acknowledge(self):
+        # Only a firing alert can be acknowledged. On an inactive alert the
+        # flag would carry into its next incident and skip its escalation.
+        if not self._is_on:
+            _LOGGER.debug(
+                "Alert %s is not firing; ignoring acknowledge", self._alert_id
+            )
+            return
         self._acknowledged = True
         self._cleared = False
         self._escalated = False

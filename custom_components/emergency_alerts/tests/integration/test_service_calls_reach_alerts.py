@@ -8,6 +8,10 @@ raised no error. Only a bare string under ``data:`` worked.
 
 Even then, the State select never heard about the change and kept showing
 its old option.
+
+Once lists worked, acknowledging a list could also mark an inactive alert
+acknowledged. Its next incident then started out acknowledged and skipped
+its escalation timer.
 """
 
 import pytest
@@ -133,3 +137,49 @@ async def test_clear_service_updates_the_state_select(
     assert (
         hass.states.get("select.front_door_state").state == "inactive"
     ), "The State select did not follow the clear service."
+
+
+@pytest.mark.integration
+async def test_list_acknowledge_leaves_inactive_alerts_alone(
+    hass: HomeAssistant, two_door_alerts
+):
+    """Acknowledging a list skips the alerts in it that aren't firing."""
+    hass.states.async_set(BACK_SOURCE, "off")
+    await hass.async_block_till_done()
+
+    await hass.services.async_call(
+        DOMAIN, "acknowledge", {"entity_id": [FRONT, BACK]}, blocking=True
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(FRONT).attributes["status"] == "acknowledged"
+    assert (
+        hass.states.get(BACK).attributes["acknowledged"] is False
+    ), "acknowledge marked an alert acknowledged while it wasn't firing."
+
+    hass.states.async_set(BACK_SOURCE, "on")
+    await hass.async_block_till_done()
+    assert (
+        hass.states.get(BACK).attributes["status"] == "active"
+    ), "The inactive alert's next incident started out acknowledged."
+
+
+@pytest.mark.integration
+async def test_escalate_service_updates_the_state_select(
+    hass: HomeAssistant, two_door_alerts
+):
+    """Escalating an acknowledged alert moves the State select off it."""
+    await hass.services.async_call(
+        "select",
+        "select_option",
+        {"entity_id": "select.front_door_state", "option": "acknowledged"},
+        blocking=True,
+    )
+    await hass.services.async_call(
+        DOMAIN, "escalate", {"entity_id": FRONT}, blocking=True
+    )
+    await hass.async_block_till_done()
+
+    assert hass.states.get(FRONT).attributes["status"] == "escalated"
+    assert (
+        hass.states.get("select.front_door_state").state != "acknowledged"
+    ), "The State select did not follow the escalate service."
