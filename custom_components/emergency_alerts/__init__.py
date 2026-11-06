@@ -1,22 +1,49 @@
+import logging
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.components.persistent_notification import async_create
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.service import async_extract_entity_ids
 
 DOMAIN = "emergency_alerts"
 
+_LOGGER = logging.getLogger(__name__)
+
+
+def _link_alert_devices_to_hub(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Make each alert device hang off its hub device in the device registry.
+
+    The link used to come from ``via_device`` in the alert's device info. HA
+    deprecated that key, and it stops working in 2027.8. Its replacement,
+    ``via_device_id``, is not a device info key in HA 2026.2. The device
+    registry accepts ``via_device_id`` on every supported version.
+
+    The devices come from listing this entry's devices. HA 2026.10 also
+    deprecates ``async_get_device``, and its replacements don't exist in
+    HA 2026.2.
+    """
+    dev_reg = dr.async_get(hass)
+    devices = dr.async_entries_for_config_entry(dev_reg, entry.entry_id)
+    hub_identifier = (DOMAIN, f"hub_{entry.entry_id}")
+    hub = next(
+        (device for device in devices if hub_identifier in device.identifiers), None
+    )
+    if hub is None:
+        return
+    alert_identifiers = {
+        (DOMAIN, f"alert_{entry.entry_id}_{alert_id}")
+        for alert_id in entry.data.get("alerts", {})
+    }
+    for device in devices:
+        if device.identifiers & alert_identifiers and device.via_device_id != hub.id:
+            dev_reg.async_update_device(device.id, via_device_id=hub.id)
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up Emergency Alerts from a config entry."""
-    import logging
-    _LOGGER = logging.getLogger(__name__)
-    
-    # DEBUG: Log entry data to diagnose translation issues
-    _LOGGER.warning(f"[DEBUG] Setting up entry: {entry.title}")
-    _LOGGER.warning(f"[DEBUG] Entry ID: {entry.entry_id}")
-    _LOGGER.warning(f"[DEBUG] Entry data: {entry.data}")
-    _LOGGER.warning(f"[DEBUG] Entry options: {entry.options}")
-    
+    _LOGGER.debug("Setting up entry %s (%s)", entry.title, entry.entry_id)
+
     # Initialize the data structure for storing entities
     if DOMAIN not in hass.data:
         hass.data[DOMAIN] = {}
@@ -44,6 +71,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     elif hub_type == "group":
         # Group hub - forward to binary_sensor, sensor, and select platforms
         await hass.config_entries.async_forward_entry_setups(entry, ["binary_sensor", "sensor", "select"])
+        _link_alert_devices_to_hub(hass, entry)
 
     # Register services only once (when first entry is added)
     if "services_registered" not in hass.data[DOMAIN]:

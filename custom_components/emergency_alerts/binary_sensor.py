@@ -288,7 +288,8 @@ class EmergencyBinarySensor(BinarySensorEntity):
             "manufacturer": "Emergency Alerts",
             "model": f"{self._severity.title()} Alert",
             "sw_version": "1.0",
-            "via_device": (DOMAIN, f"hub_{entry.entry_id}"),
+            # No via_device: HA deprecated it. __init__.py links the alert
+            # device to its hub through the device registry instead.
         }
 
         # State tracking

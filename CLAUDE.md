@@ -113,6 +113,8 @@ This section grows as patterns and preferences are discovered during work on thi
 - **Template triggers use `async_track_template_result`**, not `async_track_state_change_event([])` — the latter subscribes to nothing and never re-evaluates (PR #14).
 - **Alert services resolve targets with `async_extract_entity_ids(call)`.** `target: entity_id:` reaches the handler as a list, so comparing `call.data["entity_id"]` with `==` matches nothing and fails silently (PR #35).
 - **Every alert state change must reach the State select.** The select updates only on the per-alert dispatcher signal `f"{SIGNAL_ALERT_UPDATE}_{entry_id}_{alert_id}"`. A method that changes the alert's flags without sending it leaves the select on a stale option (PR #35).
+- **Never put `via_device` in device info.** HA deprecated it, and it stops working in 2027.8. Its replacement `via_device_id` is not a device info key on HA 2026.2. `_link_alert_devices_to_hub()` in `__init__.py` links alert devices to their hub through the device registry after the platforms load (PR #37).
+- **Don't look devices up with `async_get_device`.** HA 2026.10 deprecates it (it stops working in 2027.8), and its replacements, such as `async_get_device_by_identifier`, don't exist in HA 2026.2. List the entry's devices with `dr.async_entries_for_config_entry()` and match identifiers (PR #37).
 
 ### Known Gotchas
 - **Lint job is theater** (see CI Gotchas above).
