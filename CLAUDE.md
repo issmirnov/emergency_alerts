@@ -99,7 +99,7 @@ python scripts/validate_integration.py
 - **No E2E in CI**: `e2e-tests/` Playwright suite is not invoked by any workflow.
 - **No branch protection on `main`**: no required status checks; green CI is not actually enforced before merge.
 - **Codecov upload fails silently** (`fail_ci_if_error: false`); coverage data is not actually being collected upstream.
-- Schedule: daily cron at 00:00 UTC catches HA version drift.
+- Schedule: daily cron at 00:00 UTC. It can't catch drift past HA 2026.2.x: on Python 3.13, pip installs nothing newer than HA 2026.2.3, and HA 2026.10 needs Python 3.14.2+. On HA 2026.10.4 the suite shows 3 teardown errors, because the select's snooze timer is a bare `asyncio.create_task` and the newer test harness reports it as a lingering task.
 
 ## Project Intelligence
 
@@ -111,6 +111,8 @@ This section grows as patterns and preferences are discovered during work on thi
 - **`on_triggered_script` is resolved**, not raw — `_resolve_on_triggered()` in `binary_sensor.py` synthesizes a `script.turn_on` call from the UI's script field. Goes into `data.entity_id` (not `target`) because `_execute_action` only forwards `data`.
 - **Alert IDs are slugified** via `_slugify_alert_id()` in `config_flow.py` to handle names like `Smoke/CO Detector`.
 - **Template triggers use `async_track_template_result`**, not `async_track_state_change_event([])` — the latter subscribes to nothing and never re-evaluates (PR #14).
+- **Alert services resolve targets with `async_extract_entity_ids(call)`.** `target: entity_id:` reaches the handler as a list, so comparing `call.data["entity_id"]` with `==` matches nothing and fails silently (PR #35).
+- **Every alert state change must reach the State select.** The select updates only on the per-alert dispatcher signal `f"{SIGNAL_ALERT_UPDATE}_{entry_id}_{alert_id}"`. A method that changes the alert's flags without sending it leaves the select on a stale option (PR #35).
 
 ### Known Gotchas
 - **Lint job is theater** (see CI Gotchas above).
