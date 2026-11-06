@@ -1,6 +1,7 @@
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.components.persistent_notification import async_create
+from homeassistant.helpers.service import async_extract_entity_ids
 
 DOMAIN = "emergency_alerts"
 
@@ -46,26 +47,30 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     # Register services only once (when first entry is added)
     if "services_registered" not in hass.data[DOMAIN]:
+        async def _targeted_alerts(call):
+            """Return the alert entities that a service call names.
+
+            ``entity_id`` arrives as a string or a list (``target:`` always
+            sends a list), so let HA's own helper resolve it.
+            """
+            entity_ids = await async_extract_entity_ids(call)
+            return [
+                entity
+                for entity in hass.data.get(DOMAIN, {}).get("entities", [])
+                if entity.entity_id in entity_ids
+            ]
+
         async def handle_acknowledge(call):
-            entity_id = call.data.get("entity_id")
-            for entity in hass.data.get(DOMAIN, {}).get("entities", []):
-                if entity.entity_id == entity_id:
-                    await entity.async_acknowledge()
-                    break
+            for entity in await _targeted_alerts(call):
+                await entity.async_acknowledge()
 
         async def handle_clear(call):
-            entity_id = call.data.get("entity_id")
-            for entity in hass.data.get(DOMAIN, {}).get("entities", []):
-                if entity.entity_id == entity_id:
-                    await entity.async_clear()
-                    break
+            for entity in await _targeted_alerts(call):
+                await entity.async_clear()
 
         async def handle_escalate(call):
-            entity_id = call.data.get("entity_id")
-            for entity in hass.data.get(DOMAIN, {}).get("entities", []):
-                if entity.entity_id == entity_id:
-                    await entity.async_escalate()
-                    break
+            for entity in await _targeted_alerts(call):
+                await entity.async_escalate()
 
         # Service to add alert to a group hub
         async def handle_add_alert(call):

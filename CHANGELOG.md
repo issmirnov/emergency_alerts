@@ -6,7 +6,21 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/en/
 
 ## [Unreleased]
 
-No unreleased changes.
+### Fixed
+
+- **An acknowledgement no longer carries over to the next incident.** When an
+  alert's condition cleared, the alert stayed acknowledged, and the State
+  select kept reading "acknowledged" while the alert was off. The next
+  incident then started out acknowledged, before anyone had seen it. Warning
+  and critical alerts in that state never armed their escalation timer.
+  ([#35](https://github.com/issmirnov/emergency_alerts/pull/35))
+- **The `acknowledge`, `clear` and `escalate` services work with `target:` and
+  with lists.** The handlers compared each alert's entity ID with the call's
+  `entity_id` using `==`. Home Assistant sends a list for `target:`, so those
+  calls matched nothing and did nothing, with no error. The handlers now use
+  Home Assistant's own target helper and act on every alert named. They also
+  update the State select, which kept its old option even when a call worked.
+  ([#35](https://github.com/issmirnov/emergency_alerts/pull/35))
 
 ## [4.4.0] - 2026-05-27
 

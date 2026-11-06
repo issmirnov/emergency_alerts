@@ -666,6 +666,10 @@ class EmergencyBinarySensor(BinarySensorEntity):
         if self._escalated:
             self._escalated = False
 
+        # An acknowledgement answers one incident. Keeping it would start the
+        # next incident acknowledged, so it would skip its escalation timer.
+        self._acknowledged = False
+
         self.async_write_ha_state()
         self._update_status_sensor()
         self._cancel_escalation_timer()
@@ -860,6 +864,10 @@ class EmergencyBinarySensor(BinarySensorEntity):
         self.async_write_ha_state()
         self._update_status_sensor()
         async_dispatcher_send(self.hass, SUMMARY_UPDATE_SIGNAL)
+        async_dispatcher_send(
+            self.hass,
+            f"{SIGNAL_ALERT_UPDATE}_{self._entry.entry_id}_{self._alert_id}",
+        )
 
     async def async_clear(self):
         """Manually clear the alert."""
@@ -875,6 +883,10 @@ class EmergencyBinarySensor(BinarySensorEntity):
         self._cancel_escalation_timer()
         self._update_status_sensor()
         async_dispatcher_send(self.hass, SUMMARY_UPDATE_SIGNAL)
+        async_dispatcher_send(
+            self.hass,
+            f"{SIGNAL_ALERT_UPDATE}_{self._entry.entry_id}_{self._alert_id}",
+        )
 
     async def async_escalate(self):
         """Manually escalate the alert."""
@@ -886,6 +898,10 @@ class EmergencyBinarySensor(BinarySensorEntity):
             self._call_actions(self._on_escalated)
             self._update_status_sensor()
             async_dispatcher_send(self.hass, SUMMARY_UPDATE_SIGNAL)
+            async_dispatcher_send(
+                self.hass,
+                f"{SIGNAL_ALERT_UPDATE}_{self._entry.entry_id}_{self._alert_id}",
+            )
 
     def get_status(self):
         """Get current alert status."""
