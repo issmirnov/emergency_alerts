@@ -6,6 +6,14 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/en/
 
 ## [Unreleased]
 
+No unreleased changes.
+
+## [4.4.1] - 2026-11-05
+
+Fixes the acknowledge path. An alert acknowledged once now escalates normally
+on its next incident. Automations can also acknowledge, clear and escalate
+alerts with `target:`.
+
 ### Fixed
 
 - **An acknowledgement no longer carries over to the next incident.** When an
@@ -23,6 +31,12 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/en/
   to carry into the next incident. The services also update the State select,
   which kept its old option even when a call worked.
   ([#35](https://github.com/issmirnov/emergency_alerts/pull/35))
+
+### Added
+
+- **Brand icon.** The integration ships its own icon in `brand/`, which Home
+  Assistant 2026.3 and later show in HACS and on the integrations page.
+  ([#33](https://github.com/issmirnov/emergency_alerts/pull/33))
 
 ## [4.4.0] - 2026-05-27
 
