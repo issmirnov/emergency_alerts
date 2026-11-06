@@ -6,6 +6,14 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/en/
 
 ## [Unreleased]
 
+No unreleased changes.
+
+## [4.4.2] - 2026-11-05
+
+Quiets the startup log on Home Assistant 2026.10. The integration no longer
+triggers deprecation warnings, and it no longer writes each hub's
+configuration to the log.
+
 ### Fixed
 
 - **No more `via_device` deprecation warning at startup.** Home Assistant
