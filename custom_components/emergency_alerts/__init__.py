@@ -18,16 +18,25 @@ def _link_alert_devices_to_hub(hass: HomeAssistant, entry: ConfigEntry) -> None:
     deprecated that key, and it stops working in 2027.8. Its replacement,
     ``via_device_id``, is not a device info key in HA 2026.2. The device
     registry accepts ``via_device_id`` on every supported version.
+
+    The devices come from listing this entry's devices. HA 2026.10 also
+    deprecates ``async_get_device``, and its replacements don't exist in
+    HA 2026.2.
     """
     dev_reg = dr.async_get(hass)
-    hub = dev_reg.async_get_device(identifiers={(DOMAIN, f"hub_{entry.entry_id}")})
+    devices = dr.async_entries_for_config_entry(dev_reg, entry.entry_id)
+    hub_identifier = (DOMAIN, f"hub_{entry.entry_id}")
+    hub = next(
+        (device for device in devices if hub_identifier in device.identifiers), None
+    )
     if hub is None:
         return
-    for alert_id in entry.data.get("alerts", {}):
-        device = dev_reg.async_get_device(
-            identifiers={(DOMAIN, f"alert_{entry.entry_id}_{alert_id}")}
-        )
-        if device is not None and device.via_device_id != hub.id:
+    alert_identifiers = {
+        (DOMAIN, f"alert_{entry.entry_id}_{alert_id}")
+        for alert_id in entry.data.get("alerts", {})
+    }
+    for device in devices:
+        if device.identifiers & alert_identifiers and device.via_device_id != hub.id:
             dev_reg.async_update_device(device.id, via_device_id=hub.id)
 
 

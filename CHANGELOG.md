@@ -11,8 +11,9 @@ The format is loosely based on [Keep a Changelog](https://keepachangelog.com/en/
 - **No more `via_device` deprecation warning at startup.** Home Assistant
   2026.10 warns on every startup that the integration passes the deprecated
   `via_device` device setting. That setting stops working in Home Assistant
-  2027.8. Alert devices now link to their hub through the device registry,
-  which works on every supported Home Assistant version.
+  2027.8. Alert devices now link to their hub through the device registry.
+  That works on every supported Home Assistant version and logs no
+  deprecation warnings.
   ([#37](https://github.com/issmirnov/emergency_alerts/pull/37))
 - **Startup no longer writes every hub's configuration to the log.** Each
   startup logged four `[DEBUG]` lines per hub at warning level, including the

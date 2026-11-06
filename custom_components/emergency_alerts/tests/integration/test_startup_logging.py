@@ -4,6 +4,11 @@ Before the fix, ``async_setup_entry`` logged four ``[DEBUG]`` lines at WARNING
 level for every config entry on every startup, one of them the entry's full
 data. They were left over from diagnosing a translation bug, and they filled
 the Home Assistant log with each hub's complete alert configuration.
+
+Home Assistant's own warnings about the integration count too. HA 2026.10
+logs deprecation warnings that name the integration through
+``homeassistant.helpers.frame``. Two examples are ``via_device`` in device
+info and ``device_registry.async_get_device``.
 """
 
 import logging
@@ -17,7 +22,7 @@ from custom_components.emergency_alerts.const import DOMAIN
 
 @pytest.mark.integration
 async def test_setup_logs_nothing_at_warning_level(hass: HomeAssistant, caplog):
-    """A normal hub setup logs no warnings from the integration."""
+    """A normal hub setup logs no warnings from or about the integration."""
     entry = MockConfigEntry(
         domain=DOMAIN,
         version=2,
@@ -52,4 +57,15 @@ async def test_setup_logs_nothing_at_warning_level(hass: HomeAssistant, caplog):
     assert not warnings, (
         f"Hub setup logged at warning level: {warnings}. Startup log noise "
         "bug regressed."
+    )
+
+    deprecations = [
+        record.getMessage()
+        for record in caplog.records
+        if record.name == "homeassistant.helpers.frame"
+        and "emergency_alerts" in record.getMessage()
+    ]
+    assert not deprecations, (
+        f"Hub setup triggered HA deprecation warnings: {deprecations}. "
+        "Startup log noise bug regressed."
     )

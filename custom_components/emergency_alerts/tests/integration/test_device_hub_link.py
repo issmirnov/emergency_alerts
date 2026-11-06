@@ -61,10 +61,12 @@ async def test_alert_device_links_to_hub_without_via_device(hass: HomeAssistant)
         "via_device deprecation bug regressed."
     )
 
-    dev_reg = dr.async_get(hass)
-    hub = dev_reg.async_get_device(identifiers={(DOMAIN, f"hub_{entry.entry_id}")})
-    alert = dev_reg.async_get_device(
-        identifiers={(DOMAIN, f"alert_{entry.entry_id}_door_alert")}
-    )
+    # List the entry's devices: HA 2026.10 deprecates async_get_device.
+    devices = dr.async_entries_for_config_entry(dr.async_get(hass), entry.entry_id)
+    by_identifier = {
+        identifier: device for device in devices for identifier in device.identifiers
+    }
+    hub = by_identifier.get((DOMAIN, f"hub_{entry.entry_id}"))
+    alert = by_identifier.get((DOMAIN, f"alert_{entry.entry_id}_door_alert"))
     assert hub is not None and alert is not None
     assert alert.via_device_id == hub.id, "The alert device lost its hub link."
